@@ -153,7 +153,7 @@ if (!isset($_SESSION['admin_email'])) {
         $temp_admin_image = $_FILES['admin_image']['tmp_name'];
 
         if (!empty($admin_image)) {
-            move_uploaded_file($temp_admin_image, "admin_images/$admin_image");
+            move_uploaded_file($temp_admin_image, __DIR__ . "/../../admin_images/$admin_image");
         } else {
             $admin_image = $new_admin_image;
         }
@@ -163,7 +163,7 @@ if (!isset($_SESSION['admin_email'])) {
 
         if ($run_admin) {
             echo "<script>Swal.fire({title: 'Notification', text: 'Your profile has been updated successfully. Please login again to see changes.', icon: 'success'});</script>";
-            echo "<script>window.open('../../pages/auth/login.php','_self')</script>";
+            echo "<script>window.open('pages/auth/login.php','_self')</script>";
             session_destroy();
         }
     }

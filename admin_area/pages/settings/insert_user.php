@@ -297,4 +297,34 @@ if (isset($_POST['submit'])) {
             reader.readAsDataURL(input.files[0]);
         }
     }
+
+    (function() {
+        var superToggle = document.querySelector('input[name="is_super_admin"]');
+        if (!superToggle) return;
+
+        var permInputs = document.querySelectorAll('input[name="permissions[]"]');
+
+        function applySuper(isSuper) {
+            permInputs.forEach(function(chk) {
+                if (isSuper) {
+                    chk.checked = false;
+                    chk.disabled = true;
+                    chk.closest('.toggle-switch').style.opacity = '0.4';
+                    chk.closest('.toggle-switch').style.pointerEvents = 'none';
+                } else {
+                    chk.disabled = false;
+                    chk.closest('.toggle-switch').style.opacity = '';
+                    chk.closest('.toggle-switch').style.pointerEvents = '';
+                }
+            });
+        }
+
+        // Apply on page load
+        applySuper(superToggle.checked);
+
+        // Apply on change
+        superToggle.addEventListener('change', function() {
+            applySuper(this.checked);
+        });
+    })();
 </script>
