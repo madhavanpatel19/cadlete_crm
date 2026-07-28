@@ -1,6 +1,11 @@
 <?php
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 header('Content-Type: application/json');
-if (!isset($con)) { include(__DIR__ . '/../../includes/db.php'); }
+if (!isset($con)) {
+    include(__DIR__ . '/../../includes/db.php');
+}
 if (!isset($_SESSION['admin_email'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit();
@@ -36,14 +41,14 @@ try {
             $desc = mysqli_real_escape_string($con, $phase['description']);
             $cost = floatval($phase['cost']);
             $received = floatval($phase['received_amount']);
-            $date = !empty($phase['received_date']) ? "'".mysqli_real_escape_string($con, $phase['received_date'])."'" : "NULL";
+            $date = !empty($phase['received_date']) ? "'" . mysqli_real_escape_string($con, $phase['received_date']) . "'" : "NULL";
             $remark = mysqli_real_escape_string($con, $phase['remark']);
 
             $total_cost += $cost;
 
             $insert = "INSERT INTO project_budget_phases (project_id, phase_name, description, cost, received_amount, received_date, remark) 
                        VALUES ('$project_id', '$name', '$desc', '$cost', '$received', $date, '$remark')";
-            
+
             if (!mysqli_query($con, $insert)) {
                 throw new Exception("Error inserting phase: " . mysqli_error($con));
             }
@@ -52,15 +57,13 @@ try {
 
     $currency = isset($_POST['currency']) ? mysqli_real_escape_string($con, $_POST['currency']) : 'INR';
 
-    // Update the main project budget and currency
-    $update_project = "UPDATE client_projects SET budget = '$total_cost', currency = '$currency' WHERE id = '$project_id'";
+    // Update currency on main project (preserve overall project budget)
+    $update_project = "UPDATE client_projects SET currency = '$currency' WHERE id = '$project_id'";
     mysqli_query($con, $update_project);
 
     mysqli_commit($con);
     echo json_encode(['success' => true, 'message' => 'Budget saved successfully']);
-
 } catch (Exception $e) {
     mysqli_rollback($con);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
-?>

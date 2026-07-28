@@ -22,6 +22,29 @@ $today    = date('Y-m-d');
 $res          = mysqli_query($con, "SELECT * FROM attendance WHERE emp_id='$emp_id' AND attendance_date='$today'");
 $today_record = mysqli_fetch_assoc($res);
 
+if ($today_record) {
+    $att_id = (int)$today_record['id'];
+    $logs_res = mysqli_query($con, "SELECT * FROM attendance_logs WHERE att_id = $att_id ORDER BY action_time ASC");
+    if ($logs_res && mysqli_num_rows($logs_res) > 0) {
+        $events = [];
+        while ($lr = mysqli_fetch_assoc($logs_res)) {
+            $events[] = $lr;
+        }
+        $sum_secs = 0;
+        $current_start = null;
+        foreach ($events as $ev) {
+            if (in_array($ev['action'], ['check_in', 'resume'])) {
+                $current_start = $ev;
+            } elseif (in_array($ev['action'], ['pause', 'check_out']) && $current_start) {
+                $start_ts = strtotime($current_start['action_time']);
+                $end_ts   = strtotime($ev['action_time']);
+                $sum_secs += max(0, $end_ts - $start_ts);
+                $current_start = null;
+            }
+        }
+        $today_record['total_duration_secs'] = $sum_secs;
+    }
+}
 // ── Latest Announcement ───────────────────────────────────────
 $latest_announcement = "";
 $has_announcement = false;
@@ -82,7 +105,7 @@ $week_data = [];
 $week_total_secs = 0;
 if ($week_res) {
     while ($r = mysqli_fetch_assoc($week_res)) {
-        $secs = (int)$r['total_duration_secs'];
+        $secs = ($r['attendance_date'] == $today && isset($today_record['total_duration_secs'])) ? (int)$today_record['total_duration_secs'] : (int)$r['total_duration_secs'];
         if ($r['attendance_date'] == $today && $r['is_working'] && $r['last_resume_time']) {
             $secs += time() - strtotime($r['last_resume_time']);
         }
@@ -111,7 +134,7 @@ $max_week = max(array_column($week_secs_arr, 'secs')) ?: 1;
 // ── Today's logged duration ───────────────────────────────────
 $today_secs = (int)($today_record['total_duration_secs'] ?? 0);
 if ($today_record && $today_record['is_working']) {
-    $startTime = (!empty($today_record['total_duration_secs']) && $today_record['total_duration_secs'] > 0) ? $today_record['last_resume_time'] : ($today . ' ' . $today_record['check_in_time']);
+    $startTime = !empty($today_record['last_resume_time']) ? $today_record['last_resume_time'] : ($today . ' ' . $today_record['check_in_time']);
     if ($startTime) {
         $today_secs += time() - strtotime($startTime);
     }
@@ -1375,15 +1398,15 @@ function getResourceTypePhp($url)
                 <form class="form-horizontal">
                     <div class="form-group">
                         <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Date</label>
-                        <div class="col-md-8"><input type="date" class="form-control" style="border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;" value="<?php echo date('Y-m-d'); ?>" readonly></div>
+                        <div class="col-md-8"><input type="date" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='var(--p-bg-color)'; this.style.boxShadow='0 4px 10px rgba(166, 166, 167, 0.2)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';" value="<?php echo date('Y-m-d'); ?>" readonly></div>
                     </div>
                     <div class="form-group">
                         <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Check-in <span class="text-danger">*</span></label>
-                        <div class="col-md-8"><input type="time" id="modalCheckInTime" class="form-control" style="border-radius:10px;border:1px solid #e2e8f0;" required></div>
+                        <div class="col-md-8"><input type="time" id="modalCheckInTime" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='var(--p-bg-color)'; this.style.boxShadow='0 4px 10px rgba(166, 166, 167, 0.2)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';" required readonly></div>
                     </div>
                     <div class="form-group">
                         <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Check-out <span class="text-danger">*</span></label>
-                        <div class="col-md-8"><input type="time" id="modalCheckOutTime" class="form-control" style="border-radius:10px;border:1px solid #e2e8f0;" required></div>
+                        <div class="col-md-8"><input type="time" id="modalCheckOutTime" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='var(--p-bg-color)'; this.style.boxShadow='0 4px 10px rgba(166, 166, 167, 0.2)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';" required readonly></div>
                     </div>
                     <div class="form-group">
                         <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Work Details <span class="text-danger">*</span></label>

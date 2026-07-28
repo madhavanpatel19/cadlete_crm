@@ -247,16 +247,11 @@ if ($action == 'check_in') {
         $photos_json = !empty($uploaded_photos) ? mysqli_real_escape_string($con, json_encode($uploaded_photos)) : '';
 
         if (!empty($manual_in) && !empty($manual_out)) {
-            $original_in      = $row['check_in_time'];
-            $last_resume      = $row['last_resume_time'];
-            $base_timer       = (int)$row['total_duration_secs'];
-            if ($row['is_working'] == 1) {
-                $manual_out_dt    = $today . ' ' . $manual_out;
-                $segment_duration = strtotime($manual_out_dt) - strtotime($last_resume);
-                $base_timer      += max(0, $segment_duration);
-            }
-            $in_diff      = strtotime($today . ' ' . $manual_in) - strtotime($today . ' ' . $original_in);
-            $new_duration = max(0, $base_timer - $in_diff);
+           $last_resume      = !empty($row['last_resume_time']) ? $row['last_resume_time'] : ($today . ' ' . $row['check_in_time']);
+            $manual_out_dt    = $today . ' ' . $manual_out;
+            $segment_duration = max(0, strtotime($manual_out_dt) - strtotime($last_resume));
+            $base_timer       = ($row['is_working'] == 1) ? (int)$row['total_duration_secs'] : 0;
+            $new_duration     = $base_timer + $segment_duration;
 
             $status = 'present';
             $tstamp = strtotime('1970-01-01 ' . $manual_in);

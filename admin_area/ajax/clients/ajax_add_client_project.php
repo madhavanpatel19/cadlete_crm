@@ -1,6 +1,11 @@
 <?php
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 header('Content-Type: application/json');
-if (!isset($con)) { include(__DIR__ . '/../../includes/db.php'); }
+if (!isset($con)) {
+    include(__DIR__ . '/../../includes/db.php');
+}
 if (!function_exists('canAdminAccess')) {
     require_once __DIR__ . '/../../includes/admin_permissions.php';
 }

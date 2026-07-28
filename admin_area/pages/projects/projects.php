@@ -1747,6 +1747,12 @@ $run_projects = mysqli_query($con, $get_projects);
         calculateTotals();
     });
 
+    $('#phaseEditModal').on('hidden.bs.modal', function() {
+        if ($('#projectBudgetModal').hasClass('in') || $('#projectBudgetModal').is(':visible')) {
+            $('body').addClass('modal-open');
+        }
+    });
+
     $('#phase_edit_name').on('change', function() {
         const option = $(this).find('option:selected');
         if (option.val()) {

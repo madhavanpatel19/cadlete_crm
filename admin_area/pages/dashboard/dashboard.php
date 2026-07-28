@@ -452,7 +452,7 @@ if ($res && mysqli_num_rows($res) > 0) {
             <tbody>
                 <?php
                 // We already have $today defined in dashboard.php around line 81
-                $q_worklog = "SELECT a.*, e.name, e.employee_image FROM attendance a JOIN emp_list e ON a.emp_id = e.id WHERE a.attendance_date = '$today' ORDER BY a.check_in_time DESC LIMIT 5";
+                $q_worklog = "SELECT a.*, e.name, e.employee_image FROM attendance a JOIN emp_list e ON a.emp_id = e.id WHERE a.attendance_date = '$today' ORDER BY a.check_in_time DESC";
                 $run_worklog = mysqli_query($con, $q_worklog);
                 if ($run_worklog && mysqli_num_rows($run_worklog) > 0) {
                     while ($att_row = mysqli_fetch_assoc($run_worklog)) {
@@ -464,19 +464,36 @@ if ($res && mysqli_num_rows($res) > 0) {
 
                         $total_secs = isset($att_row['total_duration_secs']) ? (int)$att_row['total_duration_secs'] : 0;
                         $is_working_val = isset($att_row['is_working']) ? (int)$att_row['is_working'] : 0;
-
-                        // If total_secs is 0 but check_in and check_out exist, compute diff
-                        if ($total_secs == 0 && !empty($att_row['check_out_time']) && !empty($att_row['check_in_time'])) {
-                            $diff = strtotime($att_row['check_out_time']) - strtotime($att_row['check_in_time']);
-                            if ($diff > 0) $total_secs = $diff;
-                        }
+                         
+                        // Recalculate total_secs from attendance_logs if logs exist for this record
+                        $att_id_row = (int)$att_row['id'];
+                        $row_logs_res = mysqli_query($con, "SELECT * FROM attendance_logs WHERE att_id = $att_id_row ORDER BY action_time ASC");
+                        if ($row_logs_res && mysqli_num_rows($row_logs_res) > 0) {
+                            $events_row = [];
+                            while ($lr_row = mysqli_fetch_assoc($row_logs_res)) {
+                                $events_row[] = $lr_row;
+                            }
+                            $sum_row_secs = 0;
+                            $cur_start_row = null;
+                            foreach ($events_row as $ev_row) {
+                                if (in_array($ev_row['action'], ['check_in', 'resume'])) {
+                                    $cur_start_row = $ev_row;
+                                } elseif (in_array($ev_row['action'], ['pause', 'check_out']) && $cur_start_row) {
+                                    $s_ts = strtotime($cur_start_row['action_time']);
+                                    $e_ts = strtotime($ev_row['action_time']);
+                                    $sum_row_secs += max(0, $e_ts - $s_ts);
+                                    $cur_start_row = null;
+                                }
+                            }
+                            $total_secs = $sum_row_secs;
+                          }
 
                         // Currently working = is_working is 1 (regardless of present/late status)
                         $currently_working = ($is_working_val == 1);
                         $dot_color = $currently_working ? '#10b981' : '#ef4444';
-                        
+
                         if ($currently_working) {
-                            $start_time_calc = ($total_secs > 0 && !empty($att_row['last_resume_time'])) ? $att_row['last_resume_time'] : ($today . ' ' . $att_row['check_in_time']);
+                            $start_time_calc = !empty($att_row['last_resume_time']) ? $att_row['last_resume_time'] : ($today . ' ' . $att_row['check_in_time']);
                             if (!empty($start_time_calc)) {
                                 $diff = time() - strtotime($start_time_calc);
                                 if ($diff > 0) {
@@ -520,7 +537,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                 ?>
                         <tr>
                             <td style="text-align: center; vertical-align: middle;">
-                                <div class="emp-info" style="justify-content: center;">
+                                <div class="emp-info" style="justify-content: left;">
                                     <img src="<?php echo $e_img; ?>" alt="<?php echo $e_name; ?>">
                                     <span><?php echo $e_name; ?></span>
                                 </div>

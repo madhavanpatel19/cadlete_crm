@@ -126,6 +126,16 @@ if ($current_start && $is_live) {
     ];
 }
 
+// Recalculate total duration from segments if segments exist so Total Duration matches actual working segments sum
+if (count($segments) > 0) {
+    $sum_seg_secs = 0;
+    foreach ($segments as $s) {
+        $sum_seg_secs += $s['duration_secs'];
+    }
+    $duration_secs = $sum_seg_secs;
+    $duration_fmt = fmtDur($duration_secs);
+}
+
 // Check if there's a check_out event in the logs to use as a fallback
 $last_log_checkout = null;
 foreach ($events as $ev) {
