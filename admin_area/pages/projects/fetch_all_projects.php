@@ -31,6 +31,8 @@ if (!$is_super_admin_proj && $current_admin_id_proj > 0) {
 
 $status_filter = isset($_GET['status']) ? mysqli_real_escape_string($con, $_GET['status']) : '';
 $source_filter = isset($_GET['source']) ? mysqli_real_escape_string($con, $_GET['source']) : '';
+$cost_filter   = isset($_GET['cost']) ? mysqli_real_escape_string($con, $_GET['cost']) : '';
+$search_filter = isset($_GET['search']) ? mysqli_real_escape_string($con, $_GET['search']) : '';
 
 $where_clause = " WHERE cp.deleted_at IS NULL AND c.deleted_at IS NULL $admin_project_filter ";
 if ($status_filter !== "") {
@@ -39,13 +41,65 @@ if ($status_filter !== "") {
 if ($source_filter !== "") {
     $where_clause .= " AND cp.source LIKE '%$source_filter%' ";
 }
+if ($search_filter !== "") {
+    $search_clean = trim($search_filter);
+    $search_clean = ltrim($search_clean, '#');
+
+    $emp_id_matches = [];
+    $get_matching_emps = mysqli_query($con, "SELECT id FROM emp_list WHERE name LIKE '%$search_clean%'");
+    if ($get_matching_emps && mysqli_num_rows($get_matching_emps) > 0) {
+        while ($e_row = mysqli_fetch_assoc($get_matching_emps)) {
+            $emp_id_matches[] = (int)$e_row['id'];
+        }
+    }
+
+    $emp_where = "";
+    if (!empty($emp_id_matches)) {
+        $emp_conditions = [];
+        foreach ($emp_id_matches as $e_id) {
+            $emp_conditions[] = "FIND_IN_SET('$e_id', REPLACE(cp.assigned_employees, ' ', '')) > 0";
+        }
+        $emp_where = " OR " . implode(" OR ", $emp_conditions);
+    }
+
+    $full_match = "(cp.project_name LIKE '%$search_clean%' OR c.name LIKE '%$search_clean%' OR cp.id LIKE '%$search_clean%' OR cp.source LIKE '%$search_clean%' OR cp.status LIKE '%$search_clean%' $emp_where)";
+
+    $words = array_filter(explode(' ', $search_clean), function ($w) {
+        return strlen(trim($w)) > 1;
+    });
+
+    if (count($words) > 1) {
+        $word_clauses = [];
+        foreach ($words as $w) {
+            $w_esc = mysqli_real_escape_string($con, $w);
+            $word_clauses[] = "(cp.project_name LIKE '%$w_esc%' OR c.name LIKE '%$w_esc%' OR cp.id LIKE '%$w_esc%' OR cp.source LIKE '%$w_esc%' OR cp.status LIKE '%$w_esc%')";
+        }
+        $all_words_clause = "(" . implode(" AND ", $word_clauses) . ")";
+        $where_clause .= " AND ($full_match OR $all_words_clause) ";
+    } else {
+        $where_clause .= " AND $full_match ";
+    }
+}
 
 $page = isset($_GET['page']) && intval($_GET['page']) > 0 ? intval($_GET['page']) : 1;
 $limit = 10;
 $offset = ($page - 1) * $limit;
 
-$get_projects = "SELECT cp.*, c.name as client_name, c.image FROM client_projects cp JOIN clients c ON cp.client_id = c.id $where_clause ORDER BY cp.id DESC LIMIT $offset, $limit";
+$order_by = " ORDER BY cp.id DESC ";
+if ($cost_filter === 'high_to_low') {
+    $order_by = " ORDER BY CAST(cp.budget AS DECIMAL(15,2)) DESC, cp.id DESC ";
+} elseif ($cost_filter === 'low_to_high') {
+    $order_by = " ORDER BY CAST(cp.budget AS DECIMAL(15,2)) ASC, cp.id DESC ";
+}
+
+$get_projects = "SELECT cp.*, c.name as client_name, c.image FROM client_projects cp JOIN clients c ON cp.client_id = c.id $where_clause $order_by LIMIT $offset, $limit";
 $run_projects = mysqli_query($con, $get_projects);
+
+// Automatic Fallback: If current offset returned 0 rows but matching projects exist in DB, query from offset 0
+if ($run_projects && mysqli_num_rows($run_projects) == 0 && ($search_filter !== "" || $status_filter !== "" || $source_filter !== "" || $cost_filter !== "" || $page > 1)) {
+    $get_projects = "SELECT cp.*, c.name as client_name, c.image FROM client_projects cp JOIN clients c ON cp.client_id = c.id $where_clause $order_by LIMIT 0, $limit";
+    $run_projects = mysqli_query($con, $get_projects);
+}
 
 
 if (!$run_projects) {
@@ -115,12 +169,17 @@ if (mysqli_num_rows($run_projects) > 0) {
                             if ($emp) {
                                 $isHidden = $i >= $limit ? 'display: none;' : '';
                                 $hiddenClass = $i >= $limit ? 'hidden-employee' : '';
+                                $empName = htmlspecialchars($emp['name'] ?? '');
 
                                 if (!empty($emp['employee_image'])) {
-                                    echo '<img src="uploads/' . htmlspecialchars($emp['employee_image']) . '" title="' . htmlspecialchars($emp['name'] ?? '') . '" style="' . $isHidden . '" class="' . $hiddenClass . '">';
+                                    echo '<span class="emp-avatar-item ' . $hiddenClass . '" data-tooltip="' . $empName . '" style="' . $isHidden . '">';
+                                    echo '<img src="uploads/' . htmlspecialchars($emp['employee_image']) . '">';
+                                    echo '</span>';
                                 } else {
                                     $initial = strtoupper(substr($emp['name'] ?? 'U', 0, 1));
-                                    echo '<div class="emp-initial ' . $hiddenClass . '" title="' . htmlspecialchars($emp['name'] ?? '') . '" style="' . $isHidden . '">' . $initial . '</div>';
+                                    echo '<span class="emp-avatar-item ' . $hiddenClass . '" data-tooltip="' . $empName . '" style="' . $isHidden . '">';
+                                    echo '<div class="emp-initial">' . $initial . '</div>';
+                                    echo '</span>';
                                 }
                                 $i++;
                             }
@@ -128,7 +187,7 @@ if (mysqli_num_rows($run_projects) > 0) {
                     }
 
                     if ($i > $limit) {
-                        echo '<span class="more" onclick="this.parentElement.querySelectorAll(\'.hidden-employee\').forEach(el => el.style.display = \'flex\'); this.style.display = \'none\';" title="Show all">+' . ($i - $limit) . '</span>';
+                        echo '<span class="more emp-avatar-item" data-tooltip="Show all" onclick="this.parentElement.querySelectorAll(\'.hidden-employee\').forEach(el => el.style.display = \'inline-flex\'); this.style.display = \'none\';">+' . ($i - $limit) . '</span>';
                     }
 
                     echo '</div>';
@@ -136,11 +195,11 @@ if (mysqli_num_rows($run_projects) > 0) {
                 </div>
             </td>
             <?php if (canAdminAccess('project_source_view')): ?>
-            <td>
-                <span style="font-size: 12px; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; width: 90px; display: inline-block; white-space: normal; word-wrap: break-word;"><?php echo htmlspecialchars($source ?: '-'); ?></span>
-            </td>
+                <td style="text-align: center;">
+                    <span style="font-size: 12px; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; width: 90px; display: inline-block; white-space: normal; word-wrap: break-word;"><?php echo htmlspecialchars($source ?: '-'); ?></span>
+                </td>
             <?php endif; ?>
-            <td style="color: #64748b; font-size: 13px; font-weight: 700;">
+            <td style="color: #64748b; font-size: 13px; font-weight: 700; text-align: center;">
                 <i class="fa fa-calendar-o" style="margin-right: 5px;"></i> <?php echo $project_date; ?>
             </td>
             <td style="text-align: center;">
@@ -155,13 +214,8 @@ if (mysqli_num_rows($run_projects) > 0) {
             </td>
             <td style="text-align: center;">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <button class="btn-icon-premium" onclick="viewDocs(<?php echo $project_id; ?>, 'documents')"
-                        style="width: 38px; height: 38px; background: #FFEAEB;" title="Artifact Repository">
-                        <i class="fa fa-folder-open" style="color: #DF2127; font-size: 13px;"></i>
-                    </button>
-                    <button class="btn-icon-premium" onclick="viewDocs(<?php echo $project_id; ?>, 'links')"
-                        style="width: 38px; height: 38px; background: #FFEAEB;" title="Link Hub">
-                        <i class="fa fa-link" style="color: #DF2127; font-size: 13px;"></i>
+                    <button class="btn-icon-premium btn-icon-folder" onclick="viewDocs(<?php echo $project_id; ?>, 'documents')" title="Artifact Repository">
+                        <i class="fa fa-folder-open"></i>
                     </button>
                 </div>
             </td>
@@ -185,24 +239,21 @@ if (mysqli_num_rows($run_projects) > 0) {
             <td style="text-align: center;">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                     <?php if (canAdminAccess('project_assign_task')): ?>
-                        <button class="btn-icon-premium" onclick="window.location.href='index.php?team_todo&project_id=<?php echo $project_id; ?>'"
-                            style="width: 32px; height: 32px; font-size: 12px; background: #fffbeb; border-color: #fef3c7;" title="Team To-Do">
-                            <i class="fa fa-list-alt" style="color: #f59e0b;"></i>
+                        <button class="btn-icon-premium btn-icon-sm btn-icon-warning" onclick="window.location.href='index.php?team_todo&project_id=<?php echo $project_id; ?>'" title="Team To-Do">
+                            <i class="fa fa-list-alt"></i>
                         </button>
                     <?php endif; ?>
-                    <button class="btn-icon-premium btn-toggle-history" style="width: 32px; height: 32px; font-size: 12px; background: #f5f3ff; border-color: #ede9fe;" title="View History">
-                        <i class="fa fa-history history-toggle-icon" style="color: #7c3aed;"></i>
+                    <button class="btn-icon-premium btn-icon-sm btn-icon-history btn-toggle-history" title="View History">
+                        <i class="fa fa-history history-toggle-icon"></i>
                     </button>
                     <?php if (canAdminAccess('project_update')): ?>
-                        <button class="btn-icon-premium" onclick="window.location.href='index.php?edit_project=<?php echo $project_id; ?>'"
-                            style="width: 32px; height: 32px; font-size: 12px; background: #f0f9ff; border-color: #e0f2fe;" title="Edit Project">
-                            <i class="fa fa-pencil" style="color: #0284c7;"></i>
+                        <button class="btn-icon-premium btn-icon-sm btn-icon-edit" onclick="window.location.href='index.php?edit_project=<?php echo $project_id; ?>'" title="Edit Project">
+                            <i class="fa fa-pencil"></i>
                         </button>
                     <?php endif; ?>
                     <?php if (canAdminAccess('project_delete')): ?>
-                        <button class="btn-icon-premium" onclick="deleteProject(<?php echo $project_id; ?>, '<?php echo addslashes($p['project_name']); ?>')"
-                            style="width: 32px; height: 32px; font-size: 12px; background: #fef2f2; border-color: #fee2e2;" title="Delete Project">
-                            <i class="fa fa-trash-o" style="color: #ef4444;"></i>
+                        <button class="btn-icon-premium btn-icon-sm btn-icon-delete" onclick="deleteProject(<?php echo $project_id; ?>, '<?php echo addslashes($p['project_name']); ?>')" title="Delete Project">
+                            <i class="fa fa-trash-o"></i>
                         </button>
                     <?php endif; ?>
                 </div>
@@ -214,26 +265,50 @@ if (mysqli_num_rows($run_projects) > 0) {
                     <div class="row">
                         <div class="col-md-7">
                             <div class="timeline-container-premium" style="background: transparent; border: none; padding: 0; margin-bottom: 0;">
-                                <div class="timeline-header-premium" style="margin-bottom: 25px; display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">
-                                    <i class="fa fa-history" style="color: #6366f1; font-size: 14px;"></i>
-                                    <span>Project Activity Timeline</span>
+                                <div class="timeline-header-premium" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">
+                                        <i class="fa fa-history" style="color: #dd2127; font-size: 14px;"></i>
+                                        <span>Project Activity Timeline</span>
+                                    </div>
+                                    <a href="download_progress_report.php?project_id=<?php echo $project_id; ?>" target="_blank" style="background: #ffeaeb; color: #dd2127; border: 1px solid #ffeaeb; border-radius: 8px; padding: 6px 14px; font-size: 11px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                        <i class="fa fa-download"></i> Download Progress Report
+                                    </a>
                                 </div>
                                 <div class="timeline-visual-wrapper" style="max-height: 250px; overflow-y: auto; overflow-x: hidden; padding-right: 15px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
                                     <div class="timeline-vertical-line" style="left: 4px;"></div>
                                     <div class="remarks-history-premium" style="position: relative; padding-left: 0;">
                                         <?php
+                                        // Ensure posted_by column exists
+                                        try {
+                                            @mysqli_query($con, "ALTER TABLE client_project_remarks ADD COLUMN posted_by VARCHAR(255) DEFAULT NULL");
+                                        } catch (Exception $e) {
+                                        }
+
                                         $get_remarks = "SELECT * FROM client_project_remarks WHERE project_id = $project_id ORDER BY created_at DESC";
                                         $run_remarks = mysqli_query($con, $get_remarks);
                                         if (mysqli_num_rows($run_remarks) > 0) {
                                             while ($r = mysqli_fetch_assoc($run_remarks)) {
+                                                $poster = !empty($r['posted_by']) ? htmlspecialchars($r['posted_by']) : '';
+                                                if (empty($poster)) {
+                                                    $poster = (strpos($r['remark'], 'System:') === 0) ? 'System' : 'Team Member';
+                                                }
+                                                $is_sys = (strtolower($poster) === 'system');
+                                                $poster_badge_bg = $is_sys ? '#f1f5f9' : '#eff6ff';
+                                                $poster_badge_color = $is_sys ? '#64748b' : '#2563eb';
+                                                $poster_icon = $is_sys ? 'fa-cog' : 'fa-user';
                                         ?>
                                                 <div class="timeline-remark-item" style="margin-bottom: 25px; position: relative; padding-left: 32px; width: 100%;">
                                                     <div class="timeline-dot" style="left: 0;"></div>
                                                     <div class="remark-content-box" style="padding-left: 20px;">
-                                                        <div class="remark-time-premium" style="margin-bottom: 8px;">
-                                                            <i class="fa fa-clock-o"></i> <?php echo date('d M Y • h:i A', strtotime($r['created_at'])); ?>
+                                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                                            <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: #ffeaeb; color: #dd2127; display: inline-flex; align-items: center; gap: 4px;">
+                                                                <i class="fa <?php echo $poster_icon; ?>"></i> <?php echo $poster; ?>
+                                                            </span>
+                                                            <div class="remark-time-premium" style="margin: 0; font-size: 11px;">
+                                                                <i class="fa fa-clock-o"></i> <?php echo date('d M Y • h:i A', strtotime($r['created_at'])); ?>
+                                                            </div>
                                                         </div>
-                                                        <div class="remark-text-premium"><?php echo nl2br(htmlspecialchars($r['remark'])); ?></div>
+                                                        <div class="remark-text-premium" style="font-size: 13px; color: #334155; font-weight: 600;"><?php echo nl2br(htmlspecialchars($r['remark'])); ?></div>
                                                     </div>
                                                 </div>
                                         <?php
@@ -252,12 +327,12 @@ if (mysqli_num_rows($run_projects) > 0) {
                         <div class="col-md-5">
                             <div class="remark-action-premium glass-card-premium" style="padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08);">
                                 <h4 style="font-size: 11px; font-weight: 950; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                                    <div style="width: 8px; height: 8px; background: #6366f1; border-radius: 50%;"></div>
+                                    <div style="width: 8px; height: 8px; background: #dd2127; border-radius: 50%;"></div>
                                     Post Progress Update
                                 </h4>
-                                <div class="action-input-wrapper" style="flex-direction: column; gap: 20px;">
-                                    <textarea class="remark-textarea p-input-premium" style="width: 100%; height: 120px; resize: none; font-size: 14px;" placeholder="What milestone was achieved today?"></textarea>
-                                    <button type="button" class="add-remark-btn-premium add-remark-btn" data-project-id="<?php echo $project_id; ?>" style="width: 100%; height: 50px; font-size: 14px; background: #0f172a; color: #fff; border: none; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; font-weight: 700; gap: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                <div class="action-input-wrapper" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+                                    <textarea class="remark-textarea p-input-premium" style="width: 100%; height: 120px; resize: none; font-size: 14px; box-sizing: border-box;" placeholder="What milestone was achieved today?"></textarea>
+                                    <button type="button" class="add-remark-btn" data-project-id="<?php echo $project_id; ?>" style="width: 100%; height: 48px; font-size: 14px; background: #dd2127; color: #ffffff; border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; font-weight: 700; gap: 8px; box-shadow: 0 4px 12px rgba(221, 33, 39, 0.2); box-sizing: border-box;">
                                         <i class="fa fa-send"></i> Post Update
                                     </button>
                                 </div>

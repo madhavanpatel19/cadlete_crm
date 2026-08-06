@@ -114,29 +114,6 @@ if (!$client_data) {
         border-bottom: 1px solid #f1f5f9 !important;
     }
 
-    .btn-icon-premium {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #fff;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 12px;
-        width: 38px;
-        height: 38px;
-        transition: 0.3s;
-        cursor: pointer;
-        color: #64748b;
-        text-decoration: none !important;
-    }
-
-    .btn-icon-premium:hover {
-        background: #f8fafc;
-        border-color: #1e293b;
-        color: #1e293b;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-
     .timeline-visual-wrapper {
         position: relative;
         padding-left: 20px;
@@ -249,8 +226,8 @@ if (!$client_data) {
 
     .p-input-premium:focus {
         background: #fff;
-        border-color: #6366f1 !important;
-        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+        border-color: #dd2127 !important;
+        box-shadow: 0 0 0 3px #ffeaeb !important;
     }
 
     .id-badge-premium {
@@ -536,14 +513,20 @@ if (!$client_data) {
                 success: function(response) {
                     btn.prop('disabled', false).html('<i class="fa fa-send"></i>');
                     if (response.success) {
+                        const posterName = response.posted_by || 'You';
                         const newRemark = $(`
                         <div class="timeline-remark-item" style="margin-bottom: 25px; position: relative; padding-left: 32px; display: none; width: 100%;">
-                            <div class="timeline-dot" style="left: 0; background: #6366f1; border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);"></div>
-                            <div class="remark-content-box" style="border-left: 4px solid #6366f1; padding-left: 20px;">
-                                <div class="remark-time-premium" style="margin-bottom: 8px;">
-                                    <i class="fa fa-clock-o"></i> JUST NOW
+                            <div class="timeline-dot" style="left: 0; background: #dd2127; border-color: #dd2127; box-shadow: 0 0 0 4px rgba(221, 33, 39, 0.1);"></div>
+                            <div class="remark-content-box" style="border-left: 4px solid #dd2127; padding-left: 20px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                    <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: #eff6ff; color: #dd2127; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i class="fa fa-user"></i> ${posterName}
+                                    </span>
+                                    <div class="remark-time-premium" style="margin: 0; font-size: 11px;">
+                                        <i class="fa fa-clock-o"></i> JUST NOW
+                                    </div>
                                 </div>
-                                <div class="remark-text-premium">${remarkText.replace(/\n/g, '<br>')}</div>
+                                <div class="remark-text-premium" style="font-size: 13px; color: #334155; font-weight: 600;">${remarkText.replace(/\n/g, '<br>')}</div>
                             </div>
                         </div>`);
 

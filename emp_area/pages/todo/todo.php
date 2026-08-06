@@ -14,8 +14,8 @@ $emp_id = $_SESSION['emp_id'];
 $filter_date = isset($_GET['date']) ? mysqli_real_escape_string($con, $_GET['date']) : date('Y-m-d');
 
 // Fetch todos assigned to this employee
-// Pending tasks (status=0) show up every day
-// Completed tasks (status=1) only show up on the selected filter_date (based on due_date or created_at)
+// Pending tasks (status=0) show up first
+// Completed tasks (status=1) show up at the bottom of the table, filtered by selected date
 $query = "SELECT t.*, p.project_name, c.name as client_name 
           FROM project_team_todos t 
           LEFT JOIN client_projects p ON t.project_id = p.id 
@@ -41,31 +41,29 @@ $result = mysqli_query($con, $query);
                 </button>
             </div>
         </div>
+
         <div class="col-lg-12">
             <div class="premium-card" style="border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 25px -5px rgba(0,0,0,0.08); background: #fff;">
                 <div class="card-hdr" style="background: var(--p-bg-header); color: #fff; padding: 18px 25px; display: flex; align-items: center; gap: 12px; border: none;">
                     <i class="fa fa-list-ol" style="font-size: 16px; color: #fff;"></i>
                     <h3 style="margin: 0; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #fff;">Assigned Tasks</h3>
                 </div>
-                <div style="overflow-x: auto;">
+                <div class="table-responsive">
                     <table class="table-premium" style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr style="background: #fcfdfe; border-bottom: 1.5px solid #f1f5f9;">
-                                <th style="width: 60px; text-align: center; padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">ID</th>
-                                <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Task Details</th>
-                                <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Project</th>
-                                <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Due Date</th>
-                                <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Priority</th>
-                                <th style="text-align: center; padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+                                <th style="text-align: center;">ID</th>
+                                <th style="text-align: center;">Task Details</th>
+                                <th style="text-align: center;">Project</th>
+                                <th style="text-align: center;">Due Date</th>
+                                <th style="text-align: center;">Priority</th>
+                                <th style="text-align: center;">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if ($result && mysqli_num_rows($result) > 0) : ?>
                                 <?php while ($row = mysqli_fetch_assoc($result)) :
-                                    // Status
                                     $is_completed = intval($row['status']) === 1;
-                                    $status_label = $is_completed ? 'Completed' : 'Pending';
-                                    $status_badge = $is_completed ? 'background: #ecfdf5; color: #059669;' : 'background: #fff7ed; color: #ea580c;';
 
                                     // Priority badge
                                     $priority = strtolower($row['priority'] ?? 'medium');
@@ -76,16 +74,16 @@ $result = mysqli_query($con, $query);
 
                                     $proj_name = !empty($row['project_name']) ? htmlspecialchars($row['project_name']) : 'Global Task';
                                 ?>
-                                    <tr style="border-bottom: 1px solid #f1f5f9; <?php echo $is_completed ? 'opacity: 0.7;' : ''; ?>">
+                                    <tr style="border-bottom: 1px solid #f1f5f9; <?php echo $is_completed ? 'background: #fafafa;' : ''; ?>">
                                         <td style="text-align: center; font-weight: 700; color: #64748b;">
-                                            <span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:12px;">#<?php echo str_pad($row['id'], 3, '0', STR_PAD_LEFT); ?></span>
+                                            <span style="background:<?php echo $is_completed ? '#e2e8f0' : '#f1f5f9'; ?>; padding:4px 8px; border-radius:6px; font-size:12px; color:<?php echo $is_completed ? '#475569' : '#64748b'; ?>;">#<?php echo str_pad($row['id'], 3, '0', STR_PAD_LEFT); ?></span>
                                         </td>
                                         <td>
-                                            <div style="font-weight: 700; color: #1e293b; font-size: 14px; <?php echo $is_completed ? 'text-decoration: line-through; color: #94a3b8;' : ''; ?>">
+                                            <div style="font-weight: 700; color: <?php echo $is_completed ? '#64748b' : '#1e293b'; ?>; font-size: 14px; text-align: left; <?php echo $is_completed ? 'text-decoration: line-through;' : ''; ?>">
                                                 <?php echo htmlspecialchars($row['task_name']); ?>
                                             </div>
                                         </td>
-                                        <td>
+                                        <td style="text-align: center;">
                                             <div style="font-weight: 700; color: #334155; font-size: 13px;">
                                                 <?php echo $proj_name; ?>
                                             </div>
@@ -95,18 +93,24 @@ $result = mysqli_query($con, $query);
                                                 </div>
                                             <?php endif; ?>
                                         </td>
-                                        <td style="font-weight: 600; color: #475569; font-size: 13px;">
+                                        <td style="font-weight: 600; color: #475569; font-size: 13px; text-align: center;">
                                             <?php echo !empty($row['due_date']) ? date('d M Y', strtotime($row['due_date'])) : '--'; ?>
                                         </td>
-                                        <td>
-                                            <span style="padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; <?php echo $priority_badge; ?> display: inline-block;">
+                                        <td style="text-align: center;">
+                                            <span style="padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; <?php echo $priority_badge; ?> display: inline-block; <?php echo $is_completed ? 'opacity: 0.8;' : ''; ?>">
                                                 <?php echo ucfirst($priority); ?>
                                             </span>
                                         </td>
                                         <td style="text-align: center; padding: 15px;">
-                                            <span style="padding: 6px 14px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; <?php echo $status_badge; ?> display: inline-block; min-width: 90px;">
-                                                <?php echo $status_label; ?>
-                                            </span>
+                                            <?php if (!$is_completed): ?>
+                                                <button type="button" onclick="completeTodoTask(<?php echo $row['id']; ?>, this)" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 8px; padding: 6px 14px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.2s;">
+                                                    <i class="fa fa-check"></i> Mark Complete
+                                                </button>
+                                            <?php else: ?>
+                                                <span style="padding: 6px 14px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; display: inline-flex; align-items: center; gap: 5px;">
+                                                    <i class="fa fa-check-circle"></i> Completed
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
@@ -132,6 +136,7 @@ $result = mysqli_query($con, $query);
     <div class="modal-dialog" role="document">
         <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.2);">
             <div class="modal-header" style="border-bottom: 1px solid #f1f5f9; padding: 20px 24px; background: #ffeaeb; border-radius: 14px 14px 0 0; position: relative;">
+
                 <div style="display: flex; align-items: center; width: 100%; gap: 12px;">
                     <div style="width: 36px; height: 36px; background: #dc2626; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                         <i class="fa fa-tasks" style="color: #fff; font-size: 14px;"></i>
@@ -164,8 +169,8 @@ $result = mysqli_query($con, $query);
                         </select>
                     </div>
                     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                        <button type="button" data-dismiss="modal" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; color: #64748b; font-weight: 600; padding: 10px 20px; cursor: pointer; font-size: 13px;">Cancel</button>
-                        <button type="submit" id="btn-save-todo" style="background: #df2127; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">Save Task</button>
+                        <button type="button" data-dismiss="modal" class="btn-premium-cancel">Cancel</button>
+                        <button type="submit" id="btn-save-todo" class="btn-premium-add">Save Task</button>
                     </div>
                 </form>
             </div>
@@ -206,4 +211,29 @@ $result = mysqli_query($con, $query);
             });
         });
     });
+
+    function completeTodoTask(taskId, btn) {
+        const $btn = $(btn);
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Completing...');
+        $.ajax({
+            url: 'ajax_toggle_todo.php',
+            type: 'POST',
+            data: {
+                task_id: taskId
+            },
+            dataType: 'json',
+            success: function(r) {
+                if (r.success) {
+                    location.reload();
+                } else {
+                    alert(r.message || 'Failed to complete task.');
+                    $btn.prop('disabled', false).html('<i class="fa fa-check"></i> Mark Complete');
+                }
+            },
+            error: function() {
+                alert('Network error while completing task.');
+                $btn.prop('disabled', false).html('<i class="fa fa-check"></i> Mark Complete');
+            }
+        });
+    }
 </script>

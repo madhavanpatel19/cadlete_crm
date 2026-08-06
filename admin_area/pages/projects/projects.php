@@ -31,6 +31,8 @@ $run_clients = mysqli_query($con, $get_clients);
 
 
 $status_filter = isset($_GET['status']) ? mysqli_real_escape_string($con, $_GET['status']) : '';
+$source_filter = isset($_GET['source']) ? mysqli_real_escape_string($con, $_GET['source']) : '';
+$search = isset($_GET['search']) ? mysqli_real_escape_string($con, $_GET['search']) : '';
 
 
 // Count projects for Cards (scoped to visible projects)
@@ -43,17 +45,57 @@ $employees = mysqli_fetch_assoc(mysqli_query($con, "SELECT assigned_employees fr
 /* ==============================
    PAGINATION SETUP & QUERIES
 ============================== */
-$limit = 5; // Number of records per page
+$limit = 10; // Number of records per page
 $page = isset($_GET['page']) && intval($_GET['page']) > 0 ? intval($_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
 $start_from = $offset;
 
-$where_clause = " WHERE deleted_at IS NULL $admin_project_filter ";
-if ($status_filter) $where_clause .= " AND status='$status_filter' ";
+$where_clause = " WHERE cp.deleted_at IS NULL AND c.deleted_at IS NULL $admin_project_filter ";
+if ($status_filter) $where_clause .= " AND cp.status='$status_filter' ";
+if ($source_filter) $where_clause .= " AND cp.source LIKE '%$source_filter%' ";
+if ($search) {
+    $search_clean = trim($search);
+    $search_clean = ltrim($search_clean, '#');
+
+    $emp_id_matches = [];
+    $get_matching_emps = mysqli_query($con, "SELECT id FROM emp_list WHERE name LIKE '%$search_clean%'");
+    if ($get_matching_emps && mysqli_num_rows($get_matching_emps) > 0) {
+        while ($e_row = mysqli_fetch_assoc($get_matching_emps)) {
+            $emp_id_matches[] = (int)$e_row['id'];
+        }
+    }
+
+    $emp_where = "";
+    if (!empty($emp_id_matches)) {
+        $emp_conditions = [];
+        foreach ($emp_id_matches as $e_id) {
+            $emp_conditions[] = "FIND_IN_SET('$e_id', REPLACE(cp.assigned_employees, ' ', '')) > 0";
+        }
+        $emp_where = " OR " . implode(" OR ", $emp_conditions);
+    }
+
+    $full_match = "(cp.project_name LIKE '%$search_clean%' OR c.name LIKE '%$search_clean%' OR cp.id LIKE '%$search_clean%' OR cp.source LIKE '%$search_clean%' OR cp.status LIKE '%$search_clean%' $emp_where)";
+
+    $words = array_filter(explode(' ', $search_clean), function ($w) {
+        return strlen(trim($w)) > 1;
+    });
+
+    if (count($words) > 1) {
+        $word_clauses = [];
+        foreach ($words as $w) {
+            $w_esc = mysqli_real_escape_string($con, $w);
+            $word_clauses[] = "(cp.project_name LIKE '%$w_esc%' OR c.name LIKE '%$w_esc%' OR cp.id LIKE '%$w_esc%' OR cp.source LIKE '%$w_esc%' OR cp.status LIKE '%$w_esc%')";
+        }
+        $all_words_clause = "(" . implode(" AND ", $word_clauses) . ")";
+        $where_clause .= " AND ($full_match OR $all_words_clause) ";
+    } else {
+        $where_clause .= " AND $full_match ";
+    }
+}
 
 
 // Count total records with filters
-$countSql = "SELECT COUNT(*) as total FROM client_projects" . $where_clause;
+$countSql = "SELECT COUNT(*) as total FROM client_projects cp JOIN clients c ON cp.client_id = c.id " . $where_clause;
 $countResult = mysqli_query($con, $countSql);
 $totalRecords = 0;
 if ($countResult) {
@@ -64,7 +106,7 @@ $totalPages = ceil($totalRecords / $limit);
 $total_pages = $totalPages;
 
 // Get filtered records for current page
-$get_projects = "SELECT * FROM client_projects $where_clause ORDER BY id DESC LIMIT $offset, $limit";
+$get_projects = "SELECT cp.*, c.name as client_name, c.image FROM client_projects cp JOIN clients c ON cp.client_id = c.id $where_clause ORDER BY cp.id DESC LIMIT $offset, $limit";
 $run_projects = mysqli_query($con, $get_projects);
 
 
@@ -77,6 +119,10 @@ $run_projects = mysqli_query($con, $get_projects);
             Global Project Portfolio -->
         </h1>
         <div class="header-actions-premium" style="display: flex; gap: 12px; align-items: center;">
+            <div style="position: relative;">
+                <i class="fa fa-search" style="position: absolute; left: 15px; top: 13px; color: #94a3b8;"></i>
+                <input type="text" id="header_search" class="p-input-premium" placeholder=" Search... " value="<?php echo htmlspecialchars($search); ?>" style="padding-left: 40px; height: 42px; width: 300px; font-size: 14px;" onchange="applyColumnFilter('search', this.value)">
+            </div>
             <?php if (canAdminAccess('project_insert')): ?>
                 <a href="index.php?add_project" class="btn-premium-add">
                     <i class="fa fa-plus"></i> Add New Project
@@ -104,7 +150,7 @@ $run_projects = mysqli_query($con, $get_projects);
                 <i class="fa fa-folder-open"></i>
             </div>
             <div class="stat-card-body">
-                <div class="stat-card-title">Current Projects</div>
+                <div class="stat-card-title">Active Projects</div>
                 <div class="stat-card-value"><?php echo $active_projects; ?></div>
             </div>
         </div>
@@ -115,7 +161,7 @@ $run_projects = mysqli_query($con, $get_projects);
                 <i class="fa fa-check-circle"></i>
             </div>
             <div class="stat-card-body">
-                <div class="stat-card-title">Done Projects</div>
+                <div class="stat-card-title">Completed Projects</div>
                 <div class="stat-card-value"><?php echo $completed_projects; ?></div>
             </div>
         </div>
@@ -126,7 +172,7 @@ $run_projects = mysqli_query($con, $get_projects);
                 <i class="fa fa-clock-o"></i>
             </div>
             <div class="stat-card-body">
-                <div class="stat-card-title">Waiting Projects</div>
+                <div class="stat-card-title">Pending Projects</div>
                 <div class="stat-card-value"><?php echo $pending_projects; ?></div>
             </div>
         </div>
@@ -160,7 +206,6 @@ $run_projects = mysqli_query($con, $get_projects);
                                         </div>
                                         <select id="sourceSelect" onchange="applySourceFilter(this.value)"
                                             style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;">
-                                            <option value="">Platform</option>
                                             <?php
                                             $source_filter = isset($_GET['source']) ? $_GET['source'] : '';
                                             $get_all_sources = "SELECT * FROM lead_sources WHERE deleted_at IS NULL ORDER BY source_name ASC";
@@ -175,7 +220,27 @@ $run_projects = mysqli_query($con, $get_projects);
                                     </th>
                                 <?php endif; ?>
                                 <th style="text-align: center;">Deadline</th>
-                                <th style="text-align: center;">Cost</th>
+                                <th style="position: relative; overflow: visible; min-width: 110px; padding: 15px 10px !important; text-align: center;">
+                                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; font-size: 12px; color: <?php echo !empty($_GET['cost']) ? '#1e293b' : '#64748b'; ?>; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.3s;">
+                                        <?php
+                                        $c_filt = isset($_GET['cost']) ? $_GET['cost'] : '';
+                                        if ($c_filt == 'high_to_low') {
+                                            echo 'High to Low';
+                                        } elseif ($c_filt == 'low_to_high') {
+                                            echo 'Low to High';
+                                        } else {
+                                            echo 'Cost';
+                                        }
+                                        ?>
+                                        <i class="fa fa-filter" style="font-size: 11px; color: <?php echo !empty($c_filt) ? '#4f46e5' : '#94a3b8'; ?>;"></i>
+                                    </div>
+                                    <select id="costSelect" onchange="applyCostFilter(this.value)"
+                                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;">
+                                        <option value="" <?php if (empty($c_filt) || $c_filt == 'recent') echo 'selected'; ?>>Recent Leads (Default)</option>
+                                        <option value="high_to_low" <?php if ($c_filt == 'high_to_low') echo 'selected'; ?>>High to Low</option>
+                                        <option value="low_to_high" <?php if ($c_filt == 'low_to_high') echo 'selected'; ?>>Low to High</option>
+                                    </select>
+                                </th>
                                 <th style="text-align: center;">Files</th>
                                 <th style="text-align: center;">Status</th>
                                 <th style="text-align: center;">Action</th>
@@ -351,13 +416,13 @@ $run_projects = mysqli_query($con, $get_projects);
                     <form id="add-document-form-unified" method="POST" enctype="multipart/form-data" class="resource-form">
                         <input type="hidden" name="project_id" id="doc_project_id_unified">
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-5">
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label style="font-weight: 700; color: #475569; margin-bottom: 8px; display: block; font-size: 11px; text-transform: uppercase;">Artifact Name</label>
                                     <input type="text" name="document_name" class="p-input-premium" placeholder="e.g. Design Spec" required style="height: 45px;">
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label style="font-weight: 700; color: #475569; margin-bottom: 8px; display: block; font-size: 11px; text-transform: uppercase;">Select File</label>
                                     <div class="file-upload-wrapper-premium-mini" style="position: relative; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 10px; text-align: center; background: #fff; transition: 0.3s;">
@@ -366,10 +431,24 @@ $run_projects = mysqli_query($con, $get_projects);
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-md-3">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-weight: 700; color: #475569; margin-bottom: 8px; display: block; font-size: 11px; text-transform: uppercase;">Doc Type</label>
+                                    <?php if (isSuperAdmin()): ?>
+                                        <select name="is_proposal" class="p-input-premium" style="height: 45px; width: 100%; font-size: 12px; font-weight: 600;">
+                                            <option value="0">General</option>
+                                            <option value="1">🔒 Project Proposal</option>
+                                        </select>
+                                    <?php else: ?>
+                                        <input type="hidden" name="is_proposal" value="0">
+                                        <input type="text" class="p-input-premium" value="General" readonly style="height: 45px; background: #f1f5f9; color: #64748b; font-size: 12px; font-weight: 600;">
+                                    <?php endif; ?>
+                                </div>
+                            </div>
                         </div>
                         <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
                             <button type="button" class="btn-premium-cancel" onclick="toggleAddResourceForm()">Discard</button>
-                            <button type="submit" class="btn-premium-add">Save Document</button>
+                            <button type="submit" class="btn-premium-add">Add Document</button>
                         </div>
                     </form>
 
@@ -392,7 +471,7 @@ $run_projects = mysqli_query($con, $get_projects);
                         </div>
                         <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
                             <button type="button" class="btn-premium-cancel" onclick="toggleAddResourceForm()">Discard</button>
-                            <button type="submit" class="btn-premium-add">Save Link</button>
+                            <button type="submit" class="btn-premium-add">Add Link</button>
                         </div>
                     </form>
                 </div>
@@ -453,7 +532,7 @@ $run_projects = mysqli_query($con, $get_projects);
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
                         <div>
                             <h5 style="font-weight: 900; font-size: 16px; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 10px;">
-                                <span style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6366f1;">
+                                <span style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #dd2127;">
                                     <i class="fa fa-money" style="font-size: 14px;"></i>
                                 </span>
                                 Payment History
@@ -479,9 +558,10 @@ $run_projects = mysqli_query($con, $get_projects);
                         <table class="table" style="margin: 0; border-collapse: separate; border-spacing: 0;">
                             <thead>
                                 <tr>
-                                    <th style="padding: 15px 20px; border: none; font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; text-align: center; white-space: nowrap;">Phase</th>
+                                    <th style="padding: 15px 20px 15px 30px; border: none; font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; text-align: left; white-space: nowrap;">Phase</th>
                                     <th style="padding: 15px 20px; border: none; font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; width: 140px; text-align: center; white-space: nowrap;">Total Cost (<span class="phase-currency-sym">₹</span>)</th>
                                     <th style="padding: 15px 20px; border: none; font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; width: 150px; text-align: center; white-space: nowrap;">Received (<span class="phase-currency-sym">₹</span>)</th>
+                                    <th style="padding: 15px 20px; border: none; font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; width: 150px; text-align: center; white-space: nowrap;">Pending (<span class="phase-currency-sym">₹</span>)</th>
                                     <th style="padding: 15px 20px; border: none; font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; width: 140px; text-align: center; white-space: nowrap;">Payment Method</th>
                                     <th style="padding: 15px 20px; border: none; font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; width: 140px; text-align: center; white-space: nowrap;">Description</th>
                                     <th style="padding: 15px 20px; border: none; text-align: center; width: 100px; white-space: nowrap;">Actions</th>
@@ -502,10 +582,10 @@ $run_projects = mysqli_query($con, $get_projects);
             </div>
 
             <div class="modal-footer" style="background: #fff; padding: 25px 35px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 15px;">
-                <button type="button" class="btn btn-default" data-dismiss="modal" style="padding: 12px 30px; border-radius: 12px; font-weight: 700; color: #64748b; border: 1.5px solid #e2e8f0;">Discard Changes</button>
+                <button type="button" class="btn-premium-cancel" data-dismiss="modal">Discard Changes</button>
                 <?php if (canAdminAccess('budget_insert') || canAdminAccess('budget_update') || canAdminAccess('budget_delete')): ?>
                     <button type="button" onclick="saveBudget()" class="btn-premium-add" id="btn_save_budget">
-                        <i class="fa fa-save"></i> Execute Synchronization
+                        <i class="fa fa-save"></i>Save Data
                     </button>
                 <?php endif; ?>
             </div>
@@ -701,80 +781,116 @@ $run_projects = mysqli_query($con, $get_projects);
         background: #5b5b5b !important;
         color: white !important;
     }
-</style>
-
-<style>
-    /* .employee-wrap {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        max-width: 220px;
-    }
-
-    .employee-badge {
-        background: #eef2f7;
-        color: #334e68;
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 500;
-        display: inline-block;
-    } */
 
     .employee-group {
         display: flex;
         align-items: center;
     }
 
-    .employee-group img,
-    .employee-group .emp-initial {
+    .emp-avatar-item {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: -10px;
+        transition: transform 0.2s ease, z-index 0.2s ease;
+    }
+
+    .emp-avatar-item:first-child {
+        margin-left: 0;
+    }
+
+    .emp-avatar-item:hover {
+        z-index: 10;
+        transform: translateY(-2px);
+    }
+
+    .emp-avatar-item img,
+    .emp-avatar-item .emp-initial {
         width: 30px;
         height: 30px;
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid #fff;
-        margin-left: -10px;
-        z-index: 1;
         background: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
-    .employee-group .emp-initial {
+    .emp-avatar-item .emp-initial {
         background: #dee2e6;
         color: #333;
         font-size: 13px;
         font-weight: 700;
-        z-index: 1;
-        position: relative;
-    }
-
-    .employee-group img:first-child,
-    .employee-group .emp-initial:first-child {
-        margin-left: 0;
     }
 
     .employee-group .more {
-        width: 38px;
-        height: 38px;
+        width: 30px;
+        height: 30px;
         border-radius: 50%;
         background: #e9ecef;
         border: 2px solid #fff;
-        margin-left: -10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 12px;
-        font-weight: 600;
+        font-size: 11px;
+        font-weight: 700;
         cursor: pointer;
-        z-index: 2;
-        position: relative;
-        transition: 0.2s;
+        color: #475569;
     }
 
     .employee-group .more:hover {
         background: #dee2e6;
+    }
+
+    /* Fast/Instant Custom Tooltip (0.15s fast popup) */
+    .emp-avatar-item[data-tooltip] {
+        position: relative;
+    }
+
+    .emp-avatar-item[data-tooltip]::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        background: #dd2127;
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        z-index: 99999;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .emp-avatar-item[data-tooltip]::before {
+        content: '';
+        position: absolute;
+        bottom: calc(100% + 3px);
+        left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        border-width: 5px 5px 0 5px;
+        border-style: solid;
+        border-color: #0f172a transparent transparent transparent;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        z-index: 99999;
+    }
+
+    .emp-avatar-item[data-tooltip]:hover::after,
+    .emp-avatar-item[data-tooltip]:hover::before {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
     }
 
 
@@ -814,46 +930,6 @@ $run_projects = mysqli_query($con, $get_projects);
         }
     }
 
-    .table-premium th {
-        background: #f8fafc;
-        color: #475569;
-        font-weight: 700;
-        font-size: 13px;
-        text-transform: uppercase;
-        padding: 16px 25px;
-        text-align: left;
-        border-bottom: 1.5px solid #e2e8f0;
-        white-space: nowrap;
-    }
-
-    .table-premium td {
-        padding: 20px 25px !important;
-        vertical-align: middle !important;
-        border-bottom: 1px solid #f1f5f9 !important;
-    }
-
-    .btn-icon-premium {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #fff;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 12px;
-        width: 38px;
-        height: 38px;
-        transition: 0.3s;
-        cursor: pointer;
-        color: #64748b;
-        text-decoration: none !important;
-    }
-
-    .btn-icon-premium:hover {
-        background: #f8fafc;
-        border-color: #1e293b;
-        color: #1e293b;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
 
     .timeline-visual-wrapper {
         position: relative;
@@ -1133,13 +1209,43 @@ $run_projects = mysqli_query($con, $get_projects);
         return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
     }
 
+    function applyColumnFilter(column, value) {
+        const status = getUrlParameter('status');
+        const source = getUrlParameter('source');
+        const cost = getUrlParameter('cost');
+        const search = (column === 'search') ? value : getUrlParameter('search');
+        let url = 'index.php?projects';
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (status) url += `&status=${encodeURIComponent(status)}`;
+        if (source) url += `&source=${encodeURIComponent(source)}`;
+        if (cost) url += `&cost=${encodeURIComponent(cost)}`;
+        url += '&page=1';
+        window.location.href = url;
+    }
+
     function applySourceFilter(value) {
         const status = getUrlParameter('status');
+        const cost = getUrlParameter('cost');
         const search = getUrlParameter('search');
         let url = 'index.php?projects';
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (status) url += `&status=${encodeURIComponent(status)}`;
         if (value) url += `&source=${encodeURIComponent(value)}`;
-        if (status) url += `&status=${status}`;
-        if (search) url += `&search=${search}`;
+        if (cost) url += `&cost=${encodeURIComponent(cost)}`;
+        url += '&page=1';
+        window.location.href = url;
+    }
+
+    function applyCostFilter(value) {
+        const status = getUrlParameter('status');
+        const source = getUrlParameter('source');
+        const search = getUrlParameter('search');
+        let url = 'index.php?projects';
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (status) url += `&status=${encodeURIComponent(status)}`;
+        if (source) url += `&source=${encodeURIComponent(source)}`;
+        if (value) url += `&cost=${encodeURIComponent(value)}`;
+        url += '&page=1';
         window.location.href = url;
     }
 
@@ -1150,12 +1256,33 @@ $run_projects = mysqli_query($con, $get_projects);
         const urlParams = new URLSearchParams(window.location.search);
         let currentStatusFilter = urlParams.get('status') || '';
         let currentSourceFilter = urlParams.get('source') || '';
+        let currentCostFilter = urlParams.get('cost') || '';
+        let currentSearchQuery = urlParams.get('search') || '';
 
         $('#project-status-filter').val(currentStatusFilter);
 
         $('#project-status-filter').change(function() {
             currentStatusFilter = $(this).val();
             loadProjects();
+        });
+
+        // Dynamic live search on typing
+        let searchDebounce = null;
+        $(document).on('input', '#header_search', function() {
+            clearTimeout(searchDebounce);
+            const val = $(this).val();
+            searchDebounce = setTimeout(function() {
+                currentSearchQuery = val;
+                currentPage = 1;
+                loadProjects();
+            }, 300);
+        });
+
+        $(document).on('keypress', '#header_search', function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                applyColumnFilter('search', $(this).val());
+            }
         });
 
         loadProjects();
@@ -1174,13 +1301,20 @@ $run_projects = mysqli_query($con, $get_projects);
         function loadProjects() {
             $('#full-projects-container').css('opacity', '0.6');
 
+            let fetchPage = currentPage;
+            if (currentSearchQuery && currentSearchQuery.trim() !== '') {
+                fetchPage = 1;
+            }
+
             $.ajax({
                 url: 'pages/projects/fetch_all_projects.php',
                 method: 'GET',
                 data: {
                     status: currentStatusFilter,
                     source: currentSourceFilter,
-                    page: currentPage
+                    cost: currentCostFilter,
+                    search: currentSearchQuery,
+                    page: fetchPage
                 },
                 success: function(response) {
                     $('#full-projects-container').css('opacity', '1');
@@ -1312,14 +1446,20 @@ $run_projects = mysqli_query($con, $get_projects);
                 success: function(response) {
                     btn.prop('disabled', false).html('<i class="fa fa-send"></i> Post Update');
                     if (response.success) {
+                        const posterName = response.posted_by || 'You';
                         const newRemark = $(`
                         <div class="timeline-remark-item" style="margin-bottom: 25px; position: relative; padding-left: 32px; display: none; width: 100%;">
-                            <div class="timeline-dot" style="left: 0; background: #6366f1; border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);"></div>
-                            <div class="remark-content-box" style="border-left: 4px solid #6366f1; padding-left: 20px;">
-                                <div class="remark-time-premium" style="margin-bottom: 8px;">
-                                    <i class="fa fa-clock-o"></i> JUST NOW
+                            <div class="timeline-dot" style="left: 0; background: #dd2127; border-color: #dd2127; box-shadow: 0 0 0 4px rgba(221, 33, 39, 0.1);"></div>
+                            <div class="remark-content-box" style="border-left: 4px solid #dd2127; padding-left: 20px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                    <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: #eff6ff; color: #dd2127; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i class="fa fa-user"></i> ${posterName}
+                                    </span>
+                                    <div class="remark-time-premium" style="margin: 0; font-size: 11px;">
+                                        <i class="fa fa-clock-o"></i> JUST NOW
+                                    </div>
                                 </div>
-                                <div class="remark-text-premium">${remarkText.replace(/\n/g, '<br>')}</div>
+                                <div class="remark-text-premium" style="font-size: 13px; color: #334155; font-weight: 600;">${remarkText.replace(/\n/g, '<br>')}</div>
                             </div>
                         </div>`);
 
@@ -1496,10 +1636,8 @@ $run_projects = mysqli_query($con, $get_projects);
                 $('.resource-form').hide();
                 if (type === 'link' || currentRepoTab === 'links') {
                     formLink.show();
-                    $('#btn-add-link .btn-text').text('Close Form');
                 } else {
                     formDoc.show();
-                    $('#btn-add-artifact .btn-text').text('Close Form');
                 }
                 container.slideDown(300);
             }
@@ -1776,8 +1914,7 @@ $run_projects = mysqli_query($con, $get_projects);
         $('#phase-edit-form')[0].reset();
 
         let options = '<option value="">Select Phase</option>';
-        $('.budget-phase-row').each(function() {
-            const index = $(this).index();
+        $('.budget-phase-row').each(function(i) {
             const name = $(this).attr('data-name');
             const cost = parseFloat($(this).attr('data-cost')) || 0;
             const desc = $(this).attr('data-desc') || '';
@@ -1785,7 +1922,7 @@ $run_projects = mysqli_query($con, $get_projects);
             const method = $(this).attr('data-method') || '';
             const date = $(this).attr('data-date') || '';
 
-            options += `<option value="${escapeHtml(name)}" data-index="${index}" data-cost="${cost}" data-desc="${escapeHtml(desc)}" data-received="${received}" data-method="${escapeHtml(method)}" data-date="${escapeHtml(date)}">${escapeHtml(name)} (Cost: ${getCurrencySymbol()} ${cost.toLocaleString()})</option>`;
+            options += `<option value="${escapeHtml(name)}" data-index="${i}" data-cost="${cost}" data-desc="${escapeHtml(desc)}" data-received="${received}" data-method="${escapeHtml(method)}" data-date="${escapeHtml(date)}">${escapeHtml(name)} (Cost: ${getCurrencySymbol()} ${cost.toLocaleString()})</option>`;
         });
         $('#phase_edit_name').html(options).prop('disabled', false);
 
@@ -1796,8 +1933,8 @@ $run_projects = mysqli_query($con, $get_projects);
     }
 
     window.editPhase = function(btn) {
-        const row = $(btn).closest('tr');
-        const index = row.index();
+        const row = $(btn).closest('.budget-phase-row');
+        const index = $('.budget-phase-row').index(row);
         const name = row.attr('data-name');
         const desc = row.attr('data-desc');
         const cost = row.attr('data-cost');
@@ -1807,7 +1944,7 @@ $run_projects = mysqli_query($con, $get_projects);
 
         $('#phase_edit_index').val(index);
 
-        let options = `<option value="${escapeHtml(name)}" data-cost="${cost}" selected>${escapeHtml(name)}</option>`;
+        let options = `<option value="${escapeHtml(name)}" data-index="${index}" data-cost="${cost}" selected>${escapeHtml(name)}</option>`;
         $('#phase_edit_name').html(options).prop('disabled', true);
 
         $('#phase_edit_desc').val(desc);
@@ -1829,25 +1966,58 @@ $run_projects = mysqli_query($con, $get_projects);
         }
 
         const desc = $('#phase_edit_desc').val().trim();
-        const cost = parseFloat($('#phase_edit_name').find('option:selected').attr('data-cost')) || 0;
-        const received = parseFloat($('#phase_edit_received').val()) || 0;
+        const selectedOpt = $('#phase_edit_name').find('option:selected');
+        const cost = parseFloat(selectedOpt.attr('data-cost')) || 0;
+        const receivedInput = parseFloat($('#phase_edit_received').val()) || 0;
         const method = $('#phase_edit_method').val().trim();
         const date = $('#phase_edit_date').val();
 
-        const data = {
-            phase_name: name,
-            description: desc,
-            cost: cost,
-            received_amount: received,
-            remark: method,
-            received_date: date
-        };
-
         const index = $('#phase_edit_index').val();
-        if (index === '') {
-            addPhaseRow(data);
+
+        if (index !== '') {
+            // Updating or adding payment to existing phase
+            const targetRow = $('.budget-phase-row').eq(parseInt(index));
+            if (targetRow.length > 0) {
+                let payments = targetRow.data('payments') || [];
+
+                // If opened from + Add Payment modal (select enabled) and received amount entered:
+                if (!$('#phase_edit_name').prop('disabled')) {
+                    if (receivedInput > 0) {
+                        payments.push({
+                            amount: receivedInput,
+                            date: date || new Date().toISOString().split('T')[0],
+                            method: method || 'Net Banking',
+                            note: desc || 'Payment Installment'
+                        });
+                    }
+                } else {
+                    // Editing phase directly from pencil icon
+                    targetRow.attr('data-desc', desc);
+                    if (cost > 0) targetRow.attr('data-cost', cost);
+                }
+
+                targetRow.data('payments', payments);
+                const detailRowId = targetRow.find('.btn-toggle-phase-detail').attr('data-target');
+                const detailRow = $(detailRowId);
+                renderPhasePaymentsList(targetRow, detailRow);
+            }
         } else {
-            updatePhaseRow(parseInt(index), data);
+            // New phase
+            const data = {
+                phase_name: name,
+                description: desc,
+                cost: cost,
+                received_amount: receivedInput,
+                remark: method,
+                received_date: date,
+                payments: receivedInput > 0 ? [{
+                    amount: receivedInput,
+                    date: date || new Date().toISOString().split('T')[0],
+                    method: method || 'Net Banking',
+                    note: desc || 'Initial Payment'
+                }] : []
+            };
+            addPhaseRow(data);
         }
 
         $('#phaseEditModal').modal('hide');
@@ -1859,30 +2029,54 @@ $run_projects = mysqli_query($con, $get_projects);
         const sym = getCurrencySymbol();
 
         let cost = 0,
-            received = 0;
+            received = 0,
+            payments = [];
+
         if (data) {
             cost = parseFloat(data.cost) || 0;
             received = parseFloat(data.received_amount) || 0;
+            if (data.payments && Array.isArray(data.payments)) {
+                payments = data.payments;
+            } else if (received > 0) {
+                payments = [{
+                    amount: received,
+                    date: data.received_date || '',
+                    method: data.remark || 'Payment Received',
+                    note: 'Initial Payment'
+                }];
+            }
         }
 
-        const index = $('#budget_phases_body tr').length + 1;
+        let pending = cost - received;
+        if (pending < 0) pending = 0;
+
+        const rowId = 'phase_row_' + Math.random().toString(36).substring(2, 9);
+        const detailRowId = rowId + '_detail';
 
         const row = $(`
-        <tr class="budget-phase-row" style="transition: 0.3s;" 
+        <tr class="budget-phase-row" id="${rowId}" style="transition: 0.3s;" 
             data-name="${data ? escapeHtml(data.phase_name) : ''}"
             data-desc="${data ? escapeHtml(data.description || '') : ''}"
             data-cost="${cost}"
             data-received="${received}"
             data-method="${data ? escapeHtml(data.remark || '') : ''}"
             data-date="${data ? escapeHtml(data.received_date || '') : ''}">
-            <td style="padding: 15px 20px; border-bottom: 1px solid #f8fafc; text-align: center; vertical-align: middle; white-space: nowrap;">
-                <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${data ? escapeHtml(data.phase_name) : ''}</div>
+            <td style="padding: 15px 20px 15px 30px; border-bottom: 1px solid #f8fafc; text-align: left; vertical-align: middle; white-space: nowrap;">
+                <div style="display: flex; align-items: center; justify-content: flex-start; gap: 12px;">
+                    <button type="button" class="btn-toggle-phase-detail" data-target="#${detailRowId}" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; width: 26px; height: 26px; font-size: 10px; color: #475569; cursor: pointer; transition: 0.2s; flex-shrink: 0;" title="View payment breakdown & add installments">
+                        <i class="fa fa-chevron-down"></i>
+                    </button>
+                    <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${data ? escapeHtml(data.phase_name) : ''}</div>
+                </div>
             </td>
             <td style="padding: 15px 20px; border-bottom: 1px solid #f8fafc; text-align: center; vertical-align: middle; font-weight: 700; color: #475569; font-size: 13px; white-space: nowrap;">
                 <span class="phase-currency-sym">${sym}</span> <span class="display-cost">${cost.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</span>
             </td>
-            <td style="padding: 15px 20px; border-bottom: 1px solid #f8fafc; text-align: center; vertical-align: middle; font-weight: 800; color: #0f172a; font-size: 13px; white-space: nowrap;">
+            <td style="padding: 15px 20px; border-bottom: 1px solid #f8fafc; text-align: center; vertical-align: middle; font-weight: 800; color: #16a34a; font-size: 13px; white-space: nowrap;">
                 <span class="phase-currency-sym">${sym}</span> <span class="display-received">${received.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</span>
+            </td>
+            <td style="padding: 15px 20px; border-bottom: 1px solid #f8fafc; text-align: center; vertical-align: middle; font-weight: 800; color: ${pending > 0 ? '#ef4444' : '#16a34a'}; font-size: 13px; white-space: nowrap;">
+                <span class="phase-currency-sym">${sym}</span> <span class="display-pending">${pending.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</span>
             </td>
             <td style="padding: 15px 20px; border-bottom: 1px solid #f8fafc; text-align: center; vertical-align: middle; font-weight: 600; color: #64748b; font-size: 12px; white-space: nowrap;">
                 <span class="display-method">${data && data.remark ? escapeHtml(data.remark) : '—'}</span>
@@ -1893,29 +2087,94 @@ $run_projects = mysqli_query($con, $get_projects);
             <td style="padding: 15px 20px; border-bottom: 1px solid #f8fafc; text-align: center; vertical-align: middle; white-space: nowrap;"> 
                 <div style="display: flex; gap: 8px; justify-content: center;">
                     <?php if (canAdminAccess('budget_update')): ?>
-                    <button type="button" onclick="editPhase(this)" style="background: #eff6ff; border: 1px solid #bfdbfe; width: 32px; height: 32px; border-radius: 8px; color: #3b82f6; transition: 0.2s;">
-                        <i class="fa fa-pencil" style="font-size: 12px;"></i>
+                    <button type="button" onclick="editPhase(this)" class="btn-icon-premium btn-icon-sm btn-icon-edit" title="Edit Phase Title/Cost">
+                        <i class="fa fa-pencil"></i>
                     </button>
                     <?php endif; ?>
                     <?php if (canAdminAccess('budget_delete')): ?>
-                    <button type="button" class="delete-phase-btn" style="background: #fee2e2; border: 1px solid #fecaca; width: 32px; height: 32px; border-radius: 8px; color: #ef4444; transition: 0.2s;">
-                        <i class="fa fa-trash" style="font-size: 12px;"></i>
+                    <button type="button" class="btn-icon-premium btn-icon-sm btn-icon-delete" title="Delete Phase">
+                        <i class="fa fa-trash"></i>
                     </button>
                     <?php endif; ?>
                 </div>
             </td>
         </tr>
+        <tr class="phase-detail-box-row" id="${detailRowId}" style="display: none; background: #fafafa;">
+            <td colspan="7" style="padding: 15px 25px; border-bottom: 2px solid #e2e8f0;">
+                <div style="background: #fff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 12px;">
+                        <div style="font-weight: 800; color: #1e293b; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa fa-history" style="color: #dd2127;"></i>
+                            Payment History & Dues breakdown for <span class="phase-title-tag" style="color: #dd2127;">${data ? escapeHtml(data.phase_name) : ''}</span>
+                        </div>
+                        <div style="display: flex; gap: 15px; font-size: 12px; font-weight: 700;">
+                            <span style="color: #64748b;">Phase Cost: <strong style="color: #0f172a;" class="box-phase-cost">${sym} ${cost.toLocaleString()}</strong></span>
+                            <span style="color: #16a34a;">Total Received: <strong class="box-phase-received">${sym} ${received.toLocaleString()}</strong></span>
+                            <span style="color: #ef4444;">Remaining Pending: <strong class="box-phase-pending">${sym} ${pending.toLocaleString()}</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Installments List Table -->
+                    <div style="margin-bottom: 15px; overflow-x: auto;">
+                        <table class="table table-bordered table-condensed phase-payments-table" style="margin: 0; font-size: 12px; background: #fff;">
+                            <thead>
+                                <tr style="background: #f8fafc; color: #64748b; font-size: 11px; text-transform: uppercase;">
+                                    <th style="width: 40px; text-align: center;">#</th>
+                                    <th style="width: 120px; text-align: center;">Date</th>
+                                    <th style="width: 140px; text-align: center;">Amount Paid (<span class="phase-currency-sym">${sym}</span>)</th>
+                                    <th style="width: 150px; text-align: center;">Payment Method</th>
+                                    <th>Remarks / Reference</th>
+                                    <th style="width: 60px; text-align: center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="phase-payments-list">
+                                <!-- Dynamic installment rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Add Installment Payment Form -->
+                    <?php if (canAdminAccess('budget_insert') || canAdminAccess('budget_update')): ?>
+                    <div style="background: #f8fafc; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                        <div style="font-weight: 800; font-size: 12px; color: #334155; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa fa-plus-circle" style="color: #10b981;"></i> Add Installment Payment:
+                        </div>
+                        <input type="number" step="0.01" min="0.01" class="p-input-premium pmt-input-amount" placeholder="Amount (e.g. 5000)" style="width: 140px; height: 34px; font-size: 12px; padding: 4px 10px; border-radius: 6px;">
+                        <input type="date" class="p-input-premium pmt-input-date" style="width: 140px; height: 34px; font-size: 12px; padding: 4px 10px; border-radius: 6px;" value="${new Date().toISOString().split('T')[0]}">
+                        <select class="p-input-premium pmt-input-method" style="width: 150px; height: 34px; font-size: 12px; padding: 4px 10px; border-radius: 6px;">
+                            <option value="Net Banking">Net Banking</option>
+                            <option value="GPay / UPI">GPay / UPI</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Credit/Debit Card">Credit/Debit Card</option>
+                        </select>
+                        <input type="text" class="p-input-premium pmt-input-note" placeholder="Note / Ref ID" style="flex: 1; min-width: 150px; height: 34px; font-size: 12px; padding: 4px 10px; border-radius: 6px;">
+                        <button type="button" class="btn-add-phase-pmt" style="background: #10b981; color: #fff; border: none; height: 34px; padding: 0 16px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; transition: 0.2s;">
+                            <i class="fa fa-check"></i> Add Payment
+                        </button>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </td>
+        </tr>
 `);
+
+        row.data('payments', payments);
         $('#budget_phases_body').append(row);
-        calculateTotals();
+
+        const mainRow = $('#budget_phases_body tr.budget-phase-row').last();
+        const detailRow = $('#budget_phases_body tr.phase-detail-box-row').last();
+        renderPhasePaymentsList(mainRow, detailRow);
     }
 
     window.updatePhaseRow = function(index, data) {
-        const row = $('#budget_phases_body tr').eq(index);
+        const row = $('#budget_phases_body tr.budget-phase-row').eq(index);
 
         let cost = parseFloat(data.cost) || 0;
         let received = parseFloat(data.received_amount) || 0;
-
+        let pending = cost - received;
+        if (pending < 0) pending = 0;
 
         row.attr('data-name', data.phase_name);
         row.attr('data-desc', data.description);
@@ -1932,10 +2191,160 @@ $run_projects = mysqli_query($con, $get_projects);
             minimumFractionDigits: 0,
             maximumFractionDigits: 2
         }));
-        row.find('td').eq(0).find('div').text(data.phase_name);
+        row.find('.display-pending').text(pending.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }));
+        row.find('.display-pending').parent().css('color', pending > 0 ? '#ef4444' : '#16a34a');
+
+        row.find('td').eq(0).find('div').eq(1).text(data.phase_name);
         row.find('.display-method').text(data.remark ? data.remark : '—');
         row.find('.display-desc').text(data.description ? data.description : '—');
+
+        const detailRowId = row.find('.btn-toggle-phase-detail').attr('data-target');
+        const detailRow = $(detailRowId);
+        detailRow.find('.phase-title-tag').text(data.phase_name);
+        if (detailRow.is(':visible')) {
+            renderPhasePaymentsList(row, detailRow);
+        }
     }
+
+    function renderPhasePaymentsList(mainRow, detailRow) {
+        const sym = getCurrencySymbol();
+        const payments = mainRow.data('payments') || [];
+        const cost = parseFloat(mainRow.attr('data-cost')) || 0;
+
+        let totalRec = 0;
+        payments.forEach(p => {
+            totalRec += parseFloat(p.amount) || 0;
+        });
+
+        let pending = cost - totalRec;
+        if (pending < 0) pending = 0;
+
+        mainRow.attr('data-received', totalRec);
+        mainRow.find('.display-received').text(totalRec.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }));
+        mainRow.find('.display-pending').text(pending.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }));
+        mainRow.find('.display-pending').parent().css('color', pending > 0 ? '#ef4444' : '#16a34a');
+
+        if (payments.length > 1) {
+            mainRow.find('.display-method').text('Multiple');
+            mainRow.attr('data-method', 'Multiple');
+            mainRow.attr('data-date', payments[payments.length - 1].date || '');
+        } else if (payments.length === 1) {
+            mainRow.find('.display-method').text(payments[0].method || '—');
+            mainRow.attr('data-method', payments[0].method || '');
+            mainRow.attr('data-date', payments[0].date || '');
+        } else {
+            mainRow.find('.display-method').text('—');
+            mainRow.attr('data-method', '');
+            mainRow.attr('data-date', '');
+        }
+
+        detailRow.find('.box-phase-cost').text(sym + ' ' + cost.toLocaleString());
+        detailRow.find('.box-phase-received').text(sym + ' ' + totalRec.toLocaleString());
+        detailRow.find('.box-phase-pending').text(sym + ' ' + pending.toLocaleString());
+
+        const listBody = detailRow.find('.phase-payments-list');
+        listBody.empty();
+
+        if (payments.length === 0) {
+            listBody.html(`<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 15px;">No installment payments recorded yet for this phase.</td></tr>`);
+        } else {
+            payments.forEach((p, idx) => {
+                const pAmt = parseFloat(p.amount) || 0;
+                const tr = $(`
+                    <tr>
+                        <td style="text-align: center; font-weight: 700; color: #64748b;">${idx + 1}</td>
+                        <td style="text-align: center; font-weight: 600;">${p.date || '—'}</td>
+                        <td style="text-align: center; font-weight: 800; color: #16a34a;">${sym} ${pAmt.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</td>
+                        <td style="text-align: center;">${escapeHtml(p.method || '—')}</td>
+                        <td>${escapeHtml(p.note || '—')}</td>
+                        <td style="text-align: center;">
+                            <button type="button" class="btn-delete-pmt-item" data-index="${idx}" style="background: #fee2e2; border: 1px solid #fecaca; color: #ef4444; width: 24px; height: 24px; border-radius: 4px; font-size: 10px; cursor: pointer;" title="Remove installment">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `);
+                listBody.append(tr);
+            });
+        }
+
+        calculateTotals();
+    }
+
+    $(document).on('click', '.btn-toggle-phase-detail', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const btn = $(this);
+        const targetId = btn.attr('data-target');
+        const detailRow = $(targetId);
+        const mainRow = btn.closest('.budget-phase-row');
+
+        detailRow.toggle();
+
+        if (detailRow.is(':visible')) {
+            btn.html('<i class="fa fa-chevron-up"></i>').css('background', '#e0e7ff').css('color', '#4f46e5');
+            renderPhasePaymentsList(mainRow, detailRow);
+        } else {
+            btn.html('<i class="fa fa-chevron-down"></i>').css('background', '#f1f5f9').css('color', '#475569');
+        }
+    });
+
+    $(document).on('click', '.btn-add-phase-pmt', function(e) {
+        e.preventDefault();
+        const box = $(this).closest('.phase-detail-box-row');
+        const mainRow = box.prev('.budget-phase-row');
+
+        const amtInput = box.find('.pmt-input-amount');
+        const dateInput = box.find('.pmt-input-date');
+        const methodInput = box.find('.pmt-input-method');
+        const noteInput = box.find('.pmt-input-note');
+
+        const amt = parseFloat(amtInput.val()) || 0;
+        if (amt <= 0) {
+            Swal.fire('Validation Error', 'Please enter a valid payment amount.', 'warning');
+            amtInput.focus();
+            return;
+        }
+
+        const payments = mainRow.data('payments') || [];
+        payments.push({
+            amount: amt,
+            date: dateInput.val() || new Date().toISOString().split('T')[0],
+            method: methodInput.val() || 'Net Banking',
+            note: noteInput.val().trim()
+        });
+
+        mainRow.data('payments', payments);
+        amtInput.val('');
+        noteInput.val('');
+
+        renderPhasePaymentsList(mainRow, box);
+        showPremiumAlert('Installment payment added!');
+    });
+
+    $(document).on('click', '.btn-delete-pmt-item', function(e) {
+        e.preventDefault();
+        const idx = parseInt($(this).attr('data-index'));
+        const box = $(this).closest('.phase-detail-box-row');
+        const mainRow = box.prev('.budget-phase-row');
+
+        let payments = mainRow.data('payments') || [];
+        if (idx >= 0 && idx < payments.length) {
+            payments.splice(idx, 1);
+            mainRow.data('payments', payments);
+            renderPhasePaymentsList(mainRow, box);
+            showPremiumAlert('Installment payment removed');
+        }
+    });
 
     function escapeHtml(text) {
         const map = {
@@ -1951,13 +2360,15 @@ $run_projects = mysqli_query($con, $get_projects);
     }
 
     $(document).on('click', '.delete-phase-btn', function() {
-        $(this).closest('tr').fadeOut(200, function() {
-            $(this).remove();
-            // Re-index remaining rows
-            $('#budget_phases_body tr').each(function(i) {
-                $(this).find('.phase-index-display').text(i + 1);
-            });
-            if ($('#budget_phases_body tr').length === 0) {
+        const mainRow = $(this).closest('.budget-phase-row');
+        const btnToggle = mainRow.find('.btn-toggle-phase-detail');
+        const targetId = btnToggle.attr('data-target');
+        const detailRow = $(targetId);
+
+        mainRow.fadeOut(200, function() {
+            mainRow.remove();
+            detailRow.remove();
+            if ($('#budget_phases_body tr.budget-phase-row').length === 0) {
                 $('#no_phases_msg').show();
             }
             calculateTotals();
@@ -2000,19 +2411,23 @@ $run_projects = mysqli_query($con, $get_projects);
         const phases = [];
 
         $('.budget-phase-row').each(function() {
+            const row = $(this);
+            const payments = row.data('payments') || [];
+
             phases.push({
-                phase_name: $(this).attr('data-name'),
-                description: $(this).attr('data-desc'),
-                cost: parseFloat($(this).attr('data-cost')) || 0,
-                received_amount: parseFloat($(this).attr('data-received')) || 0,
-                remark: $(this).attr('data-method'),
-                received_date: $(this).attr('data-date')
+                phase_name: row.attr('data-name'),
+                description: row.attr('data-desc'),
+                cost: parseFloat(row.attr('data-cost')) || 0,
+                received_amount: parseFloat(row.attr('data-received')) || 0,
+                remark: row.attr('data-method'),
+                received_date: row.attr('data-date'),
+                payments: payments
             });
         });
 
         const btn = $('#btn_save_budget');
         const currency = $('#budget_currency').val();
-        btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Synchronizing Assets...');
+        btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
 
         $.ajax({
             url: 'ajax/projects/ajax_save_project_budget.php',
@@ -2023,17 +2438,17 @@ $run_projects = mysqli_query($con, $get_projects);
                 currency: currency
             },
             success: function(response) {
-                btn.prop('disabled', false).html('<i class="fa fa-save"></i> Execute Synchronization');
+                btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Data');
                 if (response.success) {
                     $('#projectBudgetModal').modal('hide');
-                    showPremiumAlert('Budget architecture synchronized successfully!');
+                    showPremiumAlert('Budget data saved successfully!');
                     loadProjects();
                 } else {
                     Swal.fire('Error', response.message, 'error');
                 }
             },
             error: function() {
-                btn.prop('disabled', false).html('<i class="fa fa-save"></i> Execute Synchronization');
+                btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Data');
                 Swal.fire('Connection Error', 'Network synchronization failed.', 'error');
             }
         });
@@ -2294,7 +2709,7 @@ $run_projects = mysqli_query($con, $get_projects);
                 <div class="footer-bar">
                     <div class="footer-inner">
                         <div class="footer-col">
-                            <div class="footer-item">📞 +91 8320211773</div>
+                            <div class="footer-item">📞 091 83202 11773</div>
                             <div class="footer-item">✉ info@cadletedesigns.com</div>
                         </div>
                         <div class="footer-col">

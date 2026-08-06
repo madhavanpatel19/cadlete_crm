@@ -255,50 +255,6 @@ if ($print_all_mode) {
 ?>
 
 <style>
-    .btn-icon-premium {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #fff;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 12px;
-        width: 38px;
-        height: 38px;
-        transition: 0.3s;
-        cursor: pointer;
-        color: #64748b;
-        text-decoration: none !important;
-    }
-
-    .btn-icon-premium:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-
-    .btn-icon-view {
-        color: #f59e0b !important;
-        background: #fffbeb !important;
-        border-color: #fde68a !important;
-    }
-
-    .btn-icon-view:hover {
-        background: #fef3c7 !important;
-        border-color: #fcd34d !important;
-        color: #d97706 !important;
-    }
-
-    .btn-icon-download {
-        color: #8b5cf6 !important;
-        background: #f5f3ff !important;
-        border-color: #ede9fe !important;
-    }
-
-    .btn-icon-download:hover {
-        background: #ede9fe !important;
-        border-color: #ddd6fe !important;
-        color: #7c3aed !important;
-    }
-
     .table-premium th,
     .table-premium td {
         text-align: center !important;
@@ -412,7 +368,7 @@ if ($print_all_mode) {
                             <div class="company-center">
                                 <h3 class="company-name">CADLETE DESIGNS</h3>
                                 <div class="company-address">A-106, Sun South Street, Ahmedabad</div>
-                                <div class="company-meta-small">Phone: +91 8320211773 &nbsp;|&nbsp; Email: info@cadletedesigns.com</div>
+                                <div class="company-meta-small">Phone: 091 83202 11773 &nbsp;|&nbsp; Email: info@cadletedesigns.com</div>
                             </div>
                         </div>
                         <div class="slip-meta">
@@ -702,7 +658,7 @@ if ($print_all_mode) {
                             A-106, Sun South Street, Ahmedabad
                         </div>
                         <div class="company-meta-small">
-                            Phone: +91 8320211773 &nbsp;|&nbsp; Email: info@cadletedesigns.com
+                            Phone: 091 83202 11773 &nbsp;|&nbsp; Email: info@cadletedesigns.com
                         </div>
                     </div>
                 </div>

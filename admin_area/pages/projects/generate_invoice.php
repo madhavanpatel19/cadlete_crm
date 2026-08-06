@@ -27,16 +27,27 @@ if (!$project) {
     die("Project not found.");
 }
 
-// Fetch ONLY phases that have been received (received_amount > 0)
-$phases_q = mysqli_query($con, "
-    SELECT * FROM project_budget_phases
-    WHERE project_id = '$project_id'
-    AND received_amount > 0
-    ORDER BY id ASC
-");
+$phases_q = mysqli_query($con, "SELECT * FROM project_budget_phases WHERE project_id = '$project_id' ORDER BY id ASC");
 $phases = [];
+$grand_total = 0;
+
 while ($row = mysqli_fetch_assoc($phases_q)) {
-    $phases[] = $row;
+    $p_name_esc = mysqli_real_escape_string($con, $row['phase_name']);
+    $get_pmts = mysqli_query($con, "SELECT * FROM project_phase_payments WHERE project_id = '$project_id' AND phase_name = '$p_name_esc' ORDER BY id ASC");
+    $pmt_sum = 0;
+    if ($get_pmts && mysqli_num_rows($get_pmts) > 0) {
+        while ($pmt = mysqli_fetch_assoc($get_pmts)) {
+            $pmt_sum += (float)$pmt['amount'];
+        }
+    } else {
+        $pmt_sum = (float)$row['received_amount'];
+    }
+
+    if ($pmt_sum > 0) {
+        $row['received_amount'] = $pmt_sum;
+        $grand_total += $pmt_sum;
+        $phases[] = $row;
+    }
 }
 
 // Currency symbols

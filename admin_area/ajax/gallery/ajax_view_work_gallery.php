@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -11,6 +11,7 @@ if (!isset($_SESSION['admin_email'])) {
 }
 
 $filter_emp    = isset($_GET['emp_id']) ? intval($_GET['emp_id']) : '';
+$filter_date   = isset($_GET['date']) ? trim($_GET['date']) : '';
 $filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
 $filter_from   = isset($_GET['from']) ? trim($_GET['from']) : '';
 $filter_to     = isset($_GET['to']) ? trim($_GET['to']) : '';
@@ -18,6 +19,7 @@ $filter_to     = isset($_GET['to']) ? trim($_GET['to']) : '';
 $where = ["a.work_photos IS NOT NULL AND a.work_photos != '' AND a.work_photos != '[]'"];
 
 if (!empty($filter_emp)) $where[] = "a.emp_id = $filter_emp";
+if (!empty($filter_date)) $where[] = "DATE(a.attendance_date) = '" . mysqli_real_escape_string($con, $filter_date) . "'";
 if (!empty($filter_status)) {
     $st_esc = mysqli_real_escape_string($con, $filter_status);
     $where[] = "a.status = '$st_esc'";
@@ -76,10 +78,22 @@ if ($result && mysqli_num_rows($result) > 0) {
 <style>
     .work-gallery-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 25px;
-        padding: 30px;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: 12px;
+        padding: 20px;
         animation: galleryReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @media (max-width: 900px) {
+        .work-gallery-grid {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 600px) {
+        .work-gallery-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
     }
 
     @keyframes galleryReveal {
@@ -97,12 +111,12 @@ if ($result && mysqli_num_rows($result) > 0) {
     .work-gallery-item {
         position: relative;
         aspect-ratio: 1;
-        border-radius: 24px;
+        border-radius: 14px;
         overflow: hidden;
         cursor: pointer;
         background: #fff;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
         border: 1px solid rgba(241, 245, 249, 0.8);
     }
 

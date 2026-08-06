@@ -229,7 +229,10 @@ if ($action == 'check_in') {
         $visitor_loc = geolocateIP($visitor_ip);
 
         // Handle Work Photos Upload
-        $uploaded_photos = [];
+        $existing_photos = !empty($row['work_photos']) ? json_decode($row['work_photos'], true) : [];
+        if (!is_array($existing_photos)) $existing_photos = [];
+
+        $uploaded_photos = $existing_photos;
         if (isset($_FILES['work_photos'])) {
             $files      = $_FILES['work_photos'];
             $upload_dir = '../../work_photos/';
@@ -244,10 +247,10 @@ if ($action == 'check_in') {
                 }
             }
         }
-        $photos_json = !empty($uploaded_photos) ? mysqli_real_escape_string($con, json_encode($uploaded_photos)) : '';
+        $photos_json = !empty($uploaded_photos) ? mysqli_real_escape_string($con, json_encode(array_values(array_unique($uploaded_photos)))) : '';
 
         if (!empty($manual_in) && !empty($manual_out)) {
-           $last_resume      = !empty($row['last_resume_time']) ? $row['last_resume_time'] : ($today . ' ' . $row['check_in_time']);
+            $last_resume      = !empty($row['last_resume_time']) ? $row['last_resume_time'] : ($today . ' ' . $row['check_in_time']);
             $manual_out_dt    = $today . ' ' . $manual_out;
             $segment_duration = max(0, strtotime($manual_out_dt) - strtotime($last_resume));
             $base_timer       = ($row['is_working'] == 1) ? (int)$row['total_duration_secs'] : 0;

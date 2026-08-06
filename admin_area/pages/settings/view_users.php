@@ -4,55 +4,6 @@ if (!isset($_SESSION['admin_email'])) {
     exit;
 }
 ?>
-
-<style>
-    .btn-icon-premium {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #fff;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 12px;
-        width: 38px;
-        height: 38px;
-        transition: 0.3s;
-        cursor: pointer;
-        color: #64748b;
-        text-decoration: none !important;
-    }
-
-    .btn-icon-premium:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-
-    /* Edit (Blue) */
-    .btn-icon-edit {
-        color: #0ea5e9 !important;
-        background: #f0f9ff !important;
-        border-color: #bae6fd !important;
-    }
-
-    .btn-icon-edit:hover {
-        background: #e0f2fe !important;
-        border-color: #7dd3fc !important;
-        color: #0284c7 !important;
-    }
-
-    /* Delete (Red) */
-    .btn-icon-delete {
-        color: #ef4444 !important;
-        background: #fef2f2 !important;
-        border-color: #fecaca !important;
-    }
-
-    .btn-icon-delete:hover {
-        background: #fee2e2 !important;
-        border-color: #fca5a5 !important;
-        color: #dc2626 !important;
-    }
-</style>
-
 <div class="page-wrapper premium-ui-enabled">
     <div class="page-header-premium">
         <h1></h1>

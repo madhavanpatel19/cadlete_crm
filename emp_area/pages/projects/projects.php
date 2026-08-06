@@ -101,16 +101,17 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                     <i class="fa fa-list-ul" style="font-size: 16px; color: #fff;"></i>
                     <h3 style="margin: 0; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #fff;">Project Assignments</h3>
                 </div>
-                <div style="overflow-x: auto;">
+                <div class="table-responsive">
                     <table class="table-premium" style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr style="background: #fcfdfe; border-bottom: 1.5px solid #f1f5f9;">
-                                <th style="width: 60px; text-align: center; padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">ID</th>
-                                <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Project Name</th>
-                                <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Client</th>
-                                <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Start Date</th>
-                                <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Deadline</th>
-                                <th style="text-align: center; padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+                                <th style="text-align:center;">ID</th>
+                                <th style="text-align:left;">Project Name</th>
+                                <th style="text-align:center;">Client</th>
+                                <th style="text-align:center;">Start Date</th>
+                                <th style="text-align:center;">Deadline</th>
+                                <th style="text-align:center;">Status</th>
+                                <th style="text-align:center;">ACTION</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -124,36 +125,124 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                     elseif ($st == 'cancelled') $badge_style = 'background: #fef2f2; color: #dc2626;';
                                 ?>
                                     <tr style="border-bottom: 1px solid #f1f5f9;">
-                                        <td style="text-align: center; font-weight: 700; color: #64748b;">
+                                        <td style="text-align:center; font-weight: 700; color: #64748b;">
                                             <span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:12px;">#<?php echo str_pad($row['id'], 3, '0', STR_PAD_LEFT); ?></span>
                                         </td>
-                                        <td>
+                                        <td style="text-align:left;">
                                             <div style="font-weight: 700; color: #1e293b; font-size: 14px;">
                                                 <?php echo htmlspecialchars($row['project_name']); ?>
                                             </div>
                                         </td>
-                                        <td>
+                                        <td style="text-align:center;">
                                             <div style="font-weight: 600; color: #64748b; font-size: 13px;">
                                                 <i class="fa fa-user" style="margin-right: 5px; opacity: 0.6;"></i>
                                                 <?php echo htmlspecialchars($row['client_name'] ?? 'N/A'); ?>
                                             </div>
                                         </td>
-                                        <td style="font-weight: 600; color: #475569; font-size: 13px;">
+                                        <td style="text-align:center;">
                                             <?php echo !empty($row['project_date']) ? date('d M Y', strtotime($row['project_date'])) : '--'; ?>
                                         </td>
-                                        <td style="font-weight: 600; color: #475569; font-size: 13px;">
+                                        <td style="text-align:center;">
                                             <?php echo !empty($row['deadline']) ? date('d M Y', strtotime($row['deadline'])) : '--'; ?>
                                         </td>
-                                        <td style="text-align: center; padding: 15px;">
+                                        <td style="text-align: center; padding: 15px; align-items: center;">
                                             <span style="padding: 6px 14px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: #ffeaeb; color: #dd2127; display: inline-block; min-width: 90px;">
                                                 <?php echo htmlspecialchars($row['status']); ?>
                                             </span>
+                                        </td>
+                                        <td style="text-align: center; padding: 15px; align-items: center;">
+                                            <button type="button" class="btn-icon-premium btn-icon-sm btn-icon-warning toggle-detail-btn" title="View Timeline & Post Progress Update">
+                                                <i class="fa fa-list-alt"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="project-detail-row" style="display: none; background: #fff;">
+                                        <td colspan="7" style="padding: 0; border: none;">
+                                            <div style="padding: 35px 50px; border-top: 1px solid #f1f5f9; background: #fcfdfe;">
+                                                <div class="row">
+                                                    <div class="col-md-7">
+                                                        <div class="timeline-container-premium" style="background: transparent; border: none; padding: 0; margin-bottom: 0;">
+                                                            <div class="timeline-header-premium" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between;">
+                                                                <div style="display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">
+                                                                    <i class="fa fa-history" style="color: #dd2127; font-size: 14px;"></i>
+                                                                    <span>Project Activity Timeline</span>
+                                                                </div>
+                                                                <a href="download_progress_report.php?project_id=<?php echo $row['id']; ?>" target="_blank" style="background: #ffeaeb; color: #dd2127; border: 1px solid #ffeaeb; border-radius: 8px; padding: 6px 14px; font-size: 11px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                                                    <i class="fa fa-download"></i> Download Progress Report
+                                                                </a>
+                                                            </div>
+                                                            <div class="timeline-visual-wrapper" style="max-height: 250px; overflow-y: auto; overflow-x: hidden; padding-right: 15px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
+                                                                <div class="timeline-vertical-line" style="left: 4px;"></div>
+                                                                <div class="remarks-history-premium" style="position: relative; padding-left: 0;">
+                                                                    <?php
+                                                                    $p_id = (int)$row['id'];
+                                                                    try {
+                                                                        @mysqli_query($con, "ALTER TABLE client_project_remarks ADD COLUMN posted_by VARCHAR(255) DEFAULT NULL");
+                                                                    } catch (Exception $e) {
+                                                                    }
+
+                                                                    $get_remarks = "SELECT * FROM client_project_remarks WHERE project_id = $p_id ORDER BY created_at DESC";
+                                                                    $run_remarks = mysqli_query($con, $get_remarks);
+                                                                    if ($run_remarks && mysqli_num_rows($run_remarks) > 0) {
+                                                                        while ($r = mysqli_fetch_assoc($run_remarks)) {
+                                                                            $poster = !empty($r['posted_by']) ? htmlspecialchars($r['posted_by']) : '';
+                                                                            if (empty($poster)) {
+                                                                                $poster = (strpos($r['remark'], 'System:') === 0) ? 'System' : 'Team Member';
+                                                                            }
+                                                                            $is_sys = (strtolower($poster) === 'system');
+                                                                            $poster_badge_bg = $is_sys ? '#f1f5f9' : '#eff6ff';
+                                                                            $poster_badge_color = $is_sys ? '#64748b' : '#2563eb';
+                                                                            $poster_icon = $is_sys ? 'fa-cog' : 'fa-user';
+                                                                    ?>
+                                                                            <div class="timeline-remark-item" style="margin-bottom: 25px; position: relative; padding-left: 32px; width: 100%;">
+                                                                                <div class="timeline-dot" style="left: 0;"></div>
+                                                                                <div class="remark-content-box" style="padding-left: 20px;">
+                                                                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                                                                        <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: #ffeaeb; color:#dd2127;display: inline-flex; align-items: center; gap: 4px;">
+                                                                                            <i class="fa <?php echo $poster_icon; ?>"></i> <?php echo $poster; ?>
+                                                                                        </span>
+                                                                                        <div class="remark-time-premium" style="margin: 0; font-size: 11px;">
+                                                                                            <i class="fa fa-clock-o"></i> <?php echo date('d M Y • h:i A', strtotime($r['created_at'])); ?>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div class="remark-text-premium" style="font-size: 13px; color: #334155; font-weight: 600;"><?php echo nl2br(htmlspecialchars($r['remark'])); ?></div>
+                                                                                </div>
+                                                                            </div>
+                                                                    <?php
+                                                                        }
+                                                                    } else {
+                                                                        echo '<div class="no-remarks-placeholder" style="padding: 40px 0; text-align: center; color: #94a3b8;">
+                                                                                <i class="fa fa-commenting-o" style="font-size: 32px; opacity: 0.4; margin-bottom: 10px; display: block;"></i>
+                                                                                <p style="font-size: 13px; font-weight: 700;">No activity recorded yet.</p>
+                                                                              </div>';
+                                                                    }
+                                                                    ?>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-5">
+                                                        <div class="remark-action-premium glass-card-premium" style="padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08);">
+                                                            <h4 style="font-size: 11px; font-weight: 950; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                                                                <div style="width: 8px; height: 8px; background: #dd2127; border-radius: 50%;"></div>
+                                                                Post Progress Update
+                                                            </h4>
+                                                            <div class="action-input-wrapper" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+                                                                <textarea class="remark-textarea p-input-premium" style="width: 100%; height: 120px; resize: none; font-size: 14px; box-sizing: border-box;" placeholder="What milestone was achieved today?"></textarea>
+                                                                <button type="button" class="add-remark-btn" data-project-id="<?php echo $row['id']; ?>" style="width: 100%; height: 48px; font-size: 14px; background: #dd2127; color: #ffffff; border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; font-weight: 700; gap: 8px; box-shadow: 0 4px 12px rgba(221, 33, 39, 0.2); box-sizing: border-box;">
+                                                                    <i class="fa fa-send"></i> Post Update
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
                             <?php else : ?>
                                 <tr>
-                                    <td colspan="6" style="text-align: center; padding: 60px 40px; color: #94a3b8;">
+                                    <td colspan="7" style="text-align: center; padding: 60px 40px; color: #94a3b8;">
                                         <i class="fa fa-folder-open-o" style="font-size: 42px; display: block; margin-bottom: 15px; opacity: 0.5;"></i>
                                         <h4 style="color: #64748b; font-weight: 700; margin-bottom: 5px;">No Projects Assigned</h4>
                                         <p style="font-size: 13px; font-weight: 500;">You are currently not assigned to any projects.</p>
@@ -198,3 +287,74 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
         </div>
     </div>
 </div>
+
+<script>
+    $(document).ready(function() {
+        // Toggle project details timeline
+        $(document).on('click', '.toggle-detail-btn', function() {
+            const tr = $(this).closest('tr');
+            const detailRow = tr.next('.project-detail-row');
+            detailRow.toggle(300);
+            $(this).toggleClass('active');
+        });
+
+        // Post progress update remark
+        $(document).on('click', '.add-remark-btn', function() {
+            const btn = $(this);
+            const projectId = btn.data('project-id');
+            const detailRow = btn.closest('.project-detail-row');
+            const remarkInput = detailRow.find('.remark-textarea');
+            const remarkText = remarkInput.val().trim();
+            const container = detailRow.find('.remarks-history-premium');
+
+            if (!remarkText) {
+                remarkInput.focus();
+                return;
+            }
+
+            btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Posting...');
+
+            $.ajax({
+                url: '../admin_area/ajax/clients/ajax_add_client_remark.php',
+                type: 'POST',
+                data: {
+                    project_id: projectId,
+                    remark: remarkText
+                },
+                dataType: 'json',
+                success: function(response) {
+                    btn.prop('disabled', false).html('<i class="fa fa-send"></i> Post Update');
+                    if (response.success) {
+                        const posterName = response.posted_by || '<?php echo htmlspecialchars($_SESSION['emp_name'] ?? "Employee"); ?>';
+                        const newRemark = $(`
+                        <div class="timeline-remark-item" style="margin-bottom: 25px; position: relative; padding-left: 32px; display: none; width: 100%;">
+                            <div class="timeline-dot" style="left: 0; background: #dd2127; border-color: #dd2127; box-shadow: 0 0 0 4px rgba(221, 33, 39, 0.1);"></div>
+                            <div class="remark-content-box" style="border-left: 4px solid #dd2127; padding-left: 20px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                    <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: #eff6ff; color: #dd2127; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i class="fa fa-user"></i> ${posterName}
+                                    </span>
+                                    <div class="remark-time-premium" style="margin: 0; font-size: 11px;">
+                                        <i class="fa fa-clock-o"></i> JUST NOW
+                                    </div>
+                                </div>
+                                <div class="remark-text-premium" style="font-size: 13px; color: #334155; font-weight: 600;">${remarkText.replace(/\n/g, '<br>')}</div>
+                            </div>
+                        </div>`);
+
+                        container.find('.no-remarks-placeholder').remove();
+                        container.prepend(newRemark);
+                        newRemark.slideDown(400);
+                        remarkInput.val('');
+                    } else {
+                        alert(response.message || 'Error posting update.');
+                    }
+                },
+                error: function() {
+                    btn.prop('disabled', false).html('<i class="fa fa-send"></i> Post Update');
+                    alert('Network error while posting update.');
+                }
+            });
+        });
+    });
+</script>

@@ -457,7 +457,7 @@ $current_date = date("d F Y");
             <div class="footer-bar">
                 <div class="footer-inner">
                     <div class="footer-col">
-                        <div class="footer-item"><i class="fa fa-phone"></i>8320211773
+                        <div class="footer-item"><i class="fa fa-phone"></i>091 83202 11773
                         </div>
                         <div class="footer-item"><i class="fa fa-envelope"></i> info@cadletedesigns.com</div>
                     </div>
@@ -530,7 +530,7 @@ $current_date = date("d F Y");
             <div class="footer-bar">
                 <div class="footer-inner">
                     <div class="footer-col">
-                        <div class="footer-item"><i class="fa fa-phone"></i>8320211773
+                        <div class="footer-item"><i class="fa fa-phone"></i>091 83202 11773
                         </div>
                         <div class="footer-item"><i class="fa fa-envelope"></i> info@cadletedesigns.com</div>
                     </div>
@@ -600,7 +600,7 @@ $current_date = date("d F Y");
             <div class="footer-bar">
                 <div class="footer-inner">
                     <div class="footer-col">
-                        <div class="footer-item"><i class="fa fa-phone"></i>8320211773
+                        <div class="footer-item"><i class="fa fa-phone"></i>091 83202 11773
                         </div>
                         <div class="footer-item"><i class="fa fa-envelope"></i> info@cadletedesigns.com</div>
                     </div>

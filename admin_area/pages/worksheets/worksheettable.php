@@ -143,7 +143,7 @@ $result = mysqli_query($con, $sql);
                         <th>Team Member</th>
                         <th>Time Logged</th>
                         <th style="text-align: center;">Status</th>
-                        <th style="text-align: center;">Activity %</th>
+                        <!-- <th style="text-align: center;">Activity %</th> -->
                         <th>Tasks Done</th>
                         <th>Saved At</th>
                     </tr>
@@ -188,13 +188,13 @@ $result = mysqli_query($con, $sql);
                                         <?php echo ucfirst($st); ?>
                                     </span>
                                 </td>
-                                <td style="text-align: center;">
+                                <!-- <td style="text-align: center;">
                                     <?php if (isset($row['performance'])): ?>
                                         <div style="font-weight: 800; color: #4f46e5;"><?php echo $row['performance']; ?>%</div>
                                     <?php else: ?>
                                         <span style="color: #cbd5e1;">-</span>
                                     <?php endif; ?>
-                                </td>
+                                </td> -->
                                 <td>
                                     <?php
                                     $photos = [];
@@ -211,7 +211,7 @@ $result = mysqli_query($con, $sql);
                                         $date = htmlspecialchars(date('d M Y', strtotime($row['attendance_date'])), ENT_QUOTES, 'UTF-8');
                                         $emp_img = htmlspecialchars($img, ENT_QUOTES, 'UTF-8');
                                         $remark_js = htmlspecialchars(json_encode(nl2br(htmlspecialchars($row['remarks'] ?: '-'))), ENT_QUOTES, 'UTF-8');
-                                        echo '<button type="button" class="btn btn-sm" style="border-radius: 6px; padding: 4px 12px; font-weight: 600; background: #fff; color: #1e293b; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openRowGallery(\'' . $json_photos . '\', \'' . $emp_name . '\', \'' . $date . '\', \'' . $emp_img . '\', ' . $remark_js . '); event.stopPropagation();"><i class="fa fa-eye" style="color: #4f46e5; margin-right: 4px;"></i> View Details</button>';
+                                        echo '<button type="button" class="btn btn-sm" style="border-radius: 6px; padding: 4px 12px; font-weight: 600; background: #fff; color: #1e293b; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openRowGallery(\'' . $json_photos . '\', \'' . $emp_name . '\', \'' . $date . '\', \'' . $emp_img . '\', ' . $remark_js . '); event.stopPropagation();"><i class="fa fa-eye" style="color: #dd2127; margin-right: 4px;"></i> View Details</button>';
                                     } else {
                                         echo '<span style="color: #cbd5e1;">-</span>';
                                     }
@@ -282,13 +282,13 @@ $result = mysqli_query($con, $sql);
 </div>
 
 <div id="workGalleryModal" class="modal fade" role="dialog" style="z-index: 99999;">
-    <div class="modal-dialog modal-lg" style="margin-top: 40px; max-width: 900px;">
+    <div class="modal-dialog modal-lg" style="margin-top: 40px; max-width: 1150px; width: 95%;">
         <div class="modal-content premium-modal-content-v2" style="border: none; border-radius: 32px; box-shadow: 0 40px 100px -20px rgba(111, 50, 50, 0.4); overflow: hidden;">
             <div class="modal-header" style="background: #ffeaeb; color:black; padding: 25px 35px; border: none; position: relative;">
                 <button type="button" class="btn-modal-close" data-dismiss="modal">
                     <i class="fa fa-times"></i>
                 </button>
-                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding-right: 40px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding-right: 40px; flex-wrap: wrap; gap: 15px;">
                     <div style="display: flex; align-items: center; gap: 18px;">
                         <div style="width: 48px; height: 48px; background: #dd2127; color:white;border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 8px 16px rgba(185, 81, 81, 0.3);">
                             <i class="fa fa-th-large"></i>
@@ -299,19 +299,33 @@ $result = mysqli_query($con, $sql);
                         </div>
                     </div>
 
-                    <!-- Employee Filter Inside Modal -->
-                    <div class="modal-header-filter">
-                        <i class="fa fa-user-circle"></i>
-                        <select id="modal_emp_filter" onchange="openWorkGallery(this.value)" class="modal-select-premium">
-                            <option value="">All Employees</option>
-                            <?php foreach ($empList as $e): ?>
-                                <option value="<?php echo $e['id']; ?>"><?php echo htmlspecialchars($e['name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                    <!-- Filters Inside Modal -->
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <!-- Employee Filter -->
+                        <div class="modal-header-filter" style="display: flex; align-items: center; gap: 8px; background: #fff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 6px 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+                            <i class="fa fa-user-circle" style="color: #dd2127; font-size: 15px;"></i>
+                            <select id="modal_emp_filter" onchange="openWorkGallery(this.value, $('#modal_date_filter').val())" class="modal-select-premium" style="border: none; background: transparent; font-weight: 700; font-size: 13px; color: #1e293b; outline: none; cursor: pointer;">
+                                <option value="">All Employees</option>
+                                <?php foreach ($empList as $e): ?>
+                                    <option value="<?php echo $e['id']; ?>"><?php echo htmlspecialchars($e['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <!-- Date Filter -->
+                        <div style="display: flex; align-items: center; gap: 8px; background: #fff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 6px 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+                            <i class="fa fa-calendar" style="color: #dd2127; font-size: 15px;"></i>
+                            <input type="date" id="modal_date_filter" onchange="openWorkGallery($('#modal_emp_filter').val(), this.value)" style="border: none; background: transparent; font-weight: 700; font-size: 13px; color: #1e293b; outline: none; cursor: pointer;" title="Filter photos by date">
+                        </div>
+
+                        <!-- Reset Date Filter -->
+                        <button type="button" onclick="$('#modal_date_filter').val(''); openWorkGallery($('#modal_emp_filter').val(), '');" style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 7px 14px; font-size: 12px; font-weight: 700; color: #475569; cursor: pointer; transition: 0.2s;" title="Show all dates">
+                            <i class="fa fa-refresh" style="color: #dd2127;"></i> All Dates
+                        </button>
                     </div>
                 </div>
             </div>
-            <div class="modal-body" style="padding: 0; background: #fff; min-height: 450px; max-height: 75vh; overflow-y: auto;">
+            <div class="modal-body" style="padding: 0; background: #fff; min-height: 450px; max-height: 78vh; overflow-y: auto;">
                 <div id="gallery-content-container">
                     <!-- Gallery Content -->
                 </div>
@@ -499,8 +513,8 @@ $result = mysqli_query($con, $sql);
     }
 
     .p-input-premium:focus {
-        border-color: #dd2127;
-        box-shadow: 0 0 0 4px rgba(221, 33, 39, 0.1);
+        border-color: #dd2127 !important;
+        box-shadow: 0 0 0 3px #ffeaeb !important;
     }
 
     /* Inline Mini Thumbnails */
@@ -866,19 +880,22 @@ $result = mysqli_query($con, $sql);
         }
     };
 
-    window.openWorkGallery = function(forceEmpId = null) {
+    window.openWorkGallery = function(forceEmpId = null, forceDate = null) {
         const modal = $('#workGalleryModal');
         const container = $('#gallery-content-container');
 
-        // Get current filters
-        let empId = forceEmpId !== null ? forceEmpId : $('select[name="emp_id"]').val();
+        let empId = forceEmpId !== null ? forceEmpId : ($('#modal_emp_filter').val() || $('select[name="emp_id"]').val() || '');
+        let dateVal = forceDate !== null ? forceDate : ($('#modal_date_filter').val() || '');
+
         const status = $('select[name="status"]').val();
         const from = $('input[name="from"]').val();
         const to = $('input[name="to"]').val();
 
-        // Sync modal select if it exists
         if ($('#modal_emp_filter').length > 0 && forceEmpId === null) {
             $('#modal_emp_filter').val(empId);
+        }
+        if ($('#modal_date_filter').length > 0 && forceDate === null) {
+            $('#modal_date_filter').val(dateVal);
         }
 
         container.html(`
@@ -888,7 +905,6 @@ $result = mysqli_query($con, $sql);
             </div>
         `);
 
-        // Only show modal if it's not already shown
         if (!modal.is(':visible')) {
             modal.modal('show');
         }
@@ -898,12 +914,13 @@ $result = mysqli_query($con, $sql);
             method: 'GET',
             data: {
                 emp_id: empId,
+                date: dateVal,
                 status: status,
                 from: from,
                 to: to
             },
             success: function(response) {
-                container.hide().html(response).fadeIn(600);
+                container.hide().html(response).fadeIn(400);
             },
             error: function() {
                 container.html('<div style="padding: 100px; text-align: center; color: #ef4444; font-weight: 700;"><i class="fa fa-exclamation-triangle"></i> ARCHIVE TEMPORARILY OFFLINE</div>');

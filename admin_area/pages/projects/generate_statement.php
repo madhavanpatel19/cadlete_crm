@@ -24,7 +24,25 @@ if (!$project) {
 // Fetch budget phases from project_budget_phases
 $phases_q = mysqli_query($con, "SELECT * FROM project_budget_phases WHERE project_id = '$project_id' ORDER BY id ASC");
 $phases = [];
+$total_received = 0;
+
 while ($row = mysqli_fetch_assoc($phases_q)) {
+    $p_name_esc = mysqli_real_escape_string($con, $row['phase_name']);
+    $get_pmts = mysqli_query($con, "SELECT * FROM project_phase_payments WHERE project_id = '$project_id' AND phase_name = '$p_name_esc' ORDER BY id ASC");
+    $pmts = [];
+    $pmt_sum = 0;
+    if ($get_pmts && mysqli_num_rows($get_pmts) > 0) {
+        while ($pmt = mysqli_fetch_assoc($get_pmts)) {
+            $pmts[] = $pmt;
+            $pmt_sum += (float)$pmt['amount'];
+        }
+    } else {
+        $pmt_sum = (float)$row['received_amount'];
+    }
+
+    $row['received_amount'] = $pmt_sum;
+    $row['payments'] = $pmts;
+    $total_received += $pmt_sum;
     $phases[] = $row;
 }
 
@@ -41,7 +59,6 @@ $sym      = $currency_symbols[$currency] ?? '₹';
 
 // Totals
 $total_cost     = (float)($project['budget'] ?? 0);
-$total_received = array_sum(array_column($phases, 'received_amount'));
 $total_pending  = $total_cost - $total_received;
 
 $current_date = date("d F Y");
@@ -504,6 +521,7 @@ $current_date = date("d F Y");
                                 <th style="text-align:left;">Phase</th>
                                 <th>Total Cost (<?php echo $sym; ?>)</th>
                                 <th>Received (<?php echo $sym; ?>)</th>
+                                <th>Pending (<?php echo $sym; ?>)</th>
                                 <th>Payment Method</th>
                                 <th>Description</th>
                                 <th>Received Date</th>
@@ -511,22 +529,60 @@ $current_date = date("d F Y");
                         </thead>
                         <tbody>
                             <?php foreach ($phases as $i => $phase):
-                                $cost_fmt = number_format((float)$phase['cost'], 0);
-                                $rec_fmt  = number_format((float)$phase['received_amount'], 0);
+                                $cost_val = (float)$phase['cost'];
+                                $rec_val  = (float)$phase['received_amount'];
+                                $pnd_val  = max(0, $cost_val - $rec_val);
+                                $cost_fmt = number_format($cost_val, 0);
+                                $rec_fmt  = number_format($rec_val, 0);
+                                $pnd_fmt  = number_format($pnd_val, 0);
                                 $date_fmt = (!empty($phase['received_date']) && $phase['received_date'] !== '0000-00-00')
                                     ? date("d M Y", strtotime($phase['received_date'])) : '—';
-                                $method   = !empty($phase['remark'])      ? htmlspecialchars($phase['remark'])      : '—';
-                                $desc     = !empty($phase['description'])  ? htmlspecialchars($phase['description']) : '—';
+
+                                if (!empty($phase['payments'])) {
+                                    if (count($phase['payments']) > 1) {
+                                        $method = 'Multiple';
+                                    } else {
+                                        $method = htmlspecialchars($phase['payments'][0]['payment_method'] ?? $phase['remark'] ?? '—');
+                                    }
+                                } else {
+                                    $method = !empty($phase['remark']) ? htmlspecialchars($phase['remark']) : '—';
+                                }
+
+                                $desc = !empty($phase['description']) ? htmlspecialchars($phase['description']) : '—';
                             ?>
-                                <tr>
-                                    <td><?php echo $i + 1; ?></td>
-                                    <td class="phase-name"><?php echo htmlspecialchars($phase['phase_name']); ?></td>
-                                    <td class="amount"><?php echo $sym . ' ' . $cost_fmt; ?></td>
-                                    <td class="received-amt"><?php echo $sym . ' ' . $rec_fmt; ?></td>
-                                    <td><?php echo $method; ?></td>
-                                    <td><?php echo $desc; ?></td>
-                                    <td><?php echo $date_fmt; ?></td>
+                                <tr style="background: #ffffff; border-top: 1.5px solid #e2e8f0;">
+                                    <td style="font-weight: 700; text-align: center; color: #475569;"><?php echo $i + 1; ?></td>
+                                    <td class="phase-name" style="font-weight: 800; color: #0f172a;"><?php echo htmlspecialchars($phase['phase_name']); ?></td>
+                                    <td class="amount" style="font-weight: 700;"><?php echo $sym . ' ' . $cost_fmt; ?></td>
+                                    <td class="received-amt" style="font-weight: 800; color: #16a34a;"><?php echo $sym . ' ' . $rec_fmt; ?></td>
+                                    <td style="font-weight: 800; color: <?php echo $pnd_val > 0 ? '#ef4444' : '#16a34a'; ?>; text-align: center;"><?php echo $sym . ' ' . $pnd_fmt; ?></td>
+                                    <td style="font-weight: 600; color: #475569; text-align: center;"><?php echo $method; ?></td>
+                                    <td style="color: #64748b; font-size: 11px;"><?php echo $desc; ?></td>
+                                    <td style="font-weight: 600; color: #475569; text-align: center;"><?php echo $date_fmt; ?></td>
                                 </tr>
+                                <?php if (!empty($phase['payments']) && count($phase['payments']) > 1): ?>
+                                    <?php foreach ($phase['payments'] as $p_idx => $pmt):
+                                        $p_amt_fmt = number_format((float)$pmt['amount'], 0);
+                                        $p_date_fmt = (!empty($pmt['payment_date']) && $pmt['payment_date'] !== '0000-00-00')
+                                            ? date("d M Y", strtotime($pmt['payment_date'])) : '—';
+                                        $p_method = !empty($pmt['payment_method']) ? htmlspecialchars($pmt['payment_method']) : '—';
+                                        $p_note   = !empty($pmt['note'])           ? htmlspecialchars($pmt['note'])           : '—';
+                                    ?>
+                                        <tr style="background: #f8fafc; font-size: 11px; color: #475569;">
+                                            <td></td>
+                                            <td style="padding-left: 20px; font-weight: 600; color: #dd2127; text-align: left;" colspan="2">
+                                                └ Installment #<?php echo $p_idx + 1; ?>
+                                            </td>
+                                            <td class="received-amt" style="color: #16a34a; font-weight: 700; text-align: center;">
+                                                <?php echo $sym . ' ' . $p_amt_fmt; ?>
+                                            </td>
+                                            <td></td>
+                                            <td style="font-weight: 500; color: #64748b; text-align: center;"><?php echo $p_method; ?></td>
+                                            <td style="color: #94a3b8; font-size: 11px;"><?php echo $p_note; ?></td>
+                                            <td style="font-weight: 500; color: #64748b; text-align: center;"><?php echo $p_date_fmt; ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -537,7 +593,7 @@ $current_date = date("d F Y");
             <div class="footer-bar">
                 <div class="footer-inner">
                     <div class="footer-col">
-                        <div class="footer-item"><i class="fa fa-phone"></i>8320211773
+                        <div class="footer-item"><i class="fa fa-phone"></i>091 83202 11773
                         </div>
                         <div class="footer-item"><i class="fa fa-envelope"></i> info@cadletedesigns.com</div>
                     </div>

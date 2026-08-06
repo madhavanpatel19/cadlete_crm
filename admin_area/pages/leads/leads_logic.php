@@ -1,4 +1,9 @@
 <?php
+if (!isset($con)) {
+    include(__DIR__ . '/../../includes/db.php');
+}
+global $con;
+
 // Handle Quick Follow-up Submission
 if (isset($_POST['add_quick_followup'])) {
     $lead_id = mysqli_real_escape_string($con, $_POST['lead_id']);
@@ -15,7 +20,7 @@ if (isset($_POST['add_quick_followup'])) {
         if (!empty($next_date)) {
             mysqli_query($con, "UPDATE leads SET followup_date = '$next_date' WHERE id = '$lead_id'");
         }
-        
+
         // Redirect back to the same page or where they came from
         $redirect = "index.php?leads";
         if (isset($_GET['view_lead'])) {
@@ -60,4 +65,3 @@ if (isset($_POST['add_quick_followup'])) {
         </script>";
     }
 }
-?>

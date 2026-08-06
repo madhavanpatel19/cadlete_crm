@@ -22,7 +22,7 @@ $result = mysqli_query($con, $query);
                     <i class="fa fa-list"></i>
                     <h3>All Announcements</h3>
                 </div>
-                <div style="overflow-x: auto;">
+                <div class="table-responsive">
                     <table class="table-premium">
                         <thead>
                             <tr>
@@ -48,9 +48,16 @@ $result = mysqli_query($con, $query);
                                         </td>
                                         <td style="font-weight: 600; color: #64748b; text-align: center;"><?php echo date('d M Y, h:i A', strtotime($row['publish_date'] ?? $row['created_at'])); ?></td>
                                         <td style="text-align: center;">
-                                            <a href="index.php?view_announcement=<?php echo $ann_id; ?>" class="btn btn-sm" style="background:#f1f5f9; color:#475569; font-weight:600; border-radius:8px;">
-                                                <i class="fa fa-eye"></i> View
-                                            </a>
+                                            <div style="display: flex; justify-content: center;">
+                                                <button type="button" class="btn-icon-premium btn-icon-view view-announcement-btn"
+                                                    data-id="<?php echo $ann_id; ?>"
+                                                    data-title="<?php echo htmlspecialchars($row['title'], ENT_QUOTES); ?>"
+                                                    data-date="<?php echo date('d M Y, h:i A', strtotime($row['publish_date'] ?? $row['created_at'])); ?>"
+                                                    data-message="<?php echo htmlspecialchars($row['message'], ENT_QUOTES); ?>"
+                                                    title="View Announcement">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
@@ -69,3 +76,63 @@ $result = mysqli_query($con, $query);
         </div>
     </div>
 </div>
+
+<!-- Modal Pop-Up for Announcement Details -->
+<div class="modal fade" id="announcementModal" tabindex="-1" role="dialog" style="z-index: 99999;">
+    <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 600px; width: 90%; margin: 0 auto; display: flex; align-items: center; min-height: calc(100vh - 60px);">
+        <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); width: 100%;">
+            <div class="modal-header" style="background: #ffeaeb; color: #0f172a; padding: 22px 30px; border: none; position: relative;">
+                <button type="button" class="btn-modal-close" data-dismiss="modal" aria-label="Close">
+                    <i class="fa fa-times"></i>
+                </button>
+                <div style="display: flex; align-items: center; gap: 14px; width: calc(100% - 40px);">
+                    <div style="width: 40px; height: 40px; background: #dd2127; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fa fa-bullhorn" style="color: #fff; font-size: 16px;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title" id="announcementModalTitle" style="font-weight: 800; color: #0f172a; font-size: 18px; margin: 0; line-height: 1.3;">Announcement Detail</h5>
+                        <div id="announcementModalDate" style="font-size: 12px; color: #64748b; font-weight: 600; margin-top: 3px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body" style="padding: 30px; background: #fff;">
+                <div id="announcementModalMessage" style="font-size: 15px; line-height: 1.8; color: #334155; white-space: pre-wrap; font-family: 'Inter', sans-serif;"></div>
+            </div>
+            <div class="modal-footer" style="padding: 16px 30px; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end;">
+                <button type="button" class="btn-premium-cancel" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('.view-announcement-btn').on('click', function() {
+            const $btn = $(this);
+            const annId = $btn.data('id');
+            const title = $btn.data('title');
+            const date = $btn.data('date');
+            const message = $btn.data('message');
+
+            $('#announcementModalTitle').text(title);
+            $('#announcementModalDate').html('<i class="fa fa-clock-o"></i> Posted on: ' + date);
+            $('#announcementModalMessage').text(message);
+
+            $('#announcementModal').modal('show');
+
+            // Mark as read via AJAX
+            $.ajax({
+                url: 'ajax_mark_announcement_read.php',
+                type: 'POST',
+                data: {
+                    announcement_id: annId
+                },
+                success: function() {
+                    const $row = $btn.closest('tr');
+                    $row.css('background', '');
+                    $row.find('.p-badge-danger').fadeOut();
+                }
+            });
+        });
+    });
+</script>

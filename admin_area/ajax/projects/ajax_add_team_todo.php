@@ -13,7 +13,7 @@ if (!isset($_SESSION['admin_email'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit();
 }
-if (!canAdminAccess('project_assign_task')) {
+if (!canAdminAccess('project_assign_task') && !canAdminAccess('todo_insert')) {
     echo json_encode(['success' => false, 'message' => 'Permission denied']);
     exit();
 }

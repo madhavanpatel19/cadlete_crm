@@ -271,50 +271,6 @@ if ($run_stats) {
             box-shadow: 0 4px 6px -1px rgba(223, 33, 39, 0.3);
         }
 
-        .btn-icon-premium {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: #fff;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 12px;
-            width: 38px;
-            height: 38px;
-            transition: 0.3s;
-            cursor: pointer;
-            color: #64748b;
-            text-decoration: none !important;
-        }
-
-        .btn-icon-premium:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-
-        .btn-icon-approve {
-            color: #10b981 !important;
-            background: #ecfdf5 !important;
-            border-color: #d1fae5 !important;
-        }
-
-        .btn-icon-approve:hover {
-            background: #d1fae5 !important;
-            border-color: #a7f3d0 !important;
-            color: #059669 !important;
-        }
-
-        .btn-icon-reject {
-            color: #ef4444 !important;
-            background: #fef2f2 !important;
-            border-color: #fee2e2 !important;
-        }
-
-        .btn-icon-reject:hover {
-            background: #fee2e2 !important;
-            border-color: #fecaca !important;
-            color: #b91c1c !important;
-        }
-
         .table-premium th,
         .table-premium td {
             vertical-align: middle !important;
@@ -456,7 +412,7 @@ if ($run_stats) {
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td style="text-align: center;">
                                     <span class="p-badge p-badge-secondary" style="background: #ffeaeb; color: #dd2127; border: none; font-weight: 600; padding: 4px 10px;"><?php echo htmlspecialchars($row['leave_name'] ?: 'N/A'); ?></span>
                                 </td>
                                 <td class="text-center" style="font-weight: 600; color: #475569; font-size: 13px;">

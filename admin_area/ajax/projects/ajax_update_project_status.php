@@ -28,7 +28,7 @@ if (isset($_POST['project_id']) && isset($_POST['status'])) {
 
         // Automatically log a system remark for status change
         $system_remark = "System: Project status updated to $status";
-        $insert_remark = "INSERT INTO client_project_remarks (project_id, remark) VALUES ($project_id, '$system_remark')";
+        $insert_remark = "INSERT INTO client_project_remarks (project_id, remark, posted_by) VALUES ($project_id, '$system_remark', 'System')";
         mysqli_query($con, $insert_remark);
     } else {
         $response['message'] = 'Database error: ' . mysqli_error($con);

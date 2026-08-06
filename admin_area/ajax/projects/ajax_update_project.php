@@ -40,7 +40,7 @@ if (isset($_POST['project_id']) && isset($_POST['project_name'])) {
         
         // Log update
         $system_remark = "System: Project details updated (Name: $project_name, Budget: $budget, Status: $status)";
-        $insert_remark = "INSERT INTO client_project_remarks (project_id, remark) VALUES ($project_id, '$system_remark')";
+        $insert_remark = "INSERT INTO client_project_remarks (project_id, remark, posted_by) VALUES ($project_id, '$system_remark', 'System')";
         mysqli_query($con, $insert_remark);
     } else {
         $response['message'] = 'Database error: ' . mysqli_error($con);

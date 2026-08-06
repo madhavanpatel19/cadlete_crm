@@ -74,6 +74,16 @@ $tables = [
         remark TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )",
+    "project_phase_payments" => "CREATE TABLE IF NOT EXISTS project_phase_payments (
+        id INT(11) AUTO_INCREMENT PRIMARY KEY,
+        project_id INT(11) NOT NULL,
+        phase_name VARCHAR(255) NULL,
+        amount DECIMAL(15,2) DEFAULT 0,
+        payment_date DATE,
+        payment_method VARCHAR(100),
+        note TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )",
     "project_documents" => "CREATE TABLE IF NOT EXISTS project_documents (
         id INT(11) AUTO_INCREMENT PRIMARY KEY,
         project_id INT(11) NOT NULL,
@@ -165,17 +175,16 @@ if (mysqli_num_rows($check_col) == 0) {
     }
 }
 
-// 3. Add leave_type_id to leave_applications if missing
-$check_col = mysqli_query($con, "SHOW COLUMNS FROM leave_applications LIKE 'leave_type_id'");
-if (mysqli_num_rows($check_col) == 0) {
-    if (mysqli_query($con, "ALTER TABLE leave_applications ADD COLUMN leave_type_id INT(11) NOT NULL AFTER emp_id")) {
-        echo "<div style='color: #10b981; margin-bottom: 10px;'>✔ Column <b>leave_type_id</b> added to leave_applications.</div>";
+// 4. Add is_proposal to project_documents
+$check_col = mysqli_query($con, "SHOW COLUMNS FROM project_documents LIKE 'is_proposal'");
+if ($check_col && mysqli_num_rows($check_col) == 0) {
+    if (mysqli_query($con, "ALTER TABLE project_documents ADD COLUMN is_proposal TINYINT(1) NOT NULL DEFAULT 0 AFTER document_name")) {
+        echo "<div style='color: #10b981; margin-bottom: 10px;'>✔ Column <b>is_proposal</b> added to project_documents.</div>";
     } else {
-        echo "<div style='color: #ef4444; margin-bottom: 10px;'>✘ Error adding leave_type_id: " . mysqli_error($con) . "</div>";
+        echo "<div style='color: #ef4444; margin-bottom: 10px;'>✘ Error adding is_proposal: " . mysqli_error($con) . "</div>";
     }
-} else {
-    echo "<div style='color: #64748b; margin-bottom: 10px;'>• Column <b>leave_type_id</b> already exists.</div>";
 }
+
 
 echo "<div style='margin-top: 40px; padding: 20px; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0; color: #166534;'>";
 echo "<strong>Success!</strong> Database synchronization complete. You can now delete this file and continue using the application.";

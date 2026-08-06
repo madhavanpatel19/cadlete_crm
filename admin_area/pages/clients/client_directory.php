@@ -411,17 +411,6 @@ $industries_q = mysqli_query($con, "SELECT industry_name as industry FROM client
     }
 
     /* Table Premium Standard */
-    .table-premium th {
-        background: #f8fafc;
-        color: #475569;
-        font-weight: 700;
-        font-size: 13px;
-        text-transform: uppercase;
-        padding: 16px 25px;
-        text-align: left;
-        border-bottom: 1.5px solid #e2e8f0;
-        white-space: nowrap;
-    }
 
     .table-premium td {
         padding: 20px 25px !important;
@@ -429,28 +418,6 @@ $industries_q = mysqli_query($con, "SELECT industry_name as industry FROM client
         border-bottom: 1px solid #f1f5f9 !important;
     }
 
-    .btn-icon-premium {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #fff;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 12px;
-        width: 38px;
-        height: 38px;
-        transition: 0.3s;
-        cursor: pointer;
-        color: #64748b;
-        text-decoration: none !important;
-    }
-
-    .btn-icon-premium:hover {
-        background: #f8fafc;
-        border-color: #1e293b;
-        color: #1e293b;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
 
     .client-table-img {
         width: 48px;
@@ -485,7 +452,8 @@ $industries_q = mysqli_query($con, "SELECT industry_name as industry FROM client
     .p-input-premium:focus {
         background: #fff;
         border-color: #dd2127 !important;
-        box-shadow: 0 0 0 4px rgba(221, 33, 39, 0.1) !important;
+        box-shadow: 0 0 0 3px #ffeaeb !important;
+
     }
 
     .id-badge-premium {

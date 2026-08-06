@@ -106,10 +106,12 @@ function add_user($con)
     }
 
     // -- Sanitize remaining fields --
-    $address  = mysqli_real_escape_string($con, $_POST['address']);
-    $blood    = mysqli_real_escape_string($con, $_POST['blood']);
-    $gender   = mysqli_real_escape_string($con, $_POST['gender']);
-    $joinDate = mysqli_real_escape_string($con, $_POST['joinDate']);
+    $address     = mysqli_real_escape_string($con, $_POST['address']);
+    $blood       = mysqli_real_escape_string($con, $_POST['blood']);
+    $gender      = mysqli_real_escape_string($con, $_POST['gender']);
+    $joinDate    = mysqli_real_escape_string($con, $_POST['joinDate']);
+    $department  = mysqli_real_escape_string($con, $_POST['department']  ?? 'Development');
+    $designation = mysqli_real_escape_string($con, $_POST['designation'] ?? 'Software Engineer');
 
     // -- Salary fields (only if admin has permission) --
     if (canAdminAccess('salary_insert')) {
@@ -133,7 +135,7 @@ function add_user($con)
     $e_name = mysqli_real_escape_string($con, $_POST['emergency_name']         ?? '');
     $e_rel  = mysqli_real_escape_string($con, $_POST['emergency_relationship'] ?? '');
     $e_addr = mysqli_real_escape_string($con, $_POST['emergency_address']      ?? '');
-    $e_phone= mysqli_real_escape_string($con, $_POST['emergency_phone']        ?? '');
+    $e_phone = mysqli_real_escape_string($con, $_POST['emergency_phone']        ?? '');
 
     // -- Education & Employment JSON --
     $edu_json = mysqli_real_escape_string($con, $_POST['education_json']  ?? '[]');
@@ -175,11 +177,11 @@ function add_user($con)
 
     // -- Insert employee record into DB --
     $query = "INSERT INTO emp_list
-    (name, phone_number, address, email, blood_group, gender, join_date, basic_salary, hra, allowance, deductions, salary, password,
+    (name, phone_number, address, email, blood_group, gender, join_date, department, designation, basic_salary, hra, allowance, deductions, salary, password,
     age, dob, work_experience, marital_status, num_dependents, emergency_name, emergency_relationship, emergency_address, emergency_phone,
     education_json, employment_json, account_name, bank_branch, account_number, account_type_ifsc, employee_image, offer_latter, NDA, Aadhar_card, Pan_card, Passportsize_photo, old_company_slary_slip)
               VALUES
-    ('$name', '$contact', '$address', '$email', '$blood', '$gender', '$joinDate', '$basic', '$hra', '$allowance', '$deductions', '$salary', '$plainPassword',
+    ('$name', '$contact', '$address', '$email', '$blood', '$gender', '$joinDate', '$department', '$designation', '$basic', '$hra', '$allowance', '$deductions', '$salary', '$plainPassword',
     '$age', '$dob', '$work_exp', '$marital', '$dependents', '$e_name', '$e_rel', '$e_addr', '$e_phone',
     '$edu_json', '$emp_json', '$acc_name', '$bank_br', '$acc_num', '$acc_ifsc', '$employee_image', '$offer_letter', '$NDA', '$Aadhar_card', '$Pan_card', '$Passportsize_photo', '$old_company_slary_slip')";
 
@@ -249,10 +251,12 @@ function add_user($con)
         // =============================================================
 
         // -- Show success modal and redirect --
-        ?>
+?>
         <link rel="stylesheet" href="css/success_notification.css">
         <style>
-            #php_server_loader { display: none !important; }
+            #php_server_loader {
+                display: none !important;
+            }
         </style>
         <div class="success-modal-overlay" id="successModal">
             <div class="success-modal-content">
@@ -275,14 +279,17 @@ function add_user($con)
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const modal = document.getElementById('successModal');
-                setTimeout(() => { modal.classList.add('active'); }, 100);
+                setTimeout(() => {
+                    modal.classList.add('active');
+                }, 100);
                 // Auto redirect after 5 seconds
-                setTimeout(() => { window.location.href = 'index.php?emp_directory'; }, 5000);
+                setTimeout(() => {
+                    window.location.href = 'index.php?emp_directory';
+                }, 5000);
             });
         </script>
-        <?php
+<?php
         exit();
-
     } else {
         // -- DB insert failed – show error --
         $dbError = addslashes(mysqli_error($con));
@@ -475,16 +482,16 @@ if (isset($_POST['submit'])) {
                                 <div style="position: relative; flex: 1;">
                                     <i class="fa fa-lock" style="position: absolute; left: 15px; top: 16px; color: #64748b; font-size: 14px;"></i>
                                     <input type="text" name="emp_password" id="add_emp_password"
-                                           class="p-input-premium"
-                                           placeholder="Type custom password OR click Auto Generate →"
-                                           style="padding-left: 40px; font-family: monospace; letter-spacing: 1px;">
+                                        class="p-input-premium"
+                                        placeholder="Type custom password OR click Auto Generate →"
+                                        style="padding-left: 40px; font-family: monospace; letter-spacing: 1px;">
                                 </div>
                                 <button type="button" onclick="generateAutoPassword()"
-                                        style="white-space:nowrap; background: linear-gradient(135deg,#DF2127,#ff6b6b); color:#fff; border:none; border-radius:8px; padding:12px 20px; font-weight:600; cursor:pointer; font-size:13px; transition:0.3s;">
+                                    style="white-space:nowrap; background: linear-gradient(135deg,#DF2127,#ff6b6b); color:#fff; border:none; border-radius:8px; padding:12px 20px; font-weight:600; cursor:pointer; font-size:13px; transition:0.3s;">
                                     <i class="fa fa-refresh"></i> Auto Generate
                                 </button>
                                 <button type="button" onclick="toggleAddPassword()"
-                                        style="background:#f1f5f9; color:#475569; border:1.5px solid #e2e8f0; border-radius:8px; padding:12px 16px; cursor:pointer; font-size:13px;" title="Show/Hide Password">
+                                    style="background:#f1f5f9; color:#475569; border:1.5px solid #e2e8f0; border-radius:8px; padding:12px 16px; cursor:pointer; font-size:13px;" title="Show/Hide Password">
                                     <i class="fa fa-eye" id="add_pass_eye_icon"></i>
                                 </button>
                             </div>
@@ -619,25 +626,25 @@ if (isset($_POST['submit'])) {
             </div>
             <div style="padding: 30px;">
 
-                <div class="table-premium" style="overflow-x: auto; border: 1.5px solid #e2e8f0; border-radius: 12px; margin-bottom: 20px;">
-                    <table class="table" id="edu_table" style="margin-bottom: 0; min-width: 800px;">
+                <div class="table-premium" style="overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; border: 1.5px solid #e2e8f0; border-radius: 12px; margin-bottom: 20px;">
+                    <table class="table" id="edu_table" style="margin-bottom: 0; width: 100%; min-width: 750px;">
                         <thead>
                             <tr style="background: #f8fafc;">
-                                <th style="border: none;">Degree/Course</th>
-                                <th style="border: none;">University/Institute</th>
-                                <th style="border: none;">Year</th>
-                                <th style="border: none;">Grade</th>
-                                <th style="border: none;">City</th>
+                                <th style="border: none; white-space: nowrap; min-width: 160px;">Degree/Course</th>
+                                <th style="border: none; white-space: nowrap; min-width: 180px;">University/Institute</th>
+                                <th style="border: none; white-space: nowrap; min-width: 100px;">Year</th>
+                                <th style="border: none; white-space: nowrap; min-width: 100px;">Grade</th>
+                                <th style="border: none; white-space: nowrap; min-width: 120px;">City</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php for ($i = 0; $i < 2; $i++): ?>
                                 <tr>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium edu-degree" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium edu-univ" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium edu-year" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium edu-grade" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium edu-city" style="height: 38px; font-size: 13px;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium edu-degree" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium edu-univ" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium edu-year" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium edu-grade" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium edu-city" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
                                 </tr>
                             <?php endfor; ?>
                         </tbody>
@@ -664,26 +671,26 @@ if (isset($_POST['submit'])) {
             </div>
             <div style="padding: 30px;">
 
-                <div class="table-premium" style="overflow-x: auto; border: 1.5px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px;">
-                    <table class="table" id="emp_hist_table" style="margin-bottom: 0; min-width: 800px;">
+                <div class="table-premium" style="overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; border: 1.5px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px;">
+                    <table class="table" id="emp_hist_table" style="margin-bottom: 0; width: 100%; min-width: 780px;">
                         <thead>
                             <tr style="background: #f8fafc;">
-                                <th style="border: none;">Company Name</th>
-                                <th style="border: none;">Position</th>
-                                <th style="border: none;">Duration/Year</th>
-                                <th style="border: none;">Reason for Leaving</th>
-                                <th style="border: none; width: 56px; text-align: center;">Action</th>
+                                <th style="border: none; white-space: nowrap; min-width: 170px;">Company Name</th>
+                                <th style="border: none; white-space: nowrap; min-width: 150px;">Position</th>
+                                <th style="border: none; white-space: nowrap; min-width: 120px;">Duration/Year</th>
+                                <th style="border: none; white-space: nowrap; min-width: 170px;">Reason for Leaving</th>
+                                <th style="border: none; width: 70px; min-width: 70px; text-align: center; white-space: nowrap;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="employment_body">
                             <?php for ($i = 0; $i < 2; $i++): ?>
                                 <tr>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium hist-company" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium hist-pos" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium hist-year" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium hist-reason" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="text-align: center; vertical-align: middle; padding: 10px;">
-                                        <button type="button" class="employment-remove-row btn btn-danger btn-sm" title="Remove row" style="min-width: 36px; border-radius: 8px;">×</button>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium hist-company" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium hist-pos" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium hist-year" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium hist-reason" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="text-align: center; vertical-align: middle; padding: 6px; width: 70px; min-width: 70px;">
+                                        <button type="button" class="employment-remove-row btn btn-danger btn-sm" title="Remove row" style="width: 32px; height: 32px; line-height: 1; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 16px; margin: 0 auto;">×</button>
                                     </td>
                                 </tr>
                             <?php endfor; ?>
@@ -752,10 +759,25 @@ if (isset($_POST['submit'])) {
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
+                            <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Department *</label>
+                            <input type="text" name="department" class="p-input-premium" placeholder="e.g. Development" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Designation *</label>
+                            <input type="text" name="designation" class="p-input-premium" placeholder="e.g. Software Engineer" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
                             <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Joining Date *</label>
                             <input type="date" name="joinDate" class="p-input-premium" max="<?php echo date('Y-m-d'); ?>" required>
                         </div>
                     </div>
+                </div>
+
+                <div class="row" style="margin-top: 15px;">
                     <?php if (canAdminAccess('salary_insert')): ?>
                         <div class="col-md-4">
                             <div class="form-group">
@@ -769,22 +791,22 @@ if (isset($_POST['submit'])) {
                                 <input type="number" id="add_hra" name="hra" class="p-input-premium" placeholder="Allowance">
                             </div>
                         </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Other Allowance</label>
+                                <input type="number" id="add_allowance" name="allowance" class="p-input-premium" placeholder="Additional">
+                            </div>
+                        </div>
                 </div>
 
                 <div class="row" style="margin-top: 15px;">
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Other Allowance</label>
-                            <input type="number" id="add_allowance" name="allowance" class="p-input-premium" placeholder="Additional">
-                        </div>
-                    </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Monthly Deductions</label>
                             <input type="number" id="add_deductions" name="deductions" class="p-input-premium" placeholder="Deductions">
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-8">
                         <div class="form-group">
                             <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Net Monthly Salary</label>
                             <input type="text" id="add_salary" name="salary" class="p-input-premium" placeholder="0.00" readonly style="background: #f0fdf4; font-weight: 800; color: #059669; font-size: 18px; border-color: #bbf7d0;">
@@ -859,12 +881,12 @@ if (isset($_POST['submit'])) {
     }
 
     function employmentHistoryRowHtmlAdd() {
-        return '<td style="padding: 10px;"><input type="text" class="p-input-premium hist-company" style="height: 38px; font-size: 13px;"></td>' +
-            '<td style="padding: 10px;"><input type="text" class="p-input-premium hist-pos" style="height: 38px; font-size: 13px;"></td>' +
-            '<td style="padding: 10px;"><input type="text" class="p-input-premium hist-year" style="height: 38px; font-size: 13px;"></td>' +
-            '<td style="padding: 10px;"><input type="text" class="p-input-premium hist-reason" style="height: 38px; font-size: 13px;"></td>' +
-            '<td style="text-align: center; vertical-align: middle; padding: 10px;">' +
-            '<button type="button" class="employment-remove-row btn btn-danger btn-sm" title="Remove row" style="min-width: 36px; border-radius: 8px;">×</button></td>';
+        return '<td style="padding: 8px;"><input type="text" class="p-input-premium hist-company" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>' +
+            '<td style="padding: 8px;"><input type="text" class="p-input-premium hist-pos" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>' +
+            '<td style="padding: 8px;"><input type="text" class="p-input-premium hist-year" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>' +
+            '<td style="padding: 8px;"><input type="text" class="p-input-premium hist-reason" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>' +
+            '<td style="text-align: center; vertical-align: middle; padding: 6px; width: 70px; min-width: 70px;">' +
+            '<button type="button" class="employment-remove-row btn btn-danger btn-sm" title="Remove row" style="width: 32px; height: 32px; line-height: 1; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 16px; margin: 0 auto;">×</button></td>';
     }
 
     function addEmploymentRow() {
@@ -936,7 +958,10 @@ if (isset($_POST['submit'])) {
             input.value = pwd;
             input.type = 'text'; // Show generated password
             const icon = document.getElementById('add_pass_eye_icon');
-            if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+            if (icon) {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
         }
     }
 
@@ -946,15 +971,20 @@ if (isset($_POST['submit'])) {
      */
     function toggleAddPassword() {
         const input = document.getElementById('add_emp_password');
-        const icon  = document.getElementById('add_pass_eye_icon');
+        const icon = document.getElementById('add_pass_eye_icon');
         if (!input) return;
         if (input.type === 'password') {
             input.type = 'text';
-            if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+            if (icon) {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
         } else {
             input.type = 'password';
-            if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+            if (icon) {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
         }
     }
-
 </script>

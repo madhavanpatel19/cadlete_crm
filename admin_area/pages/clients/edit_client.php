@@ -301,8 +301,8 @@ endif; ?>
     }
 
     .p-input-premium:focus {
-        border-color: #df2127;
-        box-shadow: 0 0 0 4px rgba(223, 33, 39, 0.1);
+        border-color: #dd2127 !important;
+        box-shadow: 0 0 0 3px #ffeaeb !important;
         outline: none;
     }
 

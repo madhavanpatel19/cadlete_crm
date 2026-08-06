@@ -199,6 +199,15 @@ function getResourceTypePhp($url)
     }
 
     /* ── Announcement ── */
+    .premium-swal-popup {
+        border-radius: 20px !important;
+        padding: 24px !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+        border: none !important;
+        width: 440px !important;
+        max-width: 90vw !important;
+    }
+
     .dash-announce {
         background: linear-gradient(90deg, #fff1f2, #fce7f3);
         border-left: 4px solid #e11d48;
@@ -891,7 +900,7 @@ function getResourceTypePhp($url)
                 <h2><?php echo $pending_task_count; ?></h2>
                 <p><?php echo $total_tasks; ?> total assigned</p>
             </div>
-            <a href="#taskSec" class="dc-link">View <i class="fa fa-arrow-right"></i></a>
+            <!-- <a href="#taskSec" class="dc-link">View <i class="fa fa-arrow-right"></i></a> -->
         </div>
 
         <!-- Projects -->
@@ -902,7 +911,7 @@ function getResourceTypePhp($url)
                 <h2><?php echo $active_proj_count; ?></h2>
                 <p>Ongoing projects</p>
             </div>
-            <a href="#projSec" class="dc-link">View <i class="fa fa-arrow-right"></i></a>
+            <!-- <a href="#projSec" class="dc-link">View <i class="fa fa-arrow-right"></i></a> -->
         </div>
 
         <!-- Today Work Log -->
@@ -1182,7 +1191,10 @@ function getResourceTypePhp($url)
             var hasPhoto = false;
             for (var i = 1; i <= 4; i++) {
                 var fi = document.getElementById('work_photo_' + i);
-                if (fi && fi.files && fi.files.length > 0) hasPhoto = true;
+                var prev = document.getElementById('preview_' + i);
+                if ((fi && fi.files && fi.files.length > 0) || (prev && prev.src && prev.style.display !== 'none' && prev.src !== '' && !prev.src.endsWith('/'))) {
+                    hasPhoto = true;
+                }
             }
             if (!hasPhoto) {
                 Swal.fire('Notification', 'Please upload at least 1 work photo.', 'info');
@@ -1267,27 +1279,55 @@ function getResourceTypePhp($url)
 
         window.addBookmark = function(idx) {
             Swal.fire({
-                title: 'Add Bookmark',
-                html: '<input id="swal-input1" class="swal2-input" placeholder="Name (e.g. Google)" style="font-size:14px;">' +
-                    '<input id="swal-input2" class="swal2-input" placeholder="URL (e.g. google.com)" style="font-size:14px; ">',
+                html: `
+                    <div style="padding: 10px 5px 5px 5px;">
+                        <div style="width: 48px; height: 48px; background: #ffeaeb; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px auto;">
+                            <i class="fa fa-bookmark" style="color: #dc2626; font-size: 20px;"></i>
+                        </div>
+                        <h4 style="font-weight: 800; color: #0f172a; font-size: 19px; margin: 0 0 6px 0;">Add Bookmark</h4>                        
+                        <div style="text-align: left; margin-bottom: 16px;">
+                            <label style="font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa fa-tag" style="color: #dc2626; font-size: 11px;"></i> Bookmark Name <span style="color: #dc2626;">*</span>
+                            </label>
+                            <input id="swal-input1" type="text" class="form-control" placeholder="e.g. Google, Figma, Portal..." style="height: 46px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 600; color: #0f172a; width: 100%; outline: none; box-sizing: border-box; transition: 0.2s;" onfocus="this.style.borderColor='#dc2626'; this.style.boxShadow='0 0 0 3px rgba(220, 38, 38, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                        </div>
+
+                        <div style="text-align: left; margin-bottom: 10px;">
+                            <label style="font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa fa-link" style="color: #dc2626; font-size: 11px;"></i> Website URL <span style="color: #dc2626;">*</span>
+                            </label>
+                            <input id="swal-input2" type="text" class="form-control" placeholder="e.g. google.com, figma.com..." style="height: 46px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 600; color: #0f172a; width: 100%; outline: none; box-sizing: border-box; transition: 0.2s;" onfocus="this.style.borderColor='#dc2626'; this.style.boxShadow='0 0 0 3px rgba(220, 38, 38, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                        </div>
+                    </div>
+                `,
                 focusConfirm: false,
                 showCancelButton: true,
-                confirmButtonText: 'Save',
-                confirmButtonColor: '#e11d48',
+                confirmButtonText: '<i class="fa fa-check" style="margin-right: 6px;"></i> Save Bookmark',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#94a3b8',
+                customClass: {
+                    popup: 'premium-swal-popup',
+                    confirmButton: 'btn-premium-add',
+                    cancelButton: 'btn-premium-cancel'
+                },
+                didOpen: () => {
+                    const el = document.getElementById('swal-input1');
+                    if (el) el.focus();
+                },
                 preConfirm: () => {
-                    return [
-                        document.getElementById('swal-input1').value,
-                        document.getElementById('swal-input2').value
-                    ]
+                    const val1 = document.getElementById('swal-input1').value;
+                    const val2 = document.getElementById('swal-input2').value;
+                    if (!val1.trim() || !val2.trim()) {
+                        Swal.showValidationMessage('Please fill in both Bookmark Name and URL');
+                        return false;
+                    }
+                    return [val1, val2];
                 }
             }).then((result) => {
-                if (result.isConfirmed) {
+                if (result.isConfirmed && result.value) {
                     let name = result.value[0].trim();
                     let url = result.value[1].trim();
-                    if (!name || !url) {
-                        Swal.fire('Error', 'Both fields are required', 'error');
-                        return;
-                    }
                     if (!url.startsWith('http://') && !url.startsWith('https://')) {
                         url = 'https://' + url;
                     }
@@ -1315,17 +1355,35 @@ function getResourceTypePhp($url)
 
         window.clearBookmarks = function() {
             Swal.fire({
-                title: 'Clear All Bookmarks?',
-                text: "This will remove all your saved links.",
-                icon: 'warning',
+                html: `
+                    <div style="padding: 10px 5px 5px 5px;">
+                        <div style="width: 48px; height: 48px; background: #fef2f2; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px auto;">
+                            <i class="fa fa-trash-o" style="color: #dc2626; font-size: 22px;"></i>
+                        </div>
+                        <h4 style="font-weight: 800; color: #0f172a; font-size: 19px; margin: 0 0 6px 0;">Clear All Bookmarks?</h4>
+                        <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 500; line-height: 1.5;">Are you sure you want to remove all saved links? This action cannot be undone.</p>
+                    </div>
+                `,
                 showCancelButton: true,
-                confirmButtonColor: '#e11d48',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Yes, clear them!'
+                confirmButtonText: '<i class="fa fa-trash-o" style="margin-right: 6px;"></i> Yes, Clear All',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    popup: 'premium-swal-popup',
+                    confirmButton: 'btn-premium-add',
+                    cancelButton: 'btn-premium-cancel'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     localStorage.removeItem('empBookmarks_<?php echo $emp_id; ?>');
                     initBookmarks();
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Bookmarks cleared',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
                 }
             });
         };
@@ -1349,6 +1407,9 @@ function getResourceTypePhp($url)
             dataType: 'json',
             success: function(r) {
                 if (r.success) {
+                    if (r.work_details) {
+                        $('#workDetails').val(r.work_details);
+                    }
                     $row.slideUp(300, function() {
                         $(this).remove();
                         if ($('.t-row').length === 0) {
@@ -1410,18 +1471,28 @@ function getResourceTypePhp($url)
                     </div>
                     <div class="form-group">
                         <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Work Details <span class="text-danger">*</span></label>
-                        <div class="col-md-8"><textarea id="workDetails" class="form-control" style="height:90px;border-radius:10px;border:1px solid #e2e8f0;resize:none;" placeholder="What did you accomplish today?" required></textarea></div>
+                        <div class="col-md-8"><textarea id="workDetails" class="form-control" style="height:90px;border-radius:10px;border:1px solid #e2e8f0;resize:none;" placeholder="What did you accomplish today?" required><?php echo htmlspecialchars($today_record['remarks'] ?? ''); ?></textarea></div>
                     </div>
                     <div class="form-group">
                         <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Work Photos <span class="text-danger">*</span></label>
                         <div class="col-md-8">
                             <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                                <?php for ($id = 1; $id <= 4; $id++): ?>
+                                <?php
+                                $prefill_photos = (!empty($today_record['work_photos'])) ? json_decode($today_record['work_photos'], true) : [];
+                                if (!is_array($prefill_photos)) $prefill_photos = [];
+                                for ($id = 1; $id <= 4; $id++):
+                                    $photo_src = '';
+                                    $has_prefill = isset($prefill_photos[$id - 1]) && !empty($prefill_photos[$id - 1]);
+                                    if ($has_prefill) {
+                                        $p_url = $prefill_photos[$id - 1];
+                                        $photo_src = (strpos($p_url, 'http') === 0 || strpos($p_url, '/') === 0) ? $p_url : '../admin_area/' . $p_url;
+                                    }
+                                ?>
                                     <div id="box_<?php echo $id; ?>" onclick="document.getElementById('work_photo_<?php echo $id; ?>').click()"
                                         style="width:70px;height:70px;border:2px dashed #cbd5e1;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;background:#f8fafc;">
-                                        <i class="fa fa-plus" style="color:#94a3b8;font-size:18px;"></i>
+                                        <i class="fa fa-plus" style="color:#94a3b8;font-size:18px; <?php echo $has_prefill ? 'display:none;' : ''; ?>"></i>
                                         <input type="file" id="work_photo_<?php echo $id; ?>" style="display:none;" accept="image/*" onchange="previewWorkPhoto(this,<?php echo $id; ?>)">
-                                        <img id="preview_<?php echo $id; ?>" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;">
+                                        <img id="preview_<?php echo $id; ?>" src="<?php echo htmlspecialchars($photo_src); ?>" style="<?php echo $has_prefill ? 'display:block;' : 'display:none;'; ?>width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;">
                                     </div>
                                 <?php endfor; ?>
                             </div>

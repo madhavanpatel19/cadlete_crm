@@ -520,7 +520,7 @@ $showDataScreen      = ($is_daily && $selected_date) || ($selected_emp_id > 0);
             <div style="padding: 15px 24px; background: #fafafa; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <i class="fa fa-clock-o" style="color: #64748b; font-size: 18px;"></i>
-                    <h3 style="margin: 0; font-size: 15px; color: #1e293b; font-weight: 600;">Daily Entries: <span style="color: #4338ca;"><?php echo date('d M Y', strtotime($selected_date)); ?></span></h3>
+                    <h3 style="margin: 0; font-size: 15px; color: #1e293b; font-weight: 600;">Daily Entries: <span style="color: #dd2127;"><?php echo date('d M Y', strtotime($selected_date)); ?></span></h3>
                 </div>
                 <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -995,10 +995,10 @@ $showDataScreen      = ($is_daily && $selected_date) || ($selected_emp_id > 0);
             let inlineErr = document.createElement('div');
             inlineErr.id = 'modalLeaveError';
             inlineErr.style.display = 'none';
-            inlineErr.style.color = '#d9534f';
-            inlineErr.style.fontSize = '13px';
-            inlineErr.style.marginTop = '4px';
-            attendanceForm.querySelector('.form-group:last-child').appendChild(inlineErr);
+            const lastGroup = attendanceForm.querySelector('.form-group:last-child') || attendanceForm.querySelector('.modal-body') || attendanceForm;
+            if (lastGroup) {
+                lastGroup.appendChild(inlineErr);
+            }
 
             attendanceForm.addEventListener('submit', function(e) {
                 const status = document.getElementById('status').value;

@@ -1,12 +1,19 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($con)) {
     include(__DIR__ . '/../../includes/db.php');
+}
+if (!function_exists('isSuperAdmin')) {
+    require_once(__DIR__ . '/../../includes/admin_permissions.php');
 }
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $project_id = mysqli_real_escape_string($con, $_POST['project_id']);
     $document_name = mysqli_real_escape_string($con, $_POST['document_name']);
+    $is_proposal = (isset($_POST['is_proposal']) && $_POST['is_proposal'] == '1' && isSuperAdmin()) ? 1 : 0;
 
     if (isset($_FILES['project_doc']) && $_FILES['project_doc']['error'] == 0) {
         $file_name = $_FILES['project_doc']['name'];
@@ -23,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $upload_path = "../../" . $db_path;
 
                 if (move_uploaded_file($file_tmp, $upload_path)) {
-                    $insert = "INSERT INTO project_documents (project_id, document_name, file_path) VALUES ('$project_id', '$document_name', '$db_path')";
+                    $insert = "INSERT INTO project_documents (project_id, document_name, file_path, is_proposal) VALUES ('$project_id', '$document_name', '$db_path', '$is_proposal')";
                     if (mysqli_query($con, $insert)) {
                         echo json_encode(['success' => true, 'message' => 'Document uploaded successfully']);
                     } else {
@@ -44,3 +51,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 } else {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
 }
+?>

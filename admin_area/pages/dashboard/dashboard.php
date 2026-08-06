@@ -135,6 +135,14 @@ if ($res && mysqli_num_rows($res) > 0) {
         $pending_leaves = (int)$row_pl['total'];
     }
 
+    // Active Leads
+    $active_leads = 0;
+    $q_al = "SELECT COUNT(*) AS total FROM leads WHERE status='active' AND deleted_at IS NULL";
+    $r_al = mysqli_query($con, $q_al);
+    if ($r_al && $row_al = mysqli_fetch_assoc($r_al)) {
+        $active_leads = (int)$row_al['total'];
+    }
+
     // Last month comparisons
     $last_month_start = date('Y-m-01', strtotime('-1 month'));
     $last_month_end = date('Y-m-t', strtotime('-1 month'));
@@ -213,14 +221,14 @@ if ($res && mysqli_num_rows($res) > 0) {
             </div>
         </div>
 
-        <!-- Total Employees -->
+        <!-- Active Leads -->
         <div class="stat-card">
             <div class="stat-card-icon sc-orange">
-                <i class="fa fa-users"></i>
+                <i class="fa fa-bullseye"></i>
             </div>
             <div class="stat-card-body">
-                <div class="stat-card-title"> Total Team</div>
-                <div class="stat-card-value"><?php echo canAdminAccess('employee_view') ? $count_employees : '<i class="fa fa-lock" style="font-size:24px; color:#cbd5e1;"></i>'; ?></div>
+                <div class="stat-card-title">Active Leads</div>
+                <div class="stat-card-value"><?php echo canAdminAccess('lead_view') ? $active_leads : '<i class="fa fa-lock" style="font-size:24px; color:#cbd5e1;"></i>'; ?></div>
             </div>
         </div>
 
@@ -302,7 +310,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                                     <span style="font-size:13px; font-weight:600; color:var(--text-muted);"><i class="fa fa-calendar-o" style="margin-right:4px; opacity: 0.7;"></i><?php echo $date_formatted; ?></span>
                                 </td>
                                 <td style="text-align:center; padding: 12px 10px;">
-                                    <span class="status-badge" style="background:<?php echo $badge_bg; ?>; color:<?php echo $badge_color; ?>; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 0.3px;">
+                                    <span class="status-badge" style="background:#ffeaeb; color:#dd2127; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 0.3px;">
                                         <?php echo $status; ?>
                                     </span>
                                 </td>
@@ -396,7 +404,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                                     <span style="font-size:12px; font-weight:600; color:var(--text-muted);"><?php echo $followup_formatted; ?></span>
                                 </td>
                                 <td style="text-align:center;">
-                                    <span class="status-badge" style="background:<?php echo $badge_bg; ?>; color:<?php echo $badge_color; ?>;">
+                                    <span class="status-badge" style="background:#ffeaeb; color:#dd2127;">
                                         <?php echo ucfirst($status); ?>
                                     </span>
                                 </td>
@@ -464,7 +472,7 @@ if ($res && mysqli_num_rows($res) > 0) {
 
                         $total_secs = isset($att_row['total_duration_secs']) ? (int)$att_row['total_duration_secs'] : 0;
                         $is_working_val = isset($att_row['is_working']) ? (int)$att_row['is_working'] : 0;
-                         
+
                         // Recalculate total_secs from attendance_logs if logs exist for this record
                         $att_id_row = (int)$att_row['id'];
                         $row_logs_res = mysqli_query($con, "SELECT * FROM attendance_logs WHERE att_id = $att_id_row ORDER BY action_time ASC");
@@ -486,7 +494,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                                 }
                             }
                             $total_secs = $sum_row_secs;
-                          }
+                        }
 
                         // Currently working = is_working is 1 (regardless of present/late status)
                         $currently_working = ($is_working_val == 1);
@@ -553,7 +561,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                                     <span class="total-work duration-text"><?php echo $total_work_txt; ?></span>
                                 </div>
                             </td>
-                            <td style="vertical-align: middle; text-align: center;"><span class="status-badge" style="background: <?php echo $badge_bg; ?>; color: <?php echo $badge_color; ?>; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:600;"><?php echo $badge_text; ?></span></td>
+                            <td style="vertical-align: middle; text-align: center;"><span class="status-badge" style="background: #ffeaeb; color: #dd2127; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:600;"><?php echo $badge_text; ?></span></td>
                         </tr>
                 <?php
                     }

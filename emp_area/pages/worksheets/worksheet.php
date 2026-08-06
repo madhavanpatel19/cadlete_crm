@@ -126,11 +126,14 @@ $history_query  = "SELECT a.*,
 $history_result = mysqli_query($con, $history_query);
 
 $today_date  = date('Y-m-d');
-$today_q     = "SELECT check_in_time, check_out_time FROM attendance WHERE emp_id = '$emp_id' AND attendance_date = '$today_date'";
+$today_q     = "SELECT check_in_time, check_out_time, remarks, work_photos FROM attendance WHERE emp_id = '$emp_id' AND attendance_date = '$today_date'";
 $today_res   = mysqli_query($con, $today_q);
 $today_att   = mysqli_fetch_assoc($today_res);
 $prefill_in  = ($today_att && $today_att['check_in_time'])  ? date('H:i', strtotime($today_att['check_in_time']))  : '';
 $prefill_out = ($today_att && $today_att['check_out_time']) ? date('H:i', strtotime($today_att['check_out_time'])) : date('H:i');
+$prefill_task = ($today_att && !empty($today_att['remarks'])) ? $today_att['remarks'] : '';
+$prefill_photos = ($today_att && !empty($today_att['work_photos'])) ? json_decode($today_att['work_photos'], true) : [];
+if (!is_array($prefill_photos)) $prefill_photos = [];
 ?>
 <?php if (!$is_partial) : ?>
     <!DOCTYPE html>
@@ -268,7 +271,7 @@ $prefill_out = ($today_att && $today_att['check_out_time']) ? date('H:i', strtot
                             <i class="fa fa-history"></i>
                             <h3>Recent Submissions</h3>
                         </div>
-                        <div style="overflow-x: auto;">
+                        <div class="table-responsive">
                             <table class="table-premium">
                                 <thead>
                                     <tr>
@@ -352,7 +355,7 @@ $prefill_out = ($today_att && $today_att['check_out_time']) ? date('H:i', strtot
                                                         $date_js = htmlspecialchars(date('d M Y', strtotime($row['attendance_date'])), ENT_QUOTES, 'UTF-8');
                                                         $emp_img_js = htmlspecialchars($emp_img_path, ENT_QUOTES, 'UTF-8');
                                                         $remark_js = htmlspecialchars(json_encode(nl2br(htmlspecialchars($row['remarks'] ?? ''))), ENT_QUOTES, 'UTF-8');
-                                                        echo '<button type="button" class="btn btn-sm" style="border-radius: 6px; padding: 4px 12px; font-weight: 600; background: #fff; color: #1e293b; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openRowGallery(\'' . $json_photos . '\', \'' . $emp_name_js . '\', \'' . $date_js . '\', \'' . $emp_img_js . '\', ' . $remark_js . '); event.stopPropagation();"><i class="fa fa-eye" style="color: #4f46e5; margin-right: 4px;"></i> View Details</button>';
+                                                        echo '<button type="button" class="btn btn-sm" style="border-radius: 6px; padding: 4px 12px; font-weight: 600; background: #fff; color: #1e293b; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openRowGallery(\'' . $json_photos . '\', \'' . $emp_name_js . '\', \'' . $date_js . '\', \'' . $emp_img_js . '\', ' . $remark_js . '); event.stopPropagation();"><i class="fa fa-eye" style="color: #dd2127; margin-right: 4px;"></i> View Details</button>';
                                                     } else {
                                                         echo '<span style="color: #cbd5e1;">-</span>';
                                                     }
@@ -417,19 +420,27 @@ $prefill_out = ($today_att && $today_att['check_out_time']) ? date('H:i', strtot
                                 <div class="form-group">
                                     <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Work Details <span class="text-danger">*</span></label>
                                     <div class="col-md-8">
-                                        <textarea name="task" class="p-input-premium" style="height: 120px; resize: none;" placeholder="What did you accomplish today?" required></textarea>
+                                        <textarea name="task" class="p-input-premium" style="height: 120px; resize: none;" placeholder="What did you accomplish today?" required><?php echo htmlspecialchars($prefill_task); ?></textarea>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Work Photos <span class="text-danger">*</span></label>
                                     <div class="col-md-8">
                                         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                                            <?php for ($id = 1; $id <= 4; $id++): ?>
+                                            <?php
+                                            for ($id = 1; $id <= 4; $id++):
+                                                $photo_src = '';
+                                                $has_prefill = isset($prefill_photos[$id - 1]) && !empty($prefill_photos[$id - 1]);
+                                                if ($has_prefill) {
+                                                    $p_url = $prefill_photos[$id - 1];
+                                                    $photo_src = (strpos($p_url, 'http') === 0 || strpos($p_url, '/') === 0) ? $p_url : '../admin_area/' . $p_url;
+                                                }
+                                            ?>
                                                 <div id="box_<?php echo $id; ?>" onclick="document.getElementById('work_photo_<?php echo $id; ?>').click()"
                                                     style="width:70px;height:70px;border:2px dashed #cbd5e1;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;background:#f8fafc;">
-                                                    <i class="fa fa-plus" style="color:#94a3b8;font-size:18px;"></i>
+                                                    <i class="fa fa-plus" style="color:#94a3b8;font-size:18px; <?php echo $has_prefill ? 'display:none;' : ''; ?>"></i>
                                                     <input type="file" name="work_photos[]" id="work_photo_<?php echo $id; ?>" style="display:none;" accept="image/*" onchange="previewWorkPhoto(this,<?php echo $id; ?>)">
-                                                    <img id="preview_<?php echo $id; ?>" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;">
+                                                    <img id="preview_<?php echo $id; ?>" src="<?php echo htmlspecialchars($photo_src); ?>" style="<?php echo $has_prefill ? 'display:block;' : 'display:none;'; ?>width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;">
                                                 </div>
                                             <?php endfor; ?>
                                         </div>
@@ -478,7 +489,10 @@ $prefill_out = ($today_att && $today_att['check_out_time']) ? date('H:i', strtot
                 var hasPhoto = false;
                 for (var i = 1; i <= 4; i++) {
                     var fi = document.getElementById('work_photo_' + i);
-                    if (fi && fi.files && fi.files.length > 0) hasPhoto = true;
+                    var prev = document.getElementById('preview_' + i);
+                    if ((fi && fi.files && fi.files.length > 0) || (prev && prev.src && prev.style.display !== 'none' && prev.src !== '' && !prev.src.endsWith('/'))) {
+                        hasPhoto = true;
+                    }
                 }
                 if (!hasPhoto) {
                     Swal.fire('Notification', 'Please upload at least 1 work photo.', 'info');

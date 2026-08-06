@@ -14,11 +14,21 @@ if (isset($_GET['project_id'])) {
         while ($l = mysqli_fetch_assoc($run_links)) {
             $link_id = $l['id'];
             $name = htmlspecialchars($l['link_name']);
-            $url = $l['link_url'];
-            if (!preg_match("~^(?:f|ht)tps?://~i", $url)) {
-                $url = "http://" . $url;
+            $raw_url = trim($l['link_url']);
+            $url = 'javascript:void(0);';
+            $onclick_attr = '';
+            $target_attr = '';
+
+            if (!empty($raw_url)) {
+                if (!preg_match("~^(?:f|ht)tps?://~i", $raw_url)) {
+                    $raw_url = "https://" . $raw_url;
+                }
+                $url = htmlspecialchars($raw_url);
+                $target_attr = 'target="_blank"';
+            } else {
+                $url = 'javascript:void(0);';
+                $onclick_attr = 'onclick="Swal.fire(\'Notice\', \'No URL specified for this link.\', \'info\'); return false;"';
             }
-            $url = htmlspecialchars($url);
 
             $date = date('d M, Y', strtotime($l['created_at']));
 
@@ -49,7 +59,7 @@ if (isset($_GET['project_id'])) {
             echo '
             <div class="artifact-card-premium" style="background: #fff; border: 1.5px solid #f1f5f9; border-radius: 20px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);" onmouseover="this.style.borderColor=\'#e2e8f0\'; this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 10px 15px -3px rgba(0, 0, 0, 0.05)\'" onmouseout="this.style.borderColor=\'#f1f5f9\'; this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 4px 6px -1px rgba(0, 0, 0, 0.02)\'">
                 <div style="display: flex; align-items: center; gap: 20px;">
-                    <div style="width: 54px; height: 54px; background: ' . $icon_bg . '; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: ' . $icon_color . ';">
+                    <div style="width: 54px; height: 54px; background:#ffeaeb; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #dd2127;">
                         <i class="fa ' . $icon . '"></i>
                     </div>
                     <div>
@@ -62,11 +72,11 @@ if (isset($_GET['project_id'])) {
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <a href="' . $url . '" target="_blank" class="btn-icon-premium" style="width: 38px; height: 38px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; transition: 0.2s;" title="Visit URL">
-                        <i class="fa fa-paper-plane" style="color: #6366f1; font-size: 13px;"></i>
+                    <a href="' . $url . '" ' . $target_attr . ' ' . $onclick_attr . ' class="btn-icon-premium btn-icon-sm btn-icon-edit" title="Visit URL">
+                        <i class="fa fa-paper-plane"></i>
                     </a>
-                    <button onclick="deleteDoc(' . $link_id . ', ' . $project_id . ')" class="btn-icon-premium" style="width: 38px; height: 38px; background: #fff5f5; border: 1.5px solid #ffe4e4; border-radius: 12px; transition: 0.2s;" title="Remove Link">
-                        <i class="fa fa-trash-o" style="color: #ef4444; font-size: 15px;"></i>
+                    <button onclick="deleteDoc(' . $link_id . ', ' . $project_id . ')" class="btn-icon-premium btn-icon-sm btn-icon-delete" title="Remove Link">
+                        <i class="fa fa-trash-o"></i>
                     </button>
                 </div>
             </div>';

@@ -119,10 +119,12 @@ function edit_user($con, $employee)
     }
 
     // -- Sanitize remaining fields --
-    $address  = mysqli_real_escape_string($con, $_POST['address']);
-    $blood    = mysqli_real_escape_string($con, $_POST['blood']);
-    $gender   = mysqli_real_escape_string($con, $_POST['gender']);
-    $joinDate = mysqli_real_escape_string($con, $_POST['joinDate']);
+    $address     = mysqli_real_escape_string($con, $_POST['address']);
+    $blood       = mysqli_real_escape_string($con, $_POST['blood']);
+    $gender      = mysqli_real_escape_string($con, $_POST['gender']);
+    $joinDate    = mysqli_real_escape_string($con, $_POST['joinDate']);
+    $department  = mysqli_real_escape_string($con, $_POST['department']  ?? 'Not Assigned');
+    $designation = mysqli_real_escape_string($con, $_POST['designation'] ?? 'Not Assigned');
 
     // -- Personal details --
     $age        = mysqli_real_escape_string($con, $_POST['age']              ?? '');
@@ -135,7 +137,7 @@ function edit_user($con, $employee)
     $e_name = mysqli_real_escape_string($con, $_POST['emergency_name']         ?? '');
     $e_rel  = mysqli_real_escape_string($con, $_POST['emergency_relationship'] ?? '');
     $e_addr = mysqli_real_escape_string($con, $_POST['emergency_address']      ?? '');
-    $e_phone= mysqli_real_escape_string($con, $_POST['emergency_phone']        ?? '');
+    $e_phone = mysqli_real_escape_string($con, $_POST['emergency_phone']        ?? '');
 
     // -- Education & Employment JSON --
     $edu_json = mysqli_real_escape_string($con, $_POST['education_json']  ?? '[]');
@@ -168,7 +170,7 @@ function edit_user($con, $employee)
         'Aadhar_card'           => 'Aadhar_card',
         'Pan_card'              => 'Pan_card',
         'Passportsize_photo'    => 'Passportsize_photo',
-        'old_company_slary_slip'=> 'old_company_slary_slip'
+        'old_company_slary_slip' => 'old_company_slary_slip'
     ];
 
     foreach ($docs_to_check as $postKey => $dbCol) {
@@ -202,6 +204,7 @@ function edit_user($con, $employee)
     // -- Build UPDATE query --
     $query = "UPDATE emp_list SET
               name = '$name', phone_number = '$contact', address = '$address', email = '$email', blood_group = '$blood', gender = '$gender', join_date = '$joinDate',
+              department = '$department', designation = '$designation',
               age = '$age', dob = '$dob', work_experience = '$work_exp', marital_status = '$marital', num_dependents = '$dependents',
               emergency_name = '$e_name', emergency_relationship = '$e_rel', emergency_address = '$e_addr', emergency_phone = '$e_phone',
               education_json = '$edu_json', employment_json = '$emp_json',
@@ -475,17 +478,17 @@ if (isset($_POST['update'])) {
                                 <div style="position: relative; flex: 1;">
                                     <i class="fa fa-lock" style="position: absolute; left: 15px; top: 16px; color: #64748b; font-size: 14px;"></i>
                                     <input type="text" name="edit_emp_password" id="edit_emp_password_field"
-                                           class="p-input-premium"
-                                           value="<?php echo htmlspecialchars($employee['password'] ?? ''); ?>"
-                                           placeholder="Current password"
-                                           style="padding-left: 40px; font-family: monospace; letter-spacing: 1px;">
+                                        class="p-input-premium"
+                                        value="<?php echo htmlspecialchars($employee['password'] ?? ''); ?>"
+                                        placeholder="Current password"
+                                        style="padding-left: 40px; font-family: monospace; letter-spacing: 1px;">
                                 </div>
                                 <button type="button" onclick="generateEditPassword()"
-                                        style="white-space:nowrap; background: linear-gradient(135deg,#DF2127,#ff6b6b); color:#fff; border:none; border-radius:8px; padding:12px 20px; font-weight:600; cursor:pointer; font-size:13px; transition:0.3s;">
+                                    style="white-space:nowrap; background: linear-gradient(135deg,#DF2127,#ff6b6b); color:#fff; border:none; border-radius:8px; padding:12px 20px; font-weight:600; cursor:pointer; font-size:13px; transition:0.3s;">
                                     <i class="fa fa-refresh"></i> Generate New Password
                                 </button>
                                 <button type="button" onclick="toggleEditPassword()"
-                                        style="background:#f1f5f9; color:#475569; border:1.5px solid #e2e8f0; border-radius:8px; padding:12px 16px; cursor:pointer; font-size:13px;" title="Show/Hide Password">
+                                    style="background:#f1f5f9; color:#475569; border:1.5px solid #e2e8f0; border-radius:8px; padding:12px 16px; cursor:pointer; font-size:13px;" title="Show/Hide Password">
                                     <i class="fa fa-eye" id="edit_pass_eye_icon"></i>
                                 </button>
                             </div>
@@ -526,10 +529,15 @@ if (isset($_POST['update'])) {
                             <div class="form-group">
                                 <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;"><?php echo $lbl; ?></label>
                                 <input type="file" name="<?php echo $fld; ?>" class="p-input-premium">
-                                <?php if (!empty($employee[$fld])): ?>
+                                <?php
+                                $val = !empty($employee[$fld]) ? trim($employee[$fld]) : '';
+                                $hasFile = (!empty($val) && strtolower($val) !== 'not assigned' && strtolower($val) !== 'not uploaded' && strtolower($val) !== 'null');
+                                if ($hasFile):
+                                    $fileUrl = (strpos($val, 'uploads/') === 0) ? $val : 'uploads/' . $val;
+                                ?>
                                     <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; background: #f1f5f9; padding: 6px 12px; border-radius: 8px; width: fit-content;">
                                         <i class="fa fa-check-circle" style="color: #059669;"></i>
-                                        <a href="uploads/<?php echo $employee[$fld]; ?>" target="_blank" style="font-size: 12px; color: #333; font-weight: 600; text-decoration: none;">View Current</a>
+                                        <a href="<?php echo htmlspecialchars($fileUrl); ?>" target="_blank" style="font-size: 12px; color: #333; font-weight: 600; text-decoration: none;">View Current</a>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -594,15 +602,15 @@ if (isset($_POST['update'])) {
             </div>
             <div style="padding: 30px;">
 
-                <div class="table-premium" style="overflow-x: auto; border: 1.5px solid #e2e8f0; border-radius: 12px; margin-bottom: 20px;">
-                    <table class="table" id="edu_table" style="margin-bottom: 0; min-width: 800px;">
+                <div class="table-premium" style="overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; border: 1.5px solid #e2e8f0; border-radius: 12px; margin-bottom: 20px;">
+                    <table class="table" id="edu_table" style="margin-bottom: 0; width: 100%; min-width: 750px;">
                         <thead>
                             <tr style="background: #f8fafc;">
-                                <th style="border: none;">Degree/Course</th>
-                                <th style="border: none;">University/Institute</th>
-                                <th style="border: none;">Year</th>
-                                <th style="border: none;">Grade</th>
-                                <th style="border: none;">City</th>
+                                <th style="border: none; white-space: nowrap; min-width: 160px;">Degree/Course</th>
+                                <th style="border: none; white-space: nowrap; min-width: 180px;">University/Institute</th>
+                                <th style="border: none; white-space: nowrap; min-width: 100px;">Year</th>
+                                <th style="border: none; white-space: nowrap; min-width: 100px;">Grade</th>
+                                <th style="border: none; white-space: nowrap; min-width: 120px;">City</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -611,11 +619,11 @@ if (isset($_POST['update'])) {
                             for ($i = 0; $i < max(2, count($edu_data)); $i++):
                                 $row = $edu_data[$i] ?? []; ?>
                                 <tr>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium edu-degree" value="<?php echo htmlspecialchars($row['degree'] ?? ''); ?>" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium edu-univ" value="<?php echo htmlspecialchars($row['univ'] ?? ''); ?>" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium edu-year" value="<?php echo htmlspecialchars($row['year'] ?? ''); ?>" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium edu-grade" value="<?php echo htmlspecialchars($row['grade'] ?? ''); ?>" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium edu-city" value="<?php echo htmlspecialchars($row['city'] ?? ''); ?>" style="height: 38px; font-size: 13px;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium edu-degree" value="<?php echo htmlspecialchars($row['degree'] ?? ''); ?>" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium edu-univ" value="<?php echo htmlspecialchars($row['univ'] ?? ''); ?>" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium edu-year" value="<?php echo htmlspecialchars($row['year'] ?? ''); ?>" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium edu-grade" value="<?php echo htmlspecialchars($row['grade'] ?? ''); ?>" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium edu-city" value="<?php echo htmlspecialchars($row['city'] ?? ''); ?>" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
                                 </tr>
                             <?php endfor; ?>
                         </tbody>
@@ -642,15 +650,15 @@ if (isset($_POST['update'])) {
             </div>
             <div style="padding: 30px;">
 
-                <div class="table-premium" style="overflow-x: auto; border: 1.5px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px;">
-                    <table class="table" id="emp_hist_table" style="margin-bottom: 0; min-width: 800px;">
+                <div class="table-premium" style="overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; border: 1.5px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px;">
+                    <table class="table" id="emp_hist_table" style="margin-bottom: 0; width: 100%; min-width: 780px;">
                         <thead>
                             <tr style="background: #f8fafc;">
-                                <th style="border: none;">Company Name</th>
-                                <th style="border: none;">Position</th>
-                                <th style="border: none;">Duration/Year</th>
-                                <th style="border: none;">Reason for Leaving</th>
-                                <th style="border: none; width: 56px; text-align: center;">Action</th>
+                                <th style="border: none; white-space: nowrap; min-width: 170px;">Company Name</th>
+                                <th style="border: none; white-space: nowrap; min-width: 150px;">Position</th>
+                                <th style="border: none; white-space: nowrap; min-width: 120px;">Duration/Year</th>
+                                <th style="border: none; white-space: nowrap; min-width: 170px;">Reason for Leaving</th>
+                                <th style="border: none; width: 70px; min-width: 70px; text-align: center; white-space: nowrap;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="employment_body">
@@ -662,12 +670,12 @@ if (isset($_POST['update'])) {
                                 $pos_val = $row['pos'] ?? $row['position'] ?? '';
                             ?>
                                 <tr>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium hist-company" value="<?php echo htmlspecialchars($row['company'] ?? ''); ?>" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium hist-pos" value="<?php echo htmlspecialchars($pos_val); ?>" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium hist-year" value="<?php echo htmlspecialchars($row['year'] ?? ''); ?>" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="padding: 10px;"><input type="text" class="p-input-premium hist-reason" value="<?php echo htmlspecialchars($row['reason'] ?? ''); ?>" style="height: 38px; font-size: 13px;"></td>
-                                    <td style="text-align: center; vertical-align: middle; padding: 10px;">
-                                        <button type="button" class="employment-remove-row btn btn-danger btn-sm" title="Remove row" style="min-width: 36px; border-radius: 8px;">×</button>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium hist-company" value="<?php echo htmlspecialchars($row['company'] ?? ''); ?>" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium hist-pos" value="<?php echo htmlspecialchars($pos_val); ?>" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium hist-year" value="<?php echo htmlspecialchars($row['year'] ?? ''); ?>" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="padding: 8px;"><input type="text" class="p-input-premium hist-reason" value="<?php echo htmlspecialchars($row['reason'] ?? ''); ?>" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>
+                                    <td style="text-align: center; vertical-align: middle; padding: 6px; width: 70px; min-width: 70px;">
+                                        <button type="button" class="employment-remove-row btn btn-danger btn-sm" title="Remove row" style="width: 32px; height: 32px; line-height: 1; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 16px; margin: 0 auto;">×</button>
                                     </td>
                                 </tr>
                             <?php endfor; ?>
@@ -737,10 +745,25 @@ if (isset($_POST['update'])) {
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
+                            <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Department *</label>
+                            <input type="text" name="department" class="p-input-premium" placeholder="e.g. Development" required value="<?php echo htmlspecialchars($employee['department'] ?? 'Development'); ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Designation *</label>
+                            <input type="text" name="designation" class="p-input-premium" placeholder="e.g. Software Engineer" required value="<?php echo htmlspecialchars($employee['designation'] ?? 'Software Engineer'); ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
                             <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Joining Date *</label>
                             <input type="date" name="joinDate" class="p-input-premium" value="<?php echo $employee['join_date']; ?>" required>
                         </div>
                     </div>
+                </div>
+
+                <div class="row" style="margin-top: 15px;">
                     <?php
                     $can_update_salary = canAdminAccess('salary_update');
                     $salary_readonly = $can_update_salary ? '' : 'readonly style="background: #f1f5f9;"';
@@ -758,22 +781,22 @@ if (isset($_POST['update'])) {
                                 <input type="number" id="edit_hra" name="hra" class="p-input-premium" value="<?php echo $employee['hra']; ?>" <?php echo $salary_readonly; ?>>
                             </div>
                         </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Other Allowance</label>
+                                <input type="number" id="edit_allowance" name="allowance" class="p-input-premium" value="<?php echo $employee['allowance']; ?>" <?php echo $salary_readonly; ?>>
+                            </div>
+                        </div>
                 </div>
 
                 <div class="row" style="margin-top: 15px;">
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Other Allowance</label>
-                            <input type="number" id="edit_allowance" name="allowance" class="p-input-premium" value="<?php echo $employee['allowance']; ?>" <?php echo $salary_readonly; ?>>
-                        </div>
-                    </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Monthly Deductions</label>
                             <input type="number" id="edit_deductions" name="deductions" class="p-input-premium" value="<?php echo $employee['deductions']; ?>" <?php echo $salary_readonly; ?>>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-8">
                         <div class="form-group">
                             <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Net Monthly Salary</label>
                             <input type="text" id="edit_salary" name="salary" class="p-input-premium" value="<?php echo $employee['salary']; ?>" readonly style="background: #f0fdf4; font-weight: 800; color: #059669; font-size: 18px; border-color: #bbf7d0;">
@@ -916,12 +939,12 @@ if (isset($_POST['update'])) {
     }
 
     function employmentHistoryRowHtml() {
-        return '<td style="padding: 10px;"><input type="text" class="p-input-premium hist-company" style="height: 38px; font-size: 13px;"></td>' +
-            '<td style="padding: 10px;"><input type="text" class="p-input-premium hist-pos" style="height: 38px; font-size: 13px;"></td>' +
-            '<td style="padding: 10px;"><input type="text" class="p-input-premium hist-year" style="height: 38px; font-size: 13px;"></td>' +
-            '<td style="padding: 10px;"><input type="text" class="p-input-premium hist-reason" style="height: 38px; font-size: 13px;"></td>' +
-            '<td style="text-align: center; vertical-align: middle; padding: 10px;">' +
-            '<button type="button" class="employment-remove-row btn btn-danger btn-sm" title="Remove row" style="min-width: 36px; border-radius: 8px;">×</button></td>';
+        return '<td style="padding: 8px;"><input type="text" class="p-input-premium hist-company" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>' +
+            '<td style="padding: 8px;"><input type="text" class="p-input-premium hist-pos" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>' +
+            '<td style="padding: 8px;"><input type="text" class="p-input-premium hist-year" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>' +
+            '<td style="padding: 8px;"><input type="text" class="p-input-premium hist-reason" style="height: 38px; font-size: 13px; width: 100%; box-sizing: border-box;"></td>' +
+            '<td style="text-align: center; vertical-align: middle; padding: 8px;">' +
+            '<button type="button" class="employment-remove-row btn btn-danger btn-sm" title="Remove row" style="min-width: 32px; border-radius: 8px; padding: 4px 8px;">×</button></td>';
     }
 
     function addEmploymentRowEdit() {
@@ -993,7 +1016,10 @@ if (isset($_POST['update'])) {
             input.value = pwd;
             input.type = 'text'; // Show the generated password
             const icon = document.getElementById('edit_pass_eye_icon');
-            if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+            if (icon) {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
         }
     }
 
@@ -1003,15 +1029,20 @@ if (isset($_POST['update'])) {
      */
     function toggleEditPassword() {
         const input = document.getElementById('edit_emp_password_field');
-        const icon  = document.getElementById('edit_pass_eye_icon');
+        const icon = document.getElementById('edit_pass_eye_icon');
         if (!input) return;
         if (input.type === 'password') {
             input.type = 'text';
-            if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+            if (icon) {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
         } else {
             input.type = 'password';
-            if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+            if (icon) {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
         }
     }
-
 </script>

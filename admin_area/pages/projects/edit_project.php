@@ -1,697 +1,9 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<style>
-    .select2-container {
-        box-sizing: border-box;
-        display: inline-block;
-        margin: 0;
-        position: relative;
-        vertical-align: middle
-    }
-
-    .select2-container .select2-selection--single {
-        box-sizing: border-box;
-        cursor: pointer;
-        display: block;
-        height: 28px;
-        user-select: none;
-        -webkit-user-select: none
-    }
-
-    .select2-container .select2-selection--single .select2-selection__rendered {
-        display: block;
-        padding-left: 8px;
-        padding-right: 20px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap
-    }
-
-    .select2-container .select2-selection--single .select2-selection__clear {
-        background-color: transparent;
-        border: none;
-        font-size: 1em
-    }
-
-    .select2-container[dir="rtl"] .select2-selection--single .select2-selection__rendered {
-        padding-right: 8px;
-        padding-left: 20px
-    }
-
-    .select2-container .select2-selection--multiple {
-        box-sizing: border-box;
-        cursor: pointer;
-        display: block;
-        min-height: 32px;
-        user-select: none;
-        -webkit-user-select: none
-    }
-
-    .select2-container .select2-selection--multiple .select2-selection__rendered {
-        display: inline;
-        list-style: none;
-        padding: 0
-    }
-
-    .select2-container .select2-selection--multiple .select2-selection__clear {
-        background-color: transparent;
-        border: none;
-        font-size: 1em
-    }
-
-    .select2-container .select2-search--inline .select2-search__field {
-        box-sizing: border-box;
-        border: none;
-        font-size: 100%;
-        margin-top: 5px;
-        margin-left: 5px;
-        padding: 0;
-        max-width: 100%;
-        resize: none;
-        height: 18px;
-        vertical-align: bottom;
-        font-family: sans-serif;
-        overflow: hidden;
-        word-break: keep-all
-    }
-
-    .select2-container .select2-search--inline .select2-search__field::-webkit-search-cancel-button {
-        -webkit-appearance: none
-    }
-
-    .select2-dropdown {
-        background-color: white;
-        border: 1px solid #aaa;
-        border-radius: 4px;
-        box-sizing: border-box;
-        display: block;
-        position: absolute;
-        left: -100000px;
-        width: 100%;
-        z-index: 1051
-    }
-
-    .select2-results {
-        display: block
-    }
-
-    .select2-results__options {
-        list-style: none;
-        margin: 0;
-        padding: 0
-    }
-
-    .select2-results__option {
-        padding: 6px;
-        user-select: none;
-        -webkit-user-select: none
-    }
-
-    .select2-results__option--selectable {
-        cursor: pointer
-    }
-
-    .select2-container--open .select2-dropdown {
-        left: 0
-    }
-
-    .select2-container--open .select2-dropdown--above {
-        border-bottom: none;
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0
-    }
-
-    .select2-container--open .select2-dropdown--below {
-        border-top: none;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0
-    }
-
-    .select2-search--dropdown {
-        display: block;
-        padding: 4px
-    }
-
-    .select2-search--dropdown .select2-search__field {
-        padding: 4px;
-        width: 100%;
-        box-sizing: border-box
-    }
-
-    .select2-search--dropdown .select2-search__field::-webkit-search-cancel-button {
-        -webkit-appearance: none
-    }
-
-    .select2-search--dropdown.select2-search--hide {
-        display: none
-    }
-
-    .select2-close-mask {
-        border: 0;
-        margin: 0;
-        padding: 0;
-        display: block;
-        position: fixed;
-        left: 0;
-        top: 0;
-        min-height: 100%;
-        min-width: 100%;
-        height: auto;
-        width: auto;
-        opacity: 0;
-        z-index: 99;
-        background-color: #fff;
-        filter: alpha(opacity=0)
-    }
-
-    .select2-hidden-accessible {
-        border: 0 !important;
-        clip: rect(0 0 0 0) !important;
-        -webkit-clip-path: inset(50%) !important;
-        clip-path: inset(50%) !important;
-        height: 1px !important;
-        overflow: hidden !important;
-        padding: 0 !important;
-        position: absolute !important;
-        width: 1px !important;
-        white-space: nowrap !important
-    }
-
-    .select2-container--default .select2-selection--single {
-        background-color: #fff;
-        border: 1px solid #aaa;
-        border-radius: 4px
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-        color: #444;
-        line-height: 28px
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__clear {
-        cursor: pointer;
-        float: right;
-        font-weight: bold;
-        height: 26px;
-        margin-right: 20px;
-        padding-right: 0px
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__placeholder {
-        color: #999
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__arrow {
-        height: 26px;
-        position: absolute;
-        top: 1px;
-        right: 1px;
-        width: 20px
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__arrow b {
-        border-color: #888 transparent transparent transparent;
-        border-style: solid;
-        border-width: 5px 4px 0 4px;
-        height: 0;
-        left: 50%;
-        margin-left: -4px;
-        margin-top: -2px;
-        position: absolute;
-        top: 50%;
-        width: 0
-    }
-
-    .select2-container--default[dir="rtl"] .select2-selection--single .select2-selection__clear {
-        float: left
-    }
-
-    .select2-container--default[dir="rtl"] .select2-selection--single .select2-selection__arrow {
-        left: 1px;
-        right: auto
-    }
-
-    .select2-container--default.select2-container--disabled .select2-selection--single {
-        background-color: #eee;
-        cursor: default
-    }
-
-    .select2-container--default.select2-container--disabled .select2-selection--single .select2-selection__clear {
-        display: none
-    }
-
-    .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
-        border-color: transparent transparent #888 transparent;
-        border-width: 0 4px 5px 4px
-    }
-
-    .select2-container--default .select2-selection--multiple {
-        background-color: white;
-        border: 1px solid #aaa;
-        border-radius: 4px;
-        cursor: text;
-        padding-bottom: 5px;
-        padding-right: 5px;
-        position: relative
-    }
-
-    .select2-container--default .select2-selection--multiple.select2-selection--clearable {
-        padding-right: 25px
-    }
-
-    .select2-container--default .select2-selection--multiple .select2-selection__clear {
-        cursor: pointer;
-        font-weight: bold;
-        height: 20px;
-        margin-right: 10px;
-        margin-top: 5px;
-        position: absolute;
-        right: 0;
-        padding: 1px
-    }
-
-    .select2-container--default .select2-selection--multiple .select2-selection__choice {
-        background-color: #e4e4e4;
-        border: 1px solid #aaa;
-        border-radius: 4px;
-        box-sizing: border-box;
-        display: inline-flex;
-        margin-left: 5px;
-        margin-top: 5px;
-        padding: 0;
-        padding-left: 20px;
-        position: relative;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        vertical-align: bottom;
-        white-space: nowrap
-    }
-
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__display {
-        cursor: default;
-        padding-left: 2px;
-        padding-right: 5px
-    }
-
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-        background-color: transparent;
-        border: none;
-        border-right: 1px solid #aaa;
-        border-top-left-radius: 4px;
-        border-bottom-left-radius: 4px;
-        color: #999;
-        cursor: pointer;
-        font-size: 1em;
-        font-weight: bold;
-        padding: 0 4px;
-        position: absolute;
-        left: 0;
-        top: 0
-    }
-
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover,
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:focus {
-        background-color: #f1f1f1;
-        color: #333;
-        outline: none
-    }
-
-    .select2-container--default[dir="rtl"] .select2-selection--multiple .select2-selection__choice {
-        margin-left: 5px;
-        margin-right: auto
-    }
-
-    .select2-container--default[dir="rtl"] .select2-selection--multiple .select2-selection__choice__display {
-        padding-left: 5px;
-        padding-right: 2px
-    }
-
-    .select2-container--default[dir="rtl"] .select2-selection--multiple .select2-selection__choice__remove {
-        border-left: 1px solid #aaa;
-        border-right: none;
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-        border-top-right-radius: 4px;
-        border-bottom-right-radius: 4px
-    }
-
-    .select2-container--default[dir="rtl"] .select2-selection--multiple .select2-selection__clear {
-        float: left;
-        margin-left: 10px;
-        margin-right: auto
-    }
-
-    .select2-container--default.select2-container--focus .select2-selection--multiple {
-        border: solid black 1px;
-        outline: 0
-    }
-
-    .select2-container--default.select2-container--disabled .select2-selection--multiple {
-        background-color: #eee;
-        cursor: default
-    }
-
-    .select2-container--default.select2-container--disabled .select2-selection__choice__remove {
-        display: none
-    }
-
-    .select2-container--default.select2-container--open.select2-container--above .select2-selection--single,
-    .select2-container--default.select2-container--open.select2-container--above .select2-selection--multiple {
-        border-top-left-radius: 0;
-        border-top-right-radius: 0
-    }
-
-    .select2-container--default.select2-container--open.select2-container--below .select2-selection--single,
-    .select2-container--default.select2-container--open.select2-container--below .select2-selection--multiple {
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0
-    }
-
-    .select2-container--default .select2-search--dropdown .select2-search__field {
-        border: 1px solid #aaa
-    }
-
-    .select2-container--default .select2-search--inline .select2-search__field {
-        background: transparent;
-        border: none;
-        outline: 0;
-        box-shadow: none;
-        -webkit-appearance: textfield
-    }
-
-    .select2-container--default .select2-results>.select2-results__options {
-        max-height: 200px;
-        overflow-y: auto
-    }
-
-    .select2-container--default .select2-results__option .select2-results__option {
-        padding-left: 1em
-    }
-
-    .select2-container--default .select2-results__option .select2-results__option .select2-results__group {
-        padding-left: 0
-    }
-
-    .select2-container--default .select2-results__option .select2-results__option .select2-results__option {
-        margin-left: -1em;
-        padding-left: 2em
-    }
-
-    .select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option {
-        margin-left: -2em;
-        padding-left: 3em
-    }
-
-    .select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {
-        margin-left: -3em;
-        padding-left: 4em
-    }
-
-    .select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {
-        margin-left: -4em;
-        padding-left: 5em
-    }
-
-    .select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {
-        margin-left: -5em;
-        padding-left: 6em
-    }
-
-    .select2-container--default .select2-results__option--group {
-        padding: 0
-    }
-
-    .select2-container--default .select2-results__option--disabled {
-        color: #999
-    }
-
-    .select2-container--default .select2-results__option--selected {
-        background-color: #ddd
-    }
-
-    .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
-        background-color: #5897fb;
-        color: white
-    }
-
-    .select2-container--default .select2-results__group {
-        cursor: default;
-        display: block;
-        padding: 6px
-    }
-
-    .select2-container--classic .select2-selection--single {
-        background-color: #f7f7f7;
-        border: 1px solid #aaa;
-        border-radius: 4px;
-        outline: 0;
-        background-image: -webkit-linear-gradient(top, #fff 50%, #eee 100%);
-        background-image: -o-linear-gradient(top, #fff 50%, #eee 100%);
-        background-image: linear-gradient(to bottom, #fff 50%, #eee 100%);
-        background-repeat: repeat-x;
-        filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFFFFFFF', endColorstr='#FFEEEEEE', GradientType=0)
-    }
-
-    .select2-container--classic .select2-selection--single:focus {
-        border: 1px solid #5897fb
-    }
-
-    .select2-container--classic .select2-selection--single .select2-selection__rendered {
-        color: #444;
-        line-height: 28px
-    }
-
-    .select2-container--classic .select2-selection--single .select2-selection__clear {
-        cursor: pointer;
-        float: right;
-        font-weight: bold;
-        height: 26px;
-        margin-right: 20px
-    }
-
-    .select2-container--classic .select2-selection--single .select2-selection__placeholder {
-        color: #999
-    }
-
-    .select2-container--classic .select2-selection--single .select2-selection__arrow {
-        background-color: #ddd;
-        border: none;
-        border-left: 1px solid #aaa;
-        border-top-right-radius: 4px;
-        border-bottom-right-radius: 4px;
-        height: 26px;
-        position: absolute;
-        top: 1px;
-        right: 1px;
-        width: 20px;
-        background-image: -webkit-linear-gradient(top, #eee 50%, #ccc 100%);
-        background-image: -o-linear-gradient(top, #eee 50%, #ccc 100%);
-        background-image: linear-gradient(to bottom, #eee 50%, #ccc 100%);
-        background-repeat: repeat-x;
-        filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFEEEEEE', endColorstr='#FFCCCCCC', GradientType=0)
-    }
-
-    .select2-container--classic .select2-selection--single .select2-selection__arrow b {
-        border-color: #888 transparent transparent transparent;
-        border-style: solid;
-        border-width: 5px 4px 0 4px;
-        height: 0;
-        left: 50%;
-        margin-left: -4px;
-        margin-top: -2px;
-        position: absolute;
-        top: 50%;
-        width: 0
-    }
-
-    .select2-container--classic[dir="rtl"] .select2-selection--single .select2-selection__clear {
-        float: left
-    }
-
-    .select2-container--classic[dir="rtl"] .select2-selection--single .select2-selection__arrow {
-        border: none;
-        border-right: 1px solid #aaa;
-        border-radius: 0;
-        border-top-left-radius: 4px;
-        border-bottom-left-radius: 4px;
-        left: 1px;
-        right: auto
-    }
-
-    .select2-container--classic.select2-container--open .select2-selection--single {
-        border: 1px solid #5897fb
-    }
-
-    .select2-container--classic.select2-container--open .select2-selection--single .select2-selection__arrow {
-        background: transparent;
-        border: none
-    }
-
-    .select2-container--classic.select2-container--open .select2-selection--single .select2-selection__arrow b {
-        border-color: transparent transparent #888 transparent;
-        border-width: 0 4px 5px 4px
-    }
-
-    .select2-container--classic.select2-container--open.select2-container--above .select2-selection--single {
-        border-top: none;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-        background-image: -webkit-linear-gradient(top, #fff 0%, #eee 50%);
-        background-image: -o-linear-gradient(top, #fff 0%, #eee 50%);
-        background-image: linear-gradient(to bottom, #fff 0%, #eee 50%);
-        background-repeat: repeat-x;
-        filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFFFFFFF', endColorstr='#FFEEEEEE', GradientType=0)
-    }
-
-    .select2-container--classic.select2-container--open.select2-container--below .select2-selection--single {
-        border-bottom: none;
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
-        background-image: -webkit-linear-gradient(top, #eee 50%, #fff 100%);
-        background-image: -o-linear-gradient(top, #eee 50%, #fff 100%);
-        background-image: linear-gradient(to bottom, #eee 50%, #fff 100%);
-        background-repeat: repeat-x;
-        filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFEEEEEE', endColorstr='#FFFFFFFF', GradientType=0)
-    }
-
-    .select2-container--classic .select2-selection--multiple {
-        background-color: white;
-        border: 1px solid #aaa;
-        border-radius: 4px;
-        cursor: text;
-        outline: 0;
-        padding-bottom: 5px;
-        padding-right: 5px
-    }
-
-    .select2-container--classic .select2-selection--multiple:focus {
-        border: 1px solid #5897fb
-    }
-
-    .select2-container--classic .select2-selection--multiple .select2-selection__clear {
-        display: none
-    }
-
-    .select2-container--classic .select2-selection--multiple .select2-selection__choice {
-        background-color: #e4e4e4;
-        border: 1px solid #aaa;
-        border-radius: 4px;
-        display: inline-block;
-        margin-left: 5px;
-        margin-top: 5px;
-        padding: 0
-    }
-
-    .select2-container--classic .select2-selection--multiple .select2-selection__choice__display {
-        cursor: default;
-        padding-left: 2px;
-        padding-right: 5px
-    }
-
-    .select2-container--classic .select2-selection--multiple .select2-selection__choice__remove {
-        background-color: transparent;
-        border: none;
-        border-top-left-radius: 4px;
-        border-bottom-left-radius: 4px;
-        color: #888;
-        cursor: pointer;
-        font-size: 1em;
-        font-weight: bold;
-        padding: 0 4px
-    }
-
-    .select2-container--classic .select2-selection--multiple .select2-selection__choice__remove:hover {
-        color: #555;
-        outline: none
-    }
-
-    .select2-container--classic[dir="rtl"] .select2-selection--multiple .select2-selection__choice {
-        margin-left: 5px;
-        margin-right: auto
-    }
-
-    .select2-container--classic[dir="rtl"] .select2-selection--multiple .select2-selection__choice__display {
-        padding-left: 5px;
-        padding-right: 2px
-    }
-
-    .select2-container--classic[dir="rtl"] .select2-selection--multiple .select2-selection__choice__remove {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-        border-top-right-radius: 4px;
-        border-bottom-right-radius: 4px
-    }
-
-    .select2-container--classic.select2-container--open .select2-selection--multiple {
-        border: 1px solid #5897fb
-    }
-
-    .select2-container--classic.select2-container--open.select2-container--above .select2-selection--multiple {
-        border-top: none;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0
-    }
-
-    .select2-container--classic.select2-container--open.select2-container--below .select2-selection--multiple {
-        border-bottom: none;
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0
-    }
-
-    .select2-container--classic .select2-search--dropdown .select2-search__field {
-        border: 1px solid #aaa;
-        outline: 0
-    }
-
-    .select2-container--classic .select2-search--inline .select2-search__field {
-        outline: 0;
-        box-shadow: none
-    }
-
-    .select2-container--classic .select2-dropdown {
-        background-color: #fff;
-        border: 1px solid transparent
-    }
-
-    .select2-container--classic .select2-dropdown--above {
-        border-bottom: none
-    }
-
-    .select2-container--classic .select2-dropdown--below {
-        border-top: none
-    }
-
-    .select2-container--classic .select2-results>.select2-results__options {
-        max-height: 200px;
-        overflow-y: auto
-    }
-
-    .select2-container--classic .select2-results__option--group {
-        padding: 0
-    }
-
-    .select2-container--classic .select2-results__option--disabled {
-        color: grey
-    }
-
-    .select2-container--classic .select2-results__option--highlighted.select2-results__option--selectable {
-        background-color: #3875d7;
-        color: #fff
-    }
-
-    .select2-container--classic .select2-results__group {
-        cursor: default;
-        display: block;
-        padding: 6px
-    }
-
-    .select2-container--classic.select2-container--open .select2-dropdown {
-        border-color: #5897fb
-    }
-</style>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 <style>
+    /* Select2 Custom Responsive & Design Styling */
     .select2-container {
         width: 100% !important;
     }
@@ -706,12 +18,6 @@
         align-items: center;
         padding: 0 8px;
         transition: all 0.3s ease;
-    }
-
-    .select2-container--default.select2-container--focus .select2-selection--single,
-    .select2-container--default.select2-container--focus .select2-selection--multiple {
-        border-color: #DF2127 !important;
-        box-shadow: 0 0 0 4px rgba(197, 197, 197, 0.1) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -731,7 +37,6 @@
         border-radius: 6px !important;
         color: #1e3a8a !important;
         padding: 4px 8px 4px 24px !important;
-        /* Added space on the left for the X icon */
         margin-top: 6px !important;
         position: relative !important;
     }
@@ -739,7 +44,6 @@
     .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
         color: #1e3a8a !important;
         border-right: 1px solid rgba(30, 58, 138, 0.2) !important;
-        /* Subtle separator line */
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
@@ -754,13 +58,61 @@
     .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
         background-color: rgba(30, 58, 138, 0.1) !important;
         color: #ef4444 !important;
-        /* Turn red on hover */
     }
 
     .select2-search--inline .select2-search__field {
         margin-top: 8px !important;
         font-family: inherit !important;
         color: #334155 !important;
+    }
+
+    /* Premium Label Styling */
+    .premium-label {
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .upload-area:hover {
+        border-color: #DF2127;
+    }
+
+    /* Common Unified Focus Styles for All Inputs, Selects, Textareas, Phase Inputs & Budget Wrapper */
+    .p-input-premium:focus,
+    .form-control:focus,
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input[type="date"]:focus,
+    input[type="email"]:focus,
+    input[type="password"]:focus,
+    input[type="url"]:focus,
+    select:focus,
+    textarea:focus,
+    .budget-input-wrapper:focus-within {
+        border-color: #dd2127 !important;
+        box-shadow: 0 0 0 3px #ffeaeb !important;
+        outline: none !important;
+    }
+
+    /* Reset inner Select2 search input box so no outline/border/pink box appears around cursor */
+    .select2-search__field,
+    .select2-search__field:focus,
+    .select2-search--inline .select2-search__field:focus {
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+        background: transparent !important;
+    }
+
+    /* Select2 Container Focus Styling */
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--default.select2-container--focus .select2-selection--multiple,
+    .select2-container--default.select2-container--open .select2-selection--single,
+    .select2-container--default.select2-container--open .select2-selection--multiple {
+        border-color: #dd2127 !important;
+        box-shadow: 0 0 0 3px #ffeaeb !important;
+        outline: none !important;
     }
 </style>
 <?php
@@ -881,7 +233,7 @@ if (isset($_POST['submit_project'])) {
             }
         }
 
-        // Insert Documents (we will NOT delete old documents here to preserve files. The UI can be extended later for doc deletion)
+        // Insert General Documents
         if (isset($_FILES['doc_file']) && is_array($_FILES['doc_file']['name'])) {
             $docDir = __DIR__ . "/../../uploads/project_documents/";
             if (!is_dir($docDir)) mkdir($docDir, 0777, true);
@@ -894,7 +246,28 @@ if (isset($_POST['submit_project'])) {
                     $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
                     $newName = time() . '_' . rand(1000, 9999) . '.' . $ext;
                     if (move_uploaded_file($tmpName, $docDir . $newName)) {
-                        $q = "INSERT INTO project_documents (project_id, document_name, file_path) VALUES ('$project_id', '$docName', '$newName')";
+                        $q = "INSERT INTO project_documents (project_id, document_name, file_path, is_proposal) VALUES ('$project_id', '$docName', '$newName', 0)";
+                        mysqli_query($con, $q);
+                    }
+                }
+            }
+        }
+
+        // Insert Proposal Documents (Super Admin Only)
+        if (isSuperAdmin() && isset($_FILES['proposal_file']) && is_array($_FILES['proposal_file']['name'])) {
+            $docDir = __DIR__ . "/../../uploads/project_documents/";
+            if (!is_dir($docDir)) mkdir($docDir, 0777, true);
+            foreach ($_FILES['proposal_file']['name'] as $key => $fileName) {
+                $pName = mysqli_real_escape_string($con, $_POST['proposal_name'][$key]);
+                if (empty($pName)) $pName = "Project Proposal";
+                $tmpName = $_FILES['proposal_file']['tmp_name'][$key];
+                $error_code = $_FILES['proposal_file']['error'][$key];
+
+                if ($error_code == 0 && !empty($fileName)) {
+                    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                    $newName = time() . '_proposal_' . rand(1000, 9999) . '.' . $ext;
+                    if (move_uploaded_file($tmpName, $docDir . $newName)) {
+                        $q = "INSERT INTO project_documents (project_id, document_name, file_path, is_proposal) VALUES ('$project_id', '$pName', '$newName', 1)";
                         mysqli_query($con, $q);
                     }
                 }
@@ -1207,7 +580,7 @@ $run_admins = mysqli_query($con, $get_admins);
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label class="premium-label">Total Project Budget <span style="color:#ef4444">*</span></label>
-                                <div style="display:flex; align-items:center; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
+                                <div class="budget-input-wrapper" style="display:flex; align-items:center; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; transition: all 0.2s;">
                                     <div style="background:#f8fafc; padding:0 15px; height:48px; display:flex; align-items:center; border-right:1px solid #e2e8f0; color:#64748b; font-weight:600;" id="currency_symbol">₹</div>
                                     <input type="number" name="budget" id="total_budget" class="p-input-premium" style="height:48px; border:none; width:100%; outline:none; padding:0 15px;" placeholder="Enter total budget" value="<?php echo $project_data['budget']; ?>" required min="0" step="0.01">
                                 </div>
@@ -1335,7 +708,7 @@ $run_admins = mysqli_query($con, $get_admins);
                             </thead>
                             <tbody id="docs_container">
                                 <?php
-                                $get_docs = "SELECT * FROM project_documents WHERE project_id = $project_id AND deleted_at IS NULL";
+                                $get_docs = "SELECT * FROM project_documents WHERE project_id = $project_id AND deleted_at IS NULL AND (is_proposal = 0 OR is_proposal IS NULL)";
                                 $run_docs = mysqli_query($con, $get_docs);
                                 $has_docs = mysqli_num_rows($run_docs) > 0;
                                 if ($has_docs) {
@@ -1349,7 +722,7 @@ $run_admins = mysqli_query($con, $get_admins);
                                                 <span style="font-size: 13px; color: #64748b;"><i class="fa fa-file-text-o"></i> <?php echo htmlspecialchars($doc['file_path']); ?> (Existing)</span>
                                             </td>
                                             <td style="padding: 15px 20px; text-align: center;">
-                                                <!-- Actions for existing docs could be added here later -->
+                                                <!-- Actions for existing docs -->
                                             </td>
                                         </tr>
                                     <?php
@@ -1381,12 +754,9 @@ $run_admins = mysqli_query($con, $get_admins);
                     </div>
 
                     <!-- Links Section -->
-                    <div>
+                    <div style="margin-top: 30px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #1e293b;">Links</h4>
-                            <!-- <button type="button" id="add_link_btn" style="background: #f8fafc; color: #DF2127; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2s;">
-                                <i class="fa fa-plus"></i> Add Link
-                            </button> -->
                         </div>
 
                         <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
@@ -1447,6 +817,66 @@ $run_admins = mysqli_query($con, $get_admins);
                         </button>
                     </div>
 
+                    <?php if (isSuperAdmin()): ?>
+                        <!-- Dedicated Project Proposal Section (Super Admin Only) -->
+                        <div style="margin-top: 40px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #991b1b; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa fa-lock" style="color: #dc2626;"></i> Project Proposal
+                                    <span style="font-size: 10px; font-weight: 800; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 6px; text-transform: uppercase;">Super Admin Only</span>
+                                </h4>
+                            </div>
+
+                            <div style="border: 1.5px dashed #fecaca; border-radius: 8px; overflow: hidden; background: #fff5f5;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead style="background: #fef2f2;">
+                                        <tr>
+                                            <th style="padding: 12px 20px; text-align: left; font-size: 12px; font-weight: 600; color: #991b1b; width: 45%;">Proposal Name</th>
+                                            <th style="padding: 12px 20px; text-align: left; font-size: 12px; font-weight: 600; color: #991b1b; width: 45%;">File / Path</th>
+                                            <th style="padding: 12px 20px; text-align: center; font-size: 12px; font-weight: 600; color: #991b1b; width: 10%;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="proposals_container">
+                                        <?php
+                                        $get_proposals = "SELECT * FROM project_documents WHERE project_id = $project_id AND is_proposal = 1 AND deleted_at IS NULL";
+                                        $run_proposals = mysqli_query($con, $get_proposals);
+                                        if ($run_proposals && mysqli_num_rows($run_proposals) > 0) {
+                                            while ($prop = mysqli_fetch_assoc($run_proposals)) {
+                                        ?>
+                                                <tr style="border-top: 1px solid #fee2e2;">
+                                                    <td style="padding: 15px 20px;">
+                                                        <input type="text" class="p-input-premium" style="height: 42px; border-radius: 6px; width: 100%; background:#fff5f5; color:#991b1b; font-weight:600;" value="<?php echo htmlspecialchars($prop['document_name']); ?>" readonly>
+                                                    </td>
+                                                    <td style="padding: 15px 20px;">
+                                                        <a href="uploads/project_documents/<?php echo htmlspecialchars($prop['file_path']); ?>" target="_blank" style="font-size: 13px; color: #dc2626; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                                                            <i class="fa fa-file-text-o"></i> View Proposal File (<?php echo htmlspecialchars(basename($prop['file_path'])); ?>)
+                                                        </a>
+                                                    </td>
+                                                    <td style="padding: 15px 20px; text-align: center;">
+                                                        <button type="button" onclick="deleteDoc(<?php echo $prop['id']; ?>, <?php echo $project_id; ?>)" class="btn btn-light text-danger" style="width:36px; height:36px; border-radius:6px; border:none; background:#fee2e2; color:#ef4444; display:inline-flex; align-items:center; justify-content:center;">
+                                                            <i class="fa fa-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            <?php
+                                            }
+                                        } else {
+                                            ?>
+                                            <tr style="border-top: 1px solid #fee2e2;" id="no_proposals_msg_row">
+                                                <td colspan="3" style="padding: 20px; text-align: center; color: #991b1b; font-size: 13px;" id="no_proposals_msg">No proposal files added yet. Click "+ Add Proposal" to upload.</td>
+                                            </tr>
+                                        <?php } ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style="padding: 15px 20px; border-top: 1px solid #fee2e2; background: #fff; display: flex; justify-content: space-between; align-items: center; border-radius: 0 0 8px 8px;">
+                                <button type="button" id="add_proposal_btn" class="btn btn-danger btn-sm" style="background: #dc2626; border-color: #dc2626;">
+                                    <i class="fa fa-plus"></i> Add Proposal
+                                </button>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ($error): ?>
                         <div class="alert alert-danger" style="margin-top: 20px; border-radius: 8px;">
                             <?php echo $error; ?>
@@ -1473,6 +903,34 @@ $run_admins = mysqli_query($con, $get_admins);
 
     .upload-area:hover {
         border-color: #DF2127;
+    }
+
+    /* Common Unified Focus Styles for All Inputs, Selects, Textareas, Phase Inputs & Budget Wrapper */
+    .p-input-premium:focus,
+    .form-control:focus,
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input[type="date"]:focus,
+    input[type="email"]:focus,
+    input[type="password"]:focus,
+    input[type="url"]:focus,
+    input[type="search"]:focus,
+    select:focus,
+    textarea:focus,
+    .budget-input-wrapper:focus-within {
+        border-color: #dd2127 !important;
+        box-shadow: 0 0 0 3px #ffeaeb !important;
+        outline: none !important;
+    }
+
+    /* Select2 container focus styling */
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--default.select2-container--focus .select2-selection--multiple,
+    .select2-container--default.select2-container--open .select2-selection--single,
+    .select2-container--default.select2-container--open .select2-selection--multiple {
+        border-color: #dd2127 !important;
+        box-shadow: 0 0 0 3px #ffeaeb !important;
+        outline: none !important;
     }
 </style>
 
@@ -1555,6 +1013,14 @@ $run_admins = mysqli_query($con, $get_admins);
             templateSelection: formatSelectionWithImage
         });
 
+        $('#employeeSelect, #userSelect, #adminSelect').on('select2:select', function(e) {
+            var self = this;
+            setTimeout(function() {
+                var $search = $(self).data('select2').$container.find('.select2-search__field');
+                $search.val('').trigger('input');
+            }, 0);
+        });
+
         // Dynamic Phases Script
         const symbols = {
             'INR': '₹',
@@ -1572,12 +1038,15 @@ $run_admins = mysqli_query($con, $get_admins);
         function calculateTotalCost() {
             let total = 0;
             $('.phase-cost').each(function() {
-                const val = parseFloat($(this).val());
-                if (!isNaN(val)) {
-                    total += val;
+                const rawVal = $(this).val();
+                if (rawVal) {
+                    const val = parseFloat(rawVal.toString().replace(/,/g, ''));
+                    if (!isNaN(val)) {
+                        total += val;
+                    }
                 }
             });
-            const sym = symbols[$('select[name="currency"]').val()] || '';
+            const sym = symbols[$('select[name="currency"]').val()] || '₹';
             $('#calculated_total_cost').text(sym + ' ' + total.toFixed(2));
 
             // Check if it matches total budget
@@ -1589,9 +1058,12 @@ $run_admins = mysqli_query($con, $get_admins);
             }
         }
 
-        $(document).on('input', '.phase-cost, #total_budget', function() {
+        $(document).on('input change keyup', '.phase-cost, #total_budget', function() {
             calculateTotalCost();
         });
+
+        // Trigger initial calculation on page load
+        calculateTotalCost();
 
         $('#add_phase_btn').on('click', function() {
             const nextPhaseNum = $('.phase-row').length + 1;
@@ -1653,6 +1125,34 @@ $run_admins = mysqli_query($con, $get_admins);
             $(this).closest('tr').remove();
             if ($('.doc-row').length === 0) {
                 $('#no_docs_msg').closest('tr').show();
+            }
+        });
+
+        // Add Proposal Row (Super Admin Only)
+        $('#add_proposal_btn').on('click', function() {
+            $('#no_proposals_msg_row').hide();
+            const newProp = `
+                <tr class="proposal-row" style="border-top: 1px solid #fee2e2;">
+                    <td style="padding: 15px 20px;">
+                        <input type="text" name="proposal_name[]" class="p-input-premium" style="height: 42px; border-radius: 6px; width: 100%; border-color: #fecaca;" placeholder="e.g. Project Proposal Document" required>
+                    </td>
+                    <td style="padding: 15px 20px;">
+                        <input type="file" name="proposal_file[]" style="width: 100%;" required>
+                    </td>
+                    <td style="padding: 15px 20px; text-align: center;">
+                        <button type="button" class="btn btn-light text-danger delete-proposal-btn" style="width:36px; height:36px; border-radius:6px; border:none; background:#fee2e2; color:#ef4444; display:inline-flex; align-items:center; justify-content:center;">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            $('#proposals_container').append(newProp);
+        });
+
+        $(document).on('click', '.delete-proposal-btn', function() {
+            $(this).closest('tr').remove();
+            if ($('.proposal-row').length === 0) {
+                $('#no_proposals_msg_row').show();
             }
         });
 

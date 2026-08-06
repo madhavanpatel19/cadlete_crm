@@ -132,21 +132,23 @@ while ($erow = mysqli_fetch_assoc($empQ)) {
             <div style="padding: 15px 20px; border-bottom: 1px solid #e2e8f0; background: var(--p-bg-header);">
                 <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #fff;">Pinned Links</h3>
             </div>
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #fafbfc; border-bottom: 1px solid #e2e8f0;">
-                        <th style="padding: 12px 20px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">Name</th>
-                        <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #64748b; font-weight: 600;">Type</th>
-                        <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #64748b; font-weight: 600;">Section</th>
-                        <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #64748b; font-weight: 600;">Changed By</th>
-                        <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #64748b; font-weight: 600;">Date</th>
-                        <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #64748b; font-weight: 600;">Manage</th>
-                    </tr>
-                </thead>
-                <tbody id="recently-updated-table">
-                    <!-- populated by JS -->
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table-premium" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th style="text-align: center;">Type</th>
+                            <th style="text-align: center;">Section</th>
+                            <th style="text-align: center;">Changed By</th>
+                            <th style="text-align: center;">Date</th>
+                            <th style="text-align: center;">Manage</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recently-updated-table">
+                        <!-- populated by JS -->
+                    </tbody>
+                </table>
+            </div>
         </div>
 
     </div>
@@ -250,20 +252,22 @@ while ($erow = mysqli_fetch_assoc($empQ)) {
         <div style="margin-bottom: 40px;" id="files-section-container">
             <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 700; color: #0f172a;" id="files-section-title">Files (0)</h3>
             <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: var(--p-bg-header); border-bottom: 1px solid #e2e8f0;">
-                            <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #fff; font-weight: 600;">Name</th>
-                            <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #fff; font-weight: 600;">Type</th>
-                            <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #fff; font-weight: 600;">Uploaded By</th>
-                            <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #fff; font-weight: 600;">Uploaded On</th>
-                            <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #fff; font-weight: 600;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="hub-files-table">
-                        <!-- populated by js -->
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table-premium" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th style="text-align: center;">Type</th>
+                                <th style="text-align: center;">Uploaded By</th>
+                                <th style="text-align: center;">Uploaded On</th>
+                                <th style="text-align: center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hub-files-table">
+                            <!-- populated by js -->
+                        </tbody>
+                    </table>
+                </div>
                 <div id="view-all-files-container" style="padding: 15px 20px; background: #fff; border-top: 1px solid #e2e8f0; display: none;">
                     <a href="#" id="view-all-files-btn" style="color: #df2127; font-size: 14px; font-weight: 600; text-decoration: none; outline: none;">View all files</a>
                 </div>
@@ -274,20 +278,22 @@ while ($erow = mysqli_fetch_assoc($empQ)) {
         <div id="links-section-container">
             <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 700; color: #0f172a;" id="links-section-title">Links (0)</h3>
             <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: var(--p-bg-header); border-bottom: 1px solid #e2e8f0;">
-                            <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #fff; font-weight: 600;">Name</th>
-                            <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #fff; font-weight: 600;">URL</th>
-                            <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #fff; font-weight: 600;">Added By</th>
-                            <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #fff; font-weight: 600;">Added On</th>
-                            <th style="padding: 12px 20px; text-align: center; font-size: 12px; color: #fff; font-weight: 600;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="hub-links-table">
-                        <!-- populated by js -->
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table-premium" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th style="text-align: center;">URL</th>
+                                <th style="text-align: center;">Added By</th>
+                                <th style="text-align: center;">Added On</th>
+                                <th style="text-align: center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hub-links-table">
+                            <!-- populated by js -->
+                        </tbody>
+                    </table>
+                </div>
                 <div id="view-all-links-container" style="padding: 15px 20px; background: #fff; border-top: 1px solid #e2e8f0; display: none;">
                     <a href="#" id="view-all-links-btn" style="color: #df2127; font-size: 14px; font-weight: 600; text-decoration: none; outline: none;">View all links</a>
                 </div>
@@ -407,29 +413,6 @@ while ($erow = mysqli_fetch_assoc($empQ)) {
     .btn-hub-action:hover {
         background: #f1f5f9;
         color: #0f172a;
-    }
-
-    .btn-icon-premium {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #fff;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 12px;
-        width: 38px;
-        height: 38px;
-        transition: 0.3s;
-        cursor: pointer;
-        color: #64748b;
-        text-decoration: none !important;
-    }
-
-    .btn-icon-premium:hover {
-        background: #f8fafc;
-        border-color: #1e293b;
-        color: #1e293b;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
     .premium-spinner {
@@ -649,14 +632,14 @@ while ($erow = mysqli_fetch_assoc($empQ)) {
                     <td style="padding: 15px 20px; text-align: center; vertical-align: middle; color: #475569; font-size: 14px;">${updatedOn}</td>
                     <td style="padding: 15px 20px; text-align: center; vertical-align: middle;">
                         <div style="display: flex; justify-content: center; gap: 8px;">
-                            <button class="btn-icon-premium btn-pin-resource" data-id="${item.id}" data-pinned="${item.is_pinned}" style="width: 32px; height: 32px; font-size: 12px; background: #fefce8; border-color: #fef9c3; color: #eab308;" title="Unpin">
+                            <button class="btn-icon-premium btn-pin-resource" data-id="${item.id}" data-pinned="${item.is_pinned}" style="background: #fefce8; border-color: #fef9c3; color: #eab308;" title="Unpin">
                                 <i class="fa fa-thumb-tack"></i>
                             </button>
-                            <a href="${url}" target="_blank" class="btn-icon-premium" style="width: 32px; height: 32px; font-size: 12px; background: #f0f9ff; border-color: #e0f2fe; color: #0284c7;" title="${typeInfo.type === 'Link' ? 'Visit' : 'Download'}">
+                            <a href="${url}" target="_blank" class="btn-icon-premium" style="background: #f0f9ff; border-color: #e0f2fe; color: #0284c7;" title="${typeInfo.type === 'Link' ? 'Visit' : 'Download'}">
                                 <i class="fa ${typeInfo.type === 'Link' ? 'fa-external-link' : 'fa-download'}"></i>
                             </a>
                             <?php if (canAdminAccess('company_link_delete')): ?>
-                            <button class="btn-icon-premium btn-delete-resource" data-id="${item.id}" style="width: 32px; height: 32px; font-size: 12px; background: #fef2f2; border-color: #fee2e2; color: #ef4444;" title="Delete">
+                            <button class="btn-icon-premium btn-delete-resource" data-id="${item.id}" style="background: #fef2f2; border-color: #fee2e2; color: #ef4444;" title="Delete">
                                 <i class="fa fa-trash-o"></i>
                             </button>
                             <?php endif; ?>
@@ -739,14 +722,14 @@ while ($erow = mysqli_fetch_assoc($empQ)) {
                     <td style="padding: 12px 20px; text-align: center; vertical-align: middle; color: #475569; font-size: 13px;">${dateOn}</td>
                     <td style="padding: 12px 20px; text-align: center; vertical-align: middle;">
                         <div style="display: flex; justify-content: center; gap: 8px;">
-                            <button class="btn-icon-premium btn-pin-resource" data-id="${item.id}" data-pinned="${item.is_pinned}" style="width: 32px; height: 32px; font-size: 12px; background: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#fefce8' : '#f1f5f9'}; border-color: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#fef9c3' : '#e2e8f0'}; color: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#eab308' : '#64748b'};" title="${item.is_pinned == 1 || item.is_pinned == '1' ? 'Unpin' : 'Pin'}">
+                            <button class="btn-icon-premium btn-pin-resource" data-id="${item.id}" data-pinned="${item.is_pinned}" style="background: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#fefce8' : '#f1f5f9'}; border-color: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#fef9c3' : '#e2e8f0'}; color: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#eab308' : '#64748b'};" title="${item.is_pinned == 1 || item.is_pinned == '1' ? 'Unpin' : 'Pin'}">
                                 <i class="fa fa-thumb-tack"></i>
                             </button>
-                            <a href="${url}" target="_blank" class="btn-icon-premium" style="width: 32px; height: 32px; font-size: 12px; background: #f0f9ff; border-color: #e0f2fe; color: #0284c7;" title="Download">
+                            <a href="${url}" target="_blank" class="btn-icon-premium" style="background: #f0f9ff; border-color: #e0f2fe; color: #0284c7;" title="Download">
                                 <i class="fa fa-download"></i>
                             </a>
                             <?php if (canAdminAccess('company_link_delete')): ?>
-                            <button class="btn-icon-premium btn-delete-resource" data-id="${item.id}" style="width: 32px; height: 32px; font-size: 12px; background: #fef2f2; border-color: #fee2e2; color: #ef4444;" title="Delete">
+                            <button class="btn-icon-premium btn-delete-resource" data-id="${item.id}" style="background: #fef2f2; border-color: #fee2e2; color: #ef4444;" title="Delete">
                                 <i class="fa fa-trash-o"></i>
                             </button>
                             <?php endif; ?>
@@ -800,14 +783,14 @@ while ($erow = mysqli_fetch_assoc($empQ)) {
                     <td style="padding: 12px 20px; text-align: center; vertical-align: middle; color: #475569; font-size: 13px;">${dateOn}</td>
                     <td style="padding: 12px 20px; text-align: center; vertical-align: middle;">
                         <div style="display: flex; justify-content: center; gap: 8px;">
-                            <button class="btn-icon-premium btn-pin-resource" data-id="${item.id}" data-pinned="${item.is_pinned}" style="width: 32px; height: 32px; font-size: 12px; background: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#fefce8' : '#f1f5f9'}; border-color: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#fef9c3' : '#e2e8f0'}; color: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#eab308' : '#64748b'};" title="${item.is_pinned == 1 || item.is_pinned == '1' ? 'Unpin' : 'Pin'}">
+                            <button class="btn-icon-premium btn-pin-resource" data-id="${item.id}" data-pinned="${item.is_pinned}" style="background: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#fefce8' : '#f1f5f9'}; border-color: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#fef9c3' : '#e2e8f0'}; color: ${item.is_pinned == 1 || item.is_pinned == '1' ? '#eab308' : '#64748b'};" title="${item.is_pinned == 1 || item.is_pinned == '1' ? 'Unpin' : 'Pin'}">
                                 <i class="fa fa-thumb-tack"></i>
                             </button>
-                            <a href="${url}" target="_blank" class="btn-icon-premium" style="width: 32px; height: 32px; font-size: 12px; background: #f0f9ff; border-color: #e0f2fe; color: #0284c7;" title="Visit">
+                            <a href="${url}" target="_blank" class="btn-icon-premium" style="background: #f0f9ff; border-color: #e0f2fe; color: #0284c7;" title="Visit">
                                 <i class="fa fa-external-link"></i>
                             </a>
                             <?php if (canAdminAccess('company_link_delete')): ?>
-                            <button class="btn-icon-premium btn-delete-resource" data-id="${item.id}" style="width: 32px; height: 32px; font-size: 12px; background: #fef2f2; border-color: #fee2e2; color: #ef4444;" title="Delete">
+                            <button class="btn-icon-premium btn-delete-resource" data-id="${item.id}" style="background: #fef2f2; border-color: #fee2e2; color: #ef4444;" title="Delete">
                                 <i class="fa fa-trash-o"></i>
                             </button>
                             <?php endif; ?>

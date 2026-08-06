@@ -164,7 +164,7 @@ if (isset($_GET['ajax']) && isset($_GET['view']) && $employee) {
                 <div class="company-center">
                     <h3 class="company-name">Cadlete Design</h3>
                     <div class="company-address">A-106, Sun South Street, Ahmedabad</div>
-                    <div class="company-meta-small">Phone: +91 8320211773 &nbsp;|&nbsp; Email: info@cadletedesigns.com</div>
+                    <div class="company-meta-small">Phone: 091 83202 11773 &nbsp;|&nbsp; Email: info@cadletedesigns.com</div>
                 </div>
             </div>
             <div class="slip-meta">
@@ -423,9 +423,8 @@ if (isset($_GET['ajax']) && isset($_GET['view']) && $employee) {
                                         <?php if ($can_view): ?>
                                             <div style="display: flex; justify-content: center;">
                                                 <button type="button"
-                                                    class="p-btn-action p-btn-view view-slip-btn"
+                                                    class="btn-icon-premium btn-icon-view view-slip-btn"
                                                     data-month="<?php echo $m_val; ?>"
-                                                    style="border: none;"
                                                     title="View Salary Slip">
                                                     <i class="fa fa-eye"></i>
                                                 </button>
@@ -461,8 +460,8 @@ if (isset($_GET['ajax']) && isset($_GET['view']) && $employee) {
                     </div>
                 </div>
                 <div class="modal-footer" style="padding: 20px 25px; background: #fff; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-default" data-dismiss="modal" style="border-radius: 10px; padding: 10px 20px; font-weight: 600; margin: 0;">Close</button>
-                    <button type="button" class="btn btn-success" id="modalDownloadBtn" style="border-radius: 10px; padding: 10px 20px; font-weight: 600; margin: 0;">
+                    <button type="button" class="btn-premium-cancel" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn-premium-add" id="modalDownloadBtn">
                         <i class="fa fa-download"></i> Save as PDF
                     </button>
                 </div>

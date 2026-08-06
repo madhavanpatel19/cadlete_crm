@@ -249,6 +249,821 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
 }
 ?>
 
+<style>
+    /* Prevent Flash of Unstyled Content (FOUC) / profile picture flash on page refresh */
+    .modal:not(.in):not(.show) {
+        display: none !important;
+    }
+
+    /* Document Maintenance Modal Styles (Premium) */
+    .doc-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(8px);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .doc-modal-overlay.active {
+        opacity: 1;
+    }
+
+    .doc-modal-container {
+        background: #fff;
+        width: 90%;
+        max-width: 600px;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+    }
+
+    .doc-modal-overlay.active .doc-modal-container {
+        transform: translateY(0);
+    }
+
+    .doc-modal-header {
+        position: relative;
+        padding: 20px 25px;
+        background: #ffeaeb;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .doc-modal-title-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .doc-modal-title-group i {
+        font-size: 20px;
+        color: #dd2127;
+    }
+
+    .doc-modal-title-group h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .doc-modal-body {
+        padding: 25px;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .doc-modal-list-view {
+        margin-bottom: 25px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .doc-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s;
+    }
+
+    .doc-item:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .premium-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        z-index: 9999;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        font-weight: 600;
+        transform: translateX(120%);
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .premium-notification.active {
+        transform: translateX(0);
+    }
+
+    .notification-success {
+        background: rgba(16, 185, 129, 0.92);
+    }
+
+    .notification-error {
+        background: rgba(239, 68, 68, 0.92);
+    }
+
+    .doc-item a {
+        color: #1e293b;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 250px;
+    }
+
+    .delete-doc {
+        background: #fee2e2;
+        color: #ef4444;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .delete-doc:hover {
+        background: #ef4444;
+        color: #fff;
+    }
+
+    .doc-modal-upload-section {
+        background: #ffeaeb;
+        border-radius: 16px;
+        padding: 15px;
+        border: 1px dashed #dd2127;
+    }
+
+    .upload-section-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #dd2127;
+    }
+
+    .upload-controls {
+        display: flex;
+        gap: 10px;
+    }
+
+    .custom-file-input {
+        flex: 1;
+        position: relative;
+    }
+
+    .custom-file-input input {
+        position: absolute;
+        width: 0;
+        height: 0;
+        opacity: 0;
+    }
+
+    .custom-file-input label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        padding: 12px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 12px;
+        color: #64748b;
+        width: 100%;
+        margin: 0;
+    }
+
+    .btn-upload {
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 13px;
+    }
+
+    .no-docs {
+        text-align: center;
+        padding: 30px;
+        color: #94a3b8;
+    }
+
+    .no-docs i {
+        font-size: 30px;
+        margin-bottom: 10px;
+        opacity: 0.5;
+    }
+
+    .no-docs p {
+        margin: 0;
+        font-size: 13px;
+    }
+
+    /* Performance history modal */
+    #performanceHistoryModal .modal-content {
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 16px 44px rgba(15, 23, 42, 0.16);
+    }
+
+    #performanceHistoryModal .modal-header {
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .history-chart-box {
+        background: linear-gradient(180deg, #f8fafc, #eef2ff);
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .history-table-wrap {
+        margin-top: 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px;
+        background: #ffffff;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .history-table-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .history-total-pill {
+        display: inline-block;
+        background: #0ea5e9;
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 12px;
+        letter-spacing: 0.01em;
+    }
+
+    .history-breakdown-table thead th {
+        background: #f8fafc;
+        color: #475569;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .history-breakdown-table tbody td {
+        vertical-align: middle;
+        color: #0f172a;
+    }
+
+    .history-point-badge {
+        display: inline-block;
+        padding: 4px 9px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 12px;
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .history-empty-row {
+        text-align: center;
+        color: #94a3b8;
+    }
+
+    .score-btn {
+        border-color: transparent;
+    }
+
+    .score-plain {
+        background: #f8fafc;
+        color: #0f172a;
+        border-color: #e2e8f0;
+    }
+
+    .score-red {
+        background: #ef4444;
+        color: #fff;
+        border-color: #dc2626;
+    }
+
+    .score-gray {
+        background: #94a3b8;
+        color: #0f172a;
+        border-color: #94a3b8;
+    }
+
+    .score-amber {
+        background: #f59e0b;
+        color: #0f172a;
+        border-color: #d97706;
+    }
+
+    .score-green {
+        background: #22c55e;
+        color: #fff;
+        border-color: #16a34a;
+    }
+
+    /* Premium Delete Confirmation Modal */
+    .premium-confirm-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .premium-confirm-overlay.active {
+        display: flex;
+        opacity: 1;
+    }
+
+    .premium-confirm-modal {
+        background: #fff;
+        width: 100%;
+        max-width: 400px;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        transform: scale(0.9);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        padding: 30px;
+        text-align: center;
+    }
+
+    .premium-confirm-overlay.active .premium-confirm-modal {
+        transform: scale(1);
+    }
+
+    .confirm-icon-box {
+        width: 60px;
+        height: 60px;
+        background: #fee2e2;
+        color: #ef4444;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin: 0 auto 20px auto;
+        animation: pulseDanger 2s infinite;
+    }
+
+    @keyframes pulseDanger {
+        0% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 15px rgba(239, 68, 68, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+    }
+
+    .premium-confirm-header h3 {
+        margin: 0 0 10px 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .premium-confirm-header p {
+        margin: 0 0 25px 0;
+        font-size: 14px;
+        color: #64748b;
+        line-height: 1.5;
+    }
+
+    .premium-confirm-footer {
+        display: flex;
+        gap: 12px;
+    }
+
+    .confirm-btn-cancel {
+        flex: 1;
+        padding: 12px;
+        border-radius: 12px;
+        background: #f1f5f9;
+        color: #64748b;
+        border: none;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .confirm-btn-cancel:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .confirm-btn-delete {
+        flex: 1;
+        padding: 12px;
+        border-radius: 12px;
+        background: #ef4444;
+        color: #fff;
+        border: none;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+    }
+
+    .confirm-btn-delete:hover {
+        background: #dc2626;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
+    }
+
+    /* Comprehensive Form Styles */
+    .form-section-title {
+        background: #f8fafc;
+        padding: 8px 12px;
+        border-left: 4px solid #3b82f6;
+        margin: 20px 0 15px 0;
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-section-title:first-child {
+        margin-top: 0;
+    }
+
+    .modal-lg-custom {
+        width: 90%;
+        max-width: 1000px;
+    }
+
+    .grid-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .grid-col {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .grid-col label {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #475569;
+        font-size: 13px;
+    }
+
+    .table-input {
+        width: 100%;
+        border: 1px solid #e2e8f0;
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 13px;
+    }
+
+    .dynamic-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15px;
+    }
+
+    .dynamic-table th {
+        background: #f1f5f9;
+        color: #475569;
+        font-weight: 600;
+        font-size: 12px;
+        padding: 8px;
+        text-align: left;
+        border: 1px solid #e2e8f0;
+    }
+
+    .dynamic-table td {
+        padding: 5px;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* View Modal Specific Styles */
+    .view-info-item {
+        margin-bottom: 12px;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 8px;
+    }
+
+    .view-info-label {
+        font-weight: 700;
+        color: #64748b;
+        font-size: 11px;
+        text-transform: uppercase;
+        display: block;
+        margin-bottom: 2px;
+    }
+
+    .view-info-value {
+        color: #1e293b;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .view-image-large {
+        width: 120px;
+        height: 120px;
+        border-radius: 20px;
+        object-fit: cover;
+        object-position: center 10%;
+        /* Ensures face focus in sidebar */
+        border: 3px solid #fff;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        margin-bottom: 15px;
+        transition: transform 0.3s;
+    }
+
+    .view-modal-header {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 15px 20px;
+    }
+
+    .table-view-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+        border-radius: 4px;
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s;
+    }
+
+    .table-view-btn:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .emp-table-img {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        object-position: center 10%;
+        /* Focus on the face (top portion) */
+        border: 2px solid #fff;
+        cursor: pointer;
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .emp-table-img:hover {
+        transform: scale(1.15) rotate(5deg);
+        border-color: #dd2127;
+        box-shadow: 0 10px 15px -3px rgba(221, 33, 39, 0.4);
+    }
+
+    .emp-table-img:focus,
+    .emp-table-img:focus-visible,
+    .emp-table-img:active {
+        outline: none !important;
+        border-color: #e2e8f0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Round Profile Modal & Preview Styles */
+    .view-image-round {
+        width: 320px;
+        height: 320px;
+        border-radius: 50%;
+        object-fit: cover;
+        object-position: center 10%;
+        /* Ensures the face is centered in the circle */
+        border: 8px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        background: #f8fafc;
+        padding: 5px;
+    }
+
+    .preview-circle-container {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-top: 10px;
+        padding: 10px;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px dashed #e2e8f0;
+    }
+
+    .image-preview-circle {
+        width: 70px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        object-position: center 10%;
+        /* Face-first preview */
+        border: 3px solid #fff;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        background: #eef2ff;
+    }
+
+    /* Professional Profile Modal Styles */
+    .profile-modal-body {
+        display: flex;
+        padding: 0 !important;
+        background: #f8fafc;
+        min-height: 500px;
+    }
+
+    .profile-sidebar {
+        width: 280px;
+        background: #ffffff;
+        border-right: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        padding: 30px 0;
+    }
+
+    .profile-sidebar-header {
+        padding: 0 25px 25px 25px;
+        text-align: center;
+        border-bottom: 1px solid #f1f5f9;
+        margin-bottom: 15px;
+    }
+
+    .profile-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .profile-nav-item {
+        padding: 12px 25px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-right: 3px solid transparent;
+    }
+
+    .profile-nav-item i {
+        width: 20px;
+        font-size: 16px;
+    }
+
+    .profile-nav-item:hover {
+        background: #FFEAEB;
+        color: #dd2127;
+    }
+
+    .profile-nav-item.active {
+        background: #FFEAEB;
+        color: #dd2127;
+        border-right-color: #dd2127;
+    }
+
+    .profile-content {
+        flex: 1;
+        padding: 40px;
+        background: #ffffff;
+        overflow-y: auto;
+    }
+
+    .profile-section-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .profile-data-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+    }
+
+    .profile-data-card {
+        background: #f8fafc;
+        padding: 15px 20px;
+        border-radius: 10px;
+        border: 1px solid #f1f5f9;
+    }
+
+    .profile-data-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #94a3b8;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .profile-data-value {
+        font-size: 15px;
+        color: #1e293b;
+        font-weight: 600;
+    }
+
+    .profile-section {
+        display: none;
+    }
+
+    .profile-section.active {
+        display: block;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .close-profile-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: #dd2127;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.2s;
+        z-index: 100;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .close-profile-btn:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+        transform: rotate(90deg);
+    }
+
+    .profile-content {
+        position: relative;
+    }
+</style>
+
 <div class="page-header-premium">
     <h1></h1>
     <div class="header-actions-premium">
@@ -277,20 +1092,17 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
         <h3>All Employees</h3>
     </div>
 
-    <div class="table-premium">
-        <style>
-            .table-premium table tbody td {
-                vertical-align: middle !important;
-            }
-        </style>
-        <table class="table">
+    <div class="table-premium" style="overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;">
+        <table class="table table-premium" style="min-width: 950px; width: 100%;">
             <thead>
                 <tr>
                     <th class="text-center" style="width: 60px; text-align: center;">ID</th>
                     <th class="text-center" style="width: 80px; text-align: center;">Photo</th>
-                    <th> Name</th>
+                    <th>Name</th>
+                    <th class="text-center" style="text-align: center;">Designation</th>
+                    <th class="text-center" style="text-align: center;">Department</th>
                     <th class="text-center" style="text-align: center;">Details</th>
-                    <th class="text-center" style="text-align: center;">Rating</th>
+                    <!-- <th class="text-center" style="text-align: center;">Rating</th> -->
                     <th class="text-center" style="text-align: center;">Files</th>
                     <th class="text-center" style="text-align: center;">Manage</th>
                 </tr>
@@ -363,12 +1175,27 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
                                 <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;"><i class="fa fa-calendar-check-o"></i> Joined: <?php echo (!empty($row['join_date']) && $row['join_date'] !== '0000-00-00') ? date('d-m-Y', strtotime($row['join_date'])) : '-'; ?></div>
                             </td>
                             <td class="text-center" style="text-align: center;">
+                                <?php if (!empty($row['designation']) && $row['designation'] !== 'Not Assigned'): ?>
+                                    <span style="font-size: 12px; font-weight: 700; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 6px; display: inline-block;"><?php echo htmlspecialchars($row['designation']); ?></span>
+                                <?php else: ?>
+                                    <span style="font-size: 12px; color: #94a3b8; font-weight: 600;">Not Assigned</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center" style="text-align: center;">
+                                <?php if (!empty($row['department']) && $row['department'] !== 'Not Assigned'): ?>
+                                    <span style="font-size: 12px; font-weight: 700; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 4px 10px; border-radius: 6px; display: inline-block;"><?php echo htmlspecialchars($row['department']); ?></span>
+                                <?php else: ?>
+                                    <span style="font-size: 12px; color: #94a3b8; font-weight: 600;">Not Assigned</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center" style="text-align: center;">
                                 <button type="button" class="btn" style="padding: 6px 12px; border-radius: 8px; font-weight: 600; background: #f1f5f9; color: #475569; border: 1.5px solid #e2e8f0; font-size: 12px;"
                                     data-emp='<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8'); ?>'
                                     onclick="openViewEmployee(this, 'section_personal')">
                                     <i class="fa fa-user-circle-o"></i> View Profile
                                 </button>
                             </td>
+                            <!-- Rating column commented out
                             <td class="text-center" style="text-align: center;">
                                 <?php
                                 $scoreClass = 'score-plain';
@@ -402,6 +1229,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
                                     <i class="fa fa-line-chart"></i> Set
                                 </button>
                             </td>
+                            -->
                             <td class="text-center" style="text-align: center;">
                                 <?php if (function_exists('canAdminAccess') && canAdminAccess('employee_update')): ?>
                                     <a href="javascript:void(0)" onclick="openDocuments(<?php echo $pk; ?>)" class="btn" style="padding: 6px 14px; border-radius: 8px; background: #fff; border: 1.5px solid #e2e8f0; color: #64748b; font-weight: 600; font-size: 12px;" title="View Documents">
@@ -445,7 +1273,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
 
 
 <!-- Document Management Modal (Premium UI) -->
-<div class="doc-modal-overlay" id="docModalOverlay" aria-hidden="true" onclick="handleOverlayClick(event)">
+<div class="doc-modal-overlay" id="docModalOverlay" aria-hidden="true" onclick="handleOverlayClick(event)" style="display: none;">
     <div class="doc-modal-container" role="dialog" aria-modal="true" aria-labelledby="doc-modal-title">
         <div class="doc-modal-header">
             <button class="btn-modal-close" onclick="closeDocModal()" aria-label="Close">
@@ -487,7 +1315,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
 </div>
 
 <!-- Performance Modal -->
-<div class="modal fade" id="performanceModal" tabindex="-1" role="dialog" aria-labelledby="performanceModalLabel">
+<div class="modal fade" id="performanceModal" tabindex="-1" role="dialog" aria-labelledby="performanceModalLabel" style="display: none;">
     <div class="modal-dialog" role="document" style="max-width: 650px; width: 100%;">
         <div class="modal-content premium-modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden;">
             <form method="post" id="performanceForm">
@@ -638,7 +1466,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
 </div>
 
 <!-- Performance History Modal -->
-<div class="modal fade" id="performanceHistoryModal" tabindex="-1" role="dialog" aria-labelledby="performanceHistoryLabel">
+<div class="modal fade" id="performanceHistoryModal" tabindex="-1" role="dialog" aria-labelledby="performanceHistoryLabel" style="display: none;">
     <div class="modal-dialog" role="document" style="max-width: 650px; width: 100%;">
         <div class="modal-content premium-modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden;">
             <div class="modal-header" style="background: #ffeaeb; padding: 19px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: flex-start;">
@@ -681,7 +1509,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
 </div>
 
 <!-- View Employee Modal -->
-<div class="modal fade" id="viewEmployeeModal" tabindex="-1" role="dialog" aria-labelledby="viewEmployeeModalLabel">
+<div class="modal fade" id="viewEmployeeModal" tabindex="-1" role="dialog" aria-labelledby="viewEmployeeModalLabel" style="display: none;">
     <div class="modal-dialog modal-lg" role="document" style="width: 90%; max-width: 1100px;">
         <div class="modal-content" style="border-radius: 16px; overflow: hidden; border: none; box-shadow: 0 25px 70px rgba(0,0,0,0.3);">
             <div class="profile-modal-body">
@@ -690,6 +1518,8 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
                     <div class="profile-sidebar-header">
                         <img id="view_img" src="admin_images/default.png" class="view-image-large" style="width: 140px; height: 140px; border-radius: 20px; margin-bottom: 20px;" alt="Profile">
                         <h4 id="view_name" style="font-weight: 800; color: #0f172a; margin: 0 0 5px 0;">Employee Name</h4>
+                        <div id="view_desig_sidebar" style="font-size: 13px; font-weight: 700; color: #dd2127; margin-bottom: 2px;">-</div>
+                        <div id="view_dept_sidebar" style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 10px;">-</div>
                         <p id="view_id_label" style="color: #64748b; font-size: 13px; font-weight: 600; margin-bottom: 10px;">ID: 001</p>
                         <span id="view_gender_badge" class="label label-primary" style="background: #dd2127; padding: 5px 12px; border-radius: 30px; font-size: 11px;">Male</span>
                         <div id="view_join_sidebar" style="font-size: 11px; color: #64748b; font-weight: 600; margin-top: 10px;">Joined: -</div>
@@ -737,6 +1567,14 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
                     <div id="section_personal" class="profile-section active">
                         <h3 class="profile-section-title"><i class="fa fa-user" style="color: #dd2127;"></i> Personal Information</h3>
                         <div class="profile-data-grid">
+                            <div class="profile-data-card">
+                                <span class="profile-data-label">Department</span>
+                                <span class="profile-data-value" id="view_dept_personal">-</span>
+                            </div>
+                            <div class="profile-data-card">
+                                <span class="profile-data-label">Designation</span>
+                                <span class="profile-data-value" id="view_desig_personal">-</span>
+                            </div>
                             <div class="profile-data-card">
                                 <span class="profile-data-label">Date of Birth</span>
                                 <span class="profile-data-value" id="view_dob">-</span>
@@ -881,6 +1719,14 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
                                     <span class="profile-data-value" id="view_join">-</span>
                                 </div>
                                 <div class="profile-data-card">
+                                    <span class="profile-data-label">Department</span>
+                                    <span class="profile-data-value" id="view_dept_salary">-</span>
+                                </div>
+                                <div class="profile-data-card">
+                                    <span class="profile-data-label">Designation</span>
+                                    <span class="profile-data-value" id="view_desig_salary">-</span>
+                                </div>
+                                <div class="profile-data-card">
                                     <span class="profile-data-label">Basic Salary</span>
                                     <span class="profile-data-value" id="view_basic">0.00</span>
                                 </div>
@@ -906,7 +1752,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
 </div>
 
 <!-- Image Viewer Modal -->
-<div class="modal fade" id="imageViewerModal" tabindex="-1" role="dialog" style="background: rgba(15, 23, 42, 0.9);">
+<div class="modal fade" id="imageViewerModal" tabindex="-1" role="dialog" style="display: none; background: rgba(15, 23, 42, 0.9);">
     <div class="modal-dialog" role="document" style="width: fit-content; max-width: 90vw; margin: 10vh auto;">
         <div class="modal-content" style="background: transparent; border: none; box-shadow: none;">
             <div class="modal-body text-center" style="padding: 0; position: relative;">
@@ -919,7 +1765,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
 </div>
 
 <!-- Premium Delete Confirmation Modal -->
-<div class="premium-confirm-overlay" id="deleteConfirmOverlay">
+<div class="premium-confirm-overlay" id="deleteConfirmOverlay" style="display: none;">
     <div class="premium-confirm-modal">
         <div class="premium-confirm-header">
             <div class="confirm-icon-box">
@@ -935,7 +1781,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
     </div>
 </div>
 
-<div class="premium-confirm-overlay" id="docDeleteConfirmOverlay">
+<div class="premium-confirm-overlay" id="docDeleteConfirmOverlay" style="display: none;">
     <div class="premium-confirm-modal">
         <div class="premium-confirm-header">
             <div class="confirm-icon-box">
@@ -1102,6 +1948,12 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
         const data = JSON.parse(btn.dataset.emp);
         document.getElementById('view_img').src = data.employee_image ? 'uploads/' + data.employee_image : 'admin_images/default.png';
         document.getElementById('view_name').textContent = data.name || '-';
+        if (document.getElementById('view_desig_sidebar')) document.getElementById('view_desig_sidebar').textContent = data.designation || 'Not Assigned';
+        if (document.getElementById('view_dept_sidebar')) document.getElementById('view_dept_sidebar').textContent = data.department || 'Not Assigned';
+        if (document.getElementById('view_dept_personal')) document.getElementById('view_dept_personal').textContent = data.department || 'Not Assigned';
+        if (document.getElementById('view_desig_personal')) document.getElementById('view_desig_personal').textContent = data.designation || 'Not Assigned';
+        if (document.getElementById('view_dept_salary')) document.getElementById('view_dept_salary').textContent = data.department || 'Not Assigned';
+        if (document.getElementById('view_desig_salary')) document.getElementById('view_desig_salary').textContent = data.designation || 'Not Assigned';
         document.getElementById('view_id_label').textContent = 'ID: ' + data.id;
         document.getElementById('view_gender_badge').textContent = data.gender || 'Other';
         document.getElementById('view_phone').textContent = data.phone_number || '-';
@@ -1173,7 +2025,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
     const deleteNameLabel = document.getElementById('delete_emp_name_label');
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     let currentDocDelete = null;
-    const docDeleteOverlay = document.getElementById('docDeleteConfirmOverlay');
+    const docDeleteOverlay = document.getElementById('docDeleteConfimOverlay');
     const confirmDocDeleteBtn = document.getElementById('confirmDocDeleteBtn');
 
     function showDeleteConfirm(id, name) {
@@ -1509,6 +2361,11 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
 </script>
 
 <style>
+    /* Prevent Flash of Unstyled Content (FOUC) / profile picture flash on page refresh */
+    .modal:not(.in):not(.show) {
+        display: none !important;
+    }
+
     /* Document Maintenance Modal Styles (Premium) */
     .doc-modal-overlay {
         display: none;
@@ -2105,14 +2962,24 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
         /* Focus on the face (top portion) */
         border: 2px solid #e2e8f0;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .emp-table-img:hover {
-        transform: scale(1.15) rotate(5deg);
+        transform: scale(1.08);
         border-color: #dd2127;
-        box-shadow: 0 10px 15px -3px rgba(221, 33, 39, 0.4);
+        box-shadow: 0 6px 12px -2px rgba(221, 33, 39, 0.25);
+    }
+
+    .emp-table-img:focus,
+    .emp-table-img:focus-visible,
+    .emp-table-img:active {
+        outline: none !important;
+        border-color: #e2e8f0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     /* Round Profile Modal & Preview Styles */

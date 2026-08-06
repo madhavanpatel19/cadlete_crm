@@ -56,7 +56,7 @@ if (isset($_SESSION['leave_error'])) {
 $is_partial = isset($_GET['partial']);
 
 // Fetch Previous Leave Applications
-$query = "SELECT * FROM leave_applications WHERE emp_id = '$emp_id' ORDER BY created_at DESC";
+$query = "SELECT la.*, lt.leave_name FROM leave_applications la LEFT JOIN leave_types lt ON la.leave_type_id = lt.id WHERE la.emp_id = '$emp_id' ORDER BY la.created_at DESC";
 $result = mysqli_query($con, $query);
 ?>
 
@@ -344,16 +344,17 @@ $result = mysqli_query($con, $query);
                             <i class="fa fa-list-ul" style="font-size: 16px; color: #fff;"></i>
                             <h3 style="margin: 0; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #fff;">History of Requests</h3>
                         </div>
-                        <div style="overflow-x: auto;">
+                        <div class="table-responsive">
                             <table class="table-premium" style="width: 100%; border-collapse: collapse;">
                                 <thead>
                                     <tr style="background: #fcfdfe; border-bottom: 1.5px solid #f1f5f9;">
-                                        <th style="width: 60px; text-align: center; padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">#</th>
-                                        <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Applied On</th>
-                                        <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">From Date</th>
-                                        <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">To Date</th>
-                                        <th style="text-align: center; padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
-                                        <th style="padding: 18px 15px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Reason</th>
+                                        <th style="text-align: center;">#</th>
+                                        <th style="text-align: center;">Applied On</th>
+                                        <th style="text-align: center;">Leave Type</th>
+                                        <th style="text-align: center;">From Date</th>
+                                        <th style="text-align: center;">To Date</th>
+                                        <th style="text-align: center;">Status</th>
+                                        <th style="text-align: center;">Reason</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -367,15 +368,20 @@ $result = mysqli_query($con, $query);
                                         ?>
                                             <tr>
                                                 <td style="text-align: center; font-weight: 700; color: #64748b;"><?php echo $i++; ?></td>
-                                                <td style="font-weight: 500; color: #64748b; font-size: 13px;"><?php echo date('d M Y', strtotime($row['created_at'])); ?></td>
-                                                <td style="font-weight: 600; color: #1e293b;"><?php echo date('d M Y', strtotime($row['leave_from'])); ?></td>
-                                                <td style="font-weight: 600; color: #1e293b;"><?php echo date('d M Y', strtotime($row['leave_to'])); ?></td>
+                                                <td style="text-align: center; font-weight: 500; color: #64748b; font-size: 13px;"><?php echo date('d M Y', strtotime($row['created_at'])); ?></td>
+                                                <td style="text-align: center; padding: 12px;">
+                                                    <span style="background: #ffeaeb; color: #dc2626; font-weight: 700; padding: 4px 12px; border-radius: 8px; font-size: 11px; display: inline-block;">
+                                                        <?php echo !empty($row['leave_name']) ? htmlspecialchars($row['leave_name']) : 'General Leave'; ?>
+                                                    </span>
+                                                </td>
+                                                <td style="text-align: center; font-weight: 600; color: #1e293b;"><?php echo date('d M Y', strtotime($row['leave_from'])); ?></td>
+                                                <td style="text-align: center; font-weight: 600; color: #1e293b;"><?php echo date('d M Y', strtotime($row['leave_to'])); ?></td>
                                                 <td style="text-align: center; padding: 15px;">
                                                     <span style="padding: 6px 14px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; <?php echo $badge_style; ?> display: inline-block; min-width: 90px;">
                                                         <?php echo ucfirst($st); ?>
                                                     </span>
                                                 </td>
-                                                <td class="p-cell-wrap">
+                                                <td style="text-align: center; padding: 15px;">
                                                     <div style="font-size: 13px; line-height: 1.6;">
                                                         <?php echo htmlspecialchars($row['reason']); ?>
                                                     </div>

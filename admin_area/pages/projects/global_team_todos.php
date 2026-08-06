@@ -185,20 +185,37 @@ if ($run_projs) {
 
 <style>
     .todo-board {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        display: flex;
         gap: 20px;
+        overflow-x: auto;
         padding-bottom: 20px;
-        align-items: start;
+        align-items: flex-start;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f1f5f9;
     }
 
-    @media (max-width: 900px) {
-        .todo-board {
-            grid-template-columns: 1fr;
-        }
+    .todo-board::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .todo-board::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 10px;
+    }
+
+    .todo-board::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+    .todo-board::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
     }
 
     .todo-column {
+        min-width: 360px;
+        max-width: 360px;
+        flex: 0 0 360px;
         background: #ffffff;
         border: 1px solid #e8edf3;
         border-radius: 12px;
@@ -409,11 +426,11 @@ if ($run_projs) {
 
     .task-item {
         display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 10px 0;
+        flex-direction: column;
+        padding: 12px 0;
         border-bottom: 1px solid #f8fafc;
         transition: background 0.15s ease;
+        width: 100%;
     }
 
     .task-item:last-child {
@@ -457,18 +474,21 @@ if ($run_projs) {
     .task-proj-name {
         font-size: 10px;
         font-weight: 700;
-        color: #b0b7c3;
+        color: #94a3b8;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        margin-bottom: 3px;
+        white-space: nowrap;
+        flex-shrink: 0;
     }
 
     .task-name {
-        font-size: 13.5px;
+        font-size: 14px;
         font-weight: 600;
         color: #1e293b;
         line-height: 1.45;
         word-break: break-word;
+        flex: 1;
+        min-width: 0;
     }
 
     .task-item.completed .task-name {
@@ -479,19 +499,26 @@ if ($run_projs) {
     .task-meta {
         display: flex;
         align-items: center;
+        width: 100%;
+        box-sizing: border-box;
         flex-wrap: wrap;
-        gap: 5px;
+        gap: 8px;
         margin-top: 6px;
+        padding-left: 30px;
     }
 
     .date-badge {
         background: #fef2f2;
         color: #dc2626;
-        padding: 2px 7px;
+        padding: 2px 8px;
         border-radius: 20px;
         font-size: 11px;
         font-weight: 700;
         border: 1px solid #fecaca;
+        white-space: nowrap;
+        flex-shrink: 0;
+        display: inline-block;
+        line-height: 1.3;
     }
 
     .priority-flag {
@@ -500,8 +527,11 @@ if ($run_projs) {
         display: inline-flex;
         align-items: center;
         gap: 3px;
-        padding: 2px 7px;
+        padding: 2px 8px;
         border-radius: 20px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        line-height: 1.3;
     }
 
     .priority-High {
@@ -593,8 +623,8 @@ if ($run_projs) {
 </style>
 
 <script>
-    const canTodoDelete = <?php echo (function_exists('canAdminAccess') && canAdminAccess('todo_delete')) ? 'true' : 'false'; ?>;
-    const canTodoUpdate = <?php echo (function_exists('canAdminAccess') && canAdminAccess('todo_update')) ? 'true' : 'false'; ?>;
+    const canTodoDelete = <?php echo (function_exists('canAdminAccess') && (canAdminAccess('todo_delete') || canAdminAccess('project_assign_task'))) ? 'true' : 'false'; ?>;
+    const canTodoUpdate = <?php echo (function_exists('canAdminAccess') && (canAdminAccess('todo_update') || canAdminAccess('project_assign_task'))) ? 'true' : 'false'; ?>;
 </script>
 <script>
     $(document).ready(function() {
@@ -800,9 +830,14 @@ if ($run_projs) {
                 emp_id: empId
             },
             success: function(res) {
-                if (res.success) {
-                    renderTasks(empId, res.tasks);
+                if (res && res.success) {
+                    renderTasks(empId, res.tasks || []);
+                } else {
+                    $(`#task-list-${empId}`).html('<div class="empty-server-msg" style="color: #94a3b8; font-size: 13px; text-align: center; padding: 20px;">' + (res && res.message ? escapeHtml(res.message) : 'No tasks assigned globally') + '</div>');
                 }
+            },
+            error: function() {
+                $(`#task-list-${empId}`).html('<div class="empty-server-msg" style="color: #ef4444; font-size: 13px; text-align: center; padding: 20px;">Error loading tasks</div>');
             }
         });
     }
@@ -811,7 +846,7 @@ if ($run_projs) {
         const list = $(`#task-list-${empId}`);
         list.empty();
 
-        if (tasks.length === 0) {
+        if (!tasks || tasks.length === 0) {
             list.html('<div class="empty-server-msg" style="color: #94a3b8; font-size: 13px; text-align: center; padding: 20px;">No tasks assigned globally</div>');
             return;
         }
@@ -821,90 +856,94 @@ if ($run_projs) {
         let completedCount = 0;
 
         tasks.forEach(task => {
-            const isCompleted = parseInt(task.status) === 1;
-            const itemClass = isCompleted ? 'task-item completed' : 'task-item';
+            try {
+                const isCompleted = parseInt(task.status) === 1;
+                const itemClass = isCompleted ? 'task-item completed' : 'task-item';
 
-            let dateBadge = '';
-            if (task.due_date) {
-                const due = new Date(task.due_date);
-                const today = new Date();
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
+                let dateBadge = '';
+                if (task.due_date) {
+                    const due = new Date(task.due_date);
+                    const today = new Date();
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
 
-                let dateStr = due.toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short'
-                });
-                if (due.toDateString() === today.toDateString()) {
-                    dateStr = 'Today';
-                } else if (due.toDateString() === tomorrow.toDateString()) {
-                    dateStr = 'Tomorrow';
+                    let dateStr = due.toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short'
+                    });
+                    if (due.toDateString() === today.toDateString()) {
+                        dateStr = 'Today';
+                    } else if (due.toDateString() === tomorrow.toDateString()) {
+                        dateStr = 'Tomorrow';
+                    }
+                    dateBadge = `<div class="date-badge">${dateStr}</div>`;
                 }
-                dateBadge = `<div class="date-badge">${dateStr}</div>`;
-            }
 
-            let priorityHtml = '';
-            if (task.priority) {
-                priorityHtml = `<div class="priority-flag priority-${task.priority}"><i class="fa fa-flag"></i> ${task.priority}</div>`;
-            }
+                let priorityHtml = '';
+                if (task.priority) {
+                    priorityHtml = `<div class="priority-flag priority-${task.priority}"><i class="fa fa-flag"></i> ${task.priority}</div>`;
+                }
 
-            let addedBadge = '';
-            if (task.created_at) {
-                const createdAt = new Date(task.created_at.replace(/-/g, '/')); // Handle Safari parsing issue if any
-                const addedStr = createdAt.toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short'
-                }) + ', ' + createdAt.toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit'
-                });
-                addedBadge = `<div style="font-size: 10px; color: #94a3b8; margin-left: auto; font-weight: 600;"><i class="fa fa-clock-o"></i> ${addedStr}</div>`;
-            }
+                let addedBadge = '';
+                if (task.created_at) {
+                    const createdAt = new Date(task.created_at.replace(/-/g, '/')); // Handle Safari parsing issue if any
+                    const addedStr = createdAt.toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short'
+                    }) + ', ' + createdAt.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit'
+                    });
+                    addedBadge = `<div style="font-size: 11px; color: #94a3b8; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; margin-left: auto; white-space: nowrap;"><i class="fa fa-clock-o"></i> ${addedStr}</div>`;
+                }
 
-            const projName = task.project_name ? escapeHtml(task.project_name) : 'Unknown Project';
-            const safeDate = task.due_date ? task.due_date : '';
+                const projName = task.project_name ? escapeHtml(task.project_name) : 'Unknown Project';
+                const safeDate = task.due_date ? task.due_date : '';
 
-            const taskNameStyle = isCompleted ? 'text-decoration: line-through; color: #94a3b8;' : '';
+                const taskNameStyle = isCompleted ? 'text-decoration: line-through; color: #94a3b8;' : '';
 
-            const checkboxHtml = canTodoUpdate ?
-                `<div class="task-checkbox" onclick="toggleTask(${task.id}, ${empId}, ${isCompleted ? 0 : 1})"><i class="fa fa-check"></i></div>` :
-                `<div class="task-checkbox" style="cursor: default; opacity: 0.5;"><i class="fa fa-check"></i></div>`;
+                const checkboxHtml = canTodoUpdate ?
+                    `<div class="task-checkbox" onclick="toggleTask(${task.id}, ${empId}, ${isCompleted ? 0 : 1})"><i class="fa fa-check"></i></div>` :
+                    `<div class="task-checkbox" style="cursor: default; opacity: 0.5;"><i class="fa fa-check"></i></div>`;
 
-            let dropdownHtml = '';
-            if (canTodoDelete) {
-                dropdownHtml = `
-                    <div class="dropdown">
-                        <div class="task-menu-btn" data-toggle="dropdown">
-                            <i class="fa fa-ellipsis-v"></i>
+                let dropdownHtml = '';
+                if (canTodoDelete) {
+                    dropdownHtml = `
+                        <div class="dropdown" style="flex-shrink: 0; margin-left: 8px;">
+                            <div class="task-menu-btn" data-toggle="dropdown" style="cursor: pointer; padding: 2px 4px; color: #64748b;">
+                                <i class="fa fa-ellipsis-v"></i>
+                            </div>
+                            <ul class="dropdown-menu dropdown-menu-right" style="border-radius: 8px; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); padding: 5px 0; min-width: 120px;">
+                                <li><a href="#" onclick="deleteTask(${task.id}, ${empId}); return false;" style="color: #ef4444; font-weight: 600; padding: 10px 20px;"><i class="fa fa-trash-o" style="margin-right: 8px;"></i> Delete</a></li>
+                            </ul>
                         </div>
-                        <ul class="dropdown-menu dropdown-menu-right" style="border-radius: 8px; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); padding: 5px 0; min-width: 120px;">
-                            <li><a href="#" onclick="deleteTask(${task.id}, ${empId}); return false;" style="color: #ef4444; font-weight: 600; padding: 10px 20px;"><i class="fa fa-trash-o" style="margin-right: 8px;"></i> Delete</a></li>
-                        </ul>
-                    </div>
-                `;
-            }
+                    `;
+                }
 
-            const html = `
-                <div class="${itemClass}" data-task-id="${task.id}" data-date="${safeDate}">
-                    ${checkboxHtml}
-                    <div style="flex: 1;">
-                        <div class="task-proj-name"><i class="fa fa-building-o"></i> ${projName}</div>
-                        <div class="task-name" style="${taskNameStyle}">${escapeHtml(task.task_name)}</div>
+                const html = `
+                    <div class="${itemClass}" data-task-id="${task.id}" data-date="${safeDate}">
+                        <div style="display: flex; align-items: flex-start; gap: 10px; width: 100%;">
+                            ${checkboxHtml}
+                            <div class="task-name" style="${taskNameStyle}">${escapeHtml(task.task_name)}</div>
+                            ${dropdownHtml}
+                        </div>
                         <div class="task-meta">
                             ${priorityHtml}
                             ${dateBadge}
+                            <div class="task-proj-name"><i class="fa fa-building-o"></i> ${projName}</div>
                             ${addedBadge}
                         </div>
                     </div>
-                    ${dropdownHtml}
-                </div>
-            `;
+                `;
 
-            if (isCompleted) {
-                completedTasksHtml += html;
-                completedCount++;
-            } else {
-                pendingTasksHtml += html;
+                if (isCompleted) {
+                    completedTasksHtml += html;
+                    completedCount++;
+                } else {
+                    pendingTasksHtml += html;
+                }
+            } catch (err) {
+                console.error("Error rendering task item:", err);
             }
         });
 
@@ -985,9 +1024,14 @@ if ($run_projs) {
                 status: newStatus
             },
             success: function(res) {
-                if (res.success) {
+                if (res && res.success) {
                     loadTasks(empId);
+                } else {
+                    Swal.fire("Error", (res && res.message) ? res.message : "Could not update task.", "error");
                 }
+            },
+            error: function() {
+                Swal.fire("Error", "Network error updating task.", "error");
             }
         });
     }

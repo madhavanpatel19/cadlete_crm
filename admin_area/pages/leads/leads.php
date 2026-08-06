@@ -1,4 +1,12 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($con)) {
+    include(__DIR__ . '/../../includes/db.php');
+}
+global $con;
+
 if (!isset($_SESSION['admin_email'])) {
     echo "<script>window.open('../../pages/auth/login.php','_self')</script>";
     exit;
@@ -61,7 +69,8 @@ include("leads_logic.php");
 // Filters & Search
 $status_filter = isset($_GET['status']) ? mysqli_real_escape_string($con, $_GET['status']) : '';
 $source_filter = isset($_GET['source']) ? mysqli_real_escape_string($con, $_GET['source']) : '';
-$search_query = isset($_GET['search']) ? mysqli_real_escape_string($con, $_GET['search']) : '';
+$cost_filter   = isset($_GET['cost']) ? mysqli_real_escape_string($con, $_GET['cost']) : '';
+$search_query  = isset($_GET['search']) ? mysqli_real_escape_string($con, $_GET['search']) : '';
 
 // Count Leads for Cards
 $total_leads  = mysqli_num_rows(mysqli_query($con, "SELECT id FROM leads WHERE deleted_at IS NULL"));
@@ -93,8 +102,15 @@ if ($countResult) {
 $totalPages = ceil($totalRecords / $limit);
 $total_pages = $totalPages;
 
+$order_by = " ORDER BY id DESC ";
+if ($cost_filter === 'high_to_low') {
+    $order_by = " ORDER BY CAST(REPLACE(REPLACE(budget, ',', ''), ' ', '') AS DECIMAL(15,2)) DESC, id DESC ";
+} elseif ($cost_filter === 'low_to_high') {
+    $order_by = " ORDER BY CAST(REPLACE(REPLACE(budget, ',', ''), ' ', '') AS DECIMAL(15,2)) ASC, id DESC ";
+}
+
 // Get filtered records for current page
-$get_leads = "SELECT * FROM leads $where_clause ORDER BY id DESC LIMIT $offset, $limit";
+$get_leads = "SELECT * FROM leads $where_clause $order_by LIMIT $offset, $limit";
 $run_leads = mysqli_query($con, $get_leads);
 
 ?>
@@ -261,14 +277,13 @@ $run_leads = mysqli_query($con, $get_leads);
                         <th>Client Info</th>
                         <th>Project Type</th>
                         <?php if (canAdminAccess('project_source_view')): ?>
-                            <th style="position: relative; overflow: visible; min-width: 100px; padding: 15px 10px !important;">
+                            <th style="position: relative; overflow: visible; min-width: 100px; text-align: center;">
                                 <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; font-size: 12px; color: <?php echo !empty($source_filter) ? '#1e293b' : '#64748b'; ?>; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.3s;">
                                     <?php echo !empty($source_filter) ? $source_filter : 'Source'; ?>
                                     <i class="fa fa-filter" style="font-size: 11px; color: <?php echo !empty($source_filter) ? '#4f46e5' : '#94a3b8'; ?>;"></i>
                                 </div>
                                 <select id="sourceSelect" onchange="applySourceFilter(this.value)"
                                     style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;">
-                                    <option value="">Platform</option>
                                     <?php
                                     $get_all_sources = "SELECT * FROM lead_sources WHERE deleted_at IS NULL ORDER BY source_name ASC";
                                     $run_all_sources = mysqli_query($con, $get_all_sources);
@@ -281,7 +296,26 @@ $run_leads = mysqli_query($con, $get_leads);
                                 </select>
                             </th>
                         <?php endif; ?>
-                        <th style="text-align: center;">Cost</th>
+                        <th style="position: relative; overflow: visible; min-width: 110px; text-align: center;">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; font-size: 12px; color: <?php echo !empty($cost_filter) ? '#1e293b' : '#64748b'; ?>; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.3s;">
+                                <?php
+                                if ($cost_filter == 'high_to_low') {
+                                    echo 'High to Low';
+                                } elseif ($cost_filter == 'low_to_high') {
+                                    echo 'Low to High';
+                                } else {
+                                    echo 'Cost';
+                                }
+                                ?>
+                                <i class="fa fa-filter" style="font-size: 11px; color: <?php echo !empty($cost_filter) ? '#4f46e5' : '#94a3b8'; ?>;"></i>
+                            </div>
+                            <select id="costSelect" onchange="applyCostFilter(this.value)"
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;">
+                                <option value="" <?php if (empty($cost_filter) || $cost_filter == 'recent') echo 'selected'; ?>>Recent Leads (Default)</option>
+                                <option value="high_to_low" <?php if ($cost_filter == 'high_to_low') echo 'selected'; ?>>High to Low</option>
+                                <option value="low_to_high" <?php if ($cost_filter == 'low_to_high') echo 'selected'; ?>>Low to High</option>
+                            </select>
+                        </th>
                         <th style="text-align: center;">Status</th>
                         <th style="text-align: center;">Next Call</th>
                         <th style="text-align: center;">Manage</th>
@@ -479,17 +513,7 @@ $run_leads = mysqli_query($con, $get_leads);
         }
     }
 
-    .table-premium th {
-        background: #f8fafc;
-        color: #475569;
-        font-weight: 700;
-        font-size: 13px;
-        text-transform: uppercase;
-        padding: 16px 25px;
-        text-align: left;
-        border-bottom: 1.5px solid #e2e8f0;
-        white-space: nowrap;
-    }
+
 
     .table-premium td {
         padding: 20px 25px !important;
@@ -763,7 +787,15 @@ $run_leads = mysqli_query($con, $get_leads);
     function applySourceFilter(value) {
         const status = "<?php echo $status_filter; ?>";
         const search = "<?php echo $search_query; ?>";
-        window.location.href = `index.php?leads&source=${encodeURIComponent(value)}&status=${status}&search=${search}`;
+        const cost = "<?php echo $cost_filter; ?>";
+        window.location.href = `index.php?leads&source=${encodeURIComponent(value)}&status=${status}&search=${search}&cost=${cost}`;
+    }
+
+    function applyCostFilter(value) {
+        const status = "<?php echo $status_filter; ?>";
+        const search = "<?php echo $search_query; ?>";
+        const source = "<?php echo $source_filter; ?>";
+        window.location.href = `index.php?leads&cost=${encodeURIComponent(value)}&status=${status}&search=${search}&source=${source}`;
     }
 
     function showPremiumAlert(message) {

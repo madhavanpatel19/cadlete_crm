@@ -1,10 +1,16 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($con)) {
+    include(__DIR__ . '/../../includes/db.php');
+}
+global $con;
+
 if (!isset($_SESSION['admin_email'])) {
     echo "<script>window.open('../../pages/auth/login.php','_self')</script>";
     exit;
 }
-
-global $con;
 
 $edit_id = null;
 $c_name = '';
@@ -119,8 +125,8 @@ if (isset($_POST['update_lead'])) {
 ?>
 
 <div class="page-wrapper premium-ui-enabled">
-    <div class="page-header-premium">
-        <h1></h1>
+    <div class="page-header-premium" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #1e293b;">Edit Lead</h1>
         <div class="header-actions-premium">
             <a href="index.php?leads" class="btn-premium-cancel">
                 <i class="fa fa-arrow-left"></i> Back to Leads
@@ -153,7 +159,7 @@ if (isset($_POST['update_lead'])) {
 
                         <div class="form-group">
                             <label class="col-md-4 control-label" style="text-align: left; color: #475569; font-weight: 600;">
-                                Phone No <span class="text-danger">*</span>
+                                Phone No</span>
                             </label>
                             <div class="col-md-8">
                                 <div style="position: relative;">
@@ -161,7 +167,6 @@ if (isset($_POST['update_lead'])) {
                                     <input type="text"
                                         name="phone"
                                         class="p-input-premium"
-                                        required
                                         value="<?php echo $c_phone; ?>"
                                         placeholder="Mobile Number"
                                         minlength="10"
@@ -291,7 +296,15 @@ if (isset($_POST['update_lead'])) {
                         <div class="form-group">
                             <label class="col-md-4 control-label" style="text-align: left; color: #475569; font-weight: 600;">Description</label>
                             <div class="col-md-8">
-                                <textarea name="description" class="p-input-premium" style="height: 100px; padding: 12px;"><?php echo $c_desc; ?></textarea>
+                                <textarea name="description" class="p-input-premium" style="height: 100px; padding: 12px;" placeholder="Detailed lead requirements..."><?php echo htmlspecialchars($c_desc); ?></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="col-md-4 control-label" style="text-align: left; color: #475569; font-weight: 600;">Internal Note</label>
+                            <div class="col-md-8">
+                                <textarea name="remark" class="p-input-premium" style="height: 100px; padding: 12px;" placeholder="Initial internal remarks..."><?php echo htmlspecialchars($c_remark); ?></textarea>
                             </div>
                         </div>
                     </div>
