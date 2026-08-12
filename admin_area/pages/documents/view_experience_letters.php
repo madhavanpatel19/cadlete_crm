@@ -178,8 +178,8 @@ if (isset($_POST['ajax_delete_exp']) || isset($_GET['ajax_delete_exp'])) {
                             $name = $row_exp['name'];
                             $email = $row_exp['email'];
                             $designation = $row_exp['designation'];
-                            $join_date = date("d M Y", strtotime($row_exp['join_date']));
-                            $relieve_date = date("d M Y", strtotime($row_exp['relieve_date']));
+                            $join_date = date("d-m-Y", strtotime($row_exp['join_date']));
+                            $relieve_date = date("d-m-Y", strtotime($row_exp['relieve_date']));
                             $i++;
                     ?>
                             <tr data-exp-row="<?php echo $id; ?>" style="transition: background 0.2s;">

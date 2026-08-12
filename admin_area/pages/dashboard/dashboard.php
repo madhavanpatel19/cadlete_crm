@@ -290,7 +290,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                                 $badge_color = '#d97706';
                             }
 
-                            $date_formatted = !empty($project_date) ? date('d M Y', strtotime($project_date)) : '-';
+                            $date_formatted = !empty($project_date) ? date('d-m-Y', strtotime($project_date)) : '-';
                     ?>
                             <tr style="transition: all 0.2s ease;">
                                 <td style="padding: 12px 10px;">
@@ -383,7 +383,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                                 $badge_color = '#dc2626';
                             }
 
-                            $followup_formatted = !empty($followup_date) ? date('d M Y', strtotime($followup_date)) : '-';
+                            $followup_formatted = !empty($followup_date) ? date('d-m-Y', strtotime($followup_date)) : '-';
                     ?>
                             <tr>
                                 <td>
@@ -465,7 +465,9 @@ if ($res && mysqli_num_rows($res) > 0) {
                 if ($run_worklog && mysqli_num_rows($run_worklog) > 0) {
                     while ($att_row = mysqli_fetch_assoc($run_worklog)) {
                         $e_name = htmlspecialchars($att_row['name']);
-                        $e_img = !empty($att_row['employee_image']) ? 'uploads/' . $att_row['employee_image'] : 'https://ui-avatars.com/api/?name=' . urlencode($e_name) . '&background=3b82f6&color=fff';
+                        $has_img = !empty($att_row['employee_image']) && file_exists(__DIR__ . '/../../uploads/' . $att_row['employee_image']);
+                        $e_img = $has_img ? 'uploads/' . $att_row['employee_image'] : '';
+                        $first_letter = strtoupper(substr(trim($att_row['name']), 0, 1));
                         $check_in = !empty($att_row['check_in_time']) ? date('h:i A', strtotime($att_row['check_in_time'])) : '-';
                         $check_out = !empty($att_row['check_out_time']) ? date('h:i A', strtotime($att_row['check_out_time'])) : '-';
                         $status = htmlspecialchars($att_row['status']);
@@ -545,8 +547,13 @@ if ($res && mysqli_num_rows($res) > 0) {
                 ?>
                         <tr>
                             <td style="text-align: center; vertical-align: middle;">
-                                <div class="emp-info" style="justify-content: left;">
-                                    <img src="<?php echo $e_img; ?>" alt="<?php echo $e_name; ?>">
+                                <div class="emp-info" style="justify-content: left; display: flex; align-items: center; gap: 10px;">
+                                    <?php if ($has_img): ?>
+                                        <img src="<?php echo $e_img; ?>" alt="<?php echo $e_name; ?>" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid #cbd5e1;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div style="display:none; width:34px; height:34px; border-radius:50%; background:#ffeaeb; align-items:center; justify-content:center; font-size:13px; color:#dd2127; font-weight:800; flex-shrink:0; border: 1px solid #fca5a5;"><?php echo $first_letter; ?></div>
+                                    <?php else: ?>
+                                        <div style="width:34px; height:34px; border-radius:50%; background:#ffeaeb; display:flex; align-items:center; justify-content:center; font-size:13px; color:#dd2127; font-weight:800; flex-shrink:0; border: 1px solid #fca5a5;"><?php echo $first_letter; ?></div>
+                                    <?php endif; ?>
                                     <span><?php echo $e_name; ?></span>
                                 </div>
                             </td>
@@ -605,11 +612,11 @@ if ($res && mysqli_num_rows($res) > 0) {
             $('.duration-cell[data-is-working="1"]').each(function() {
                 var $cell = $(this);
                 var totalSecs = parseInt($cell.attr('data-total-secs')) || 0;
-                    var lastResumeStr = $cell.attr('data-last-resume');
-                    var checkInStr = $cell.attr('data-check-in');
+                var lastResumeStr = $cell.attr('data-last-resume');
+                var checkInStr = $cell.attr('data-check-in');
 
                 var startStr = (totalSecs > 0 && lastResumeStr) ? lastResumeStr : checkInStr;
-                    if (startStr) {
+                if (startStr) {
                     var startTime = new Date(startStr).getTime();
                     var adjustedNow = Date.now() + serverClientOffset;
                     var elapsedSinceResume = Math.floor((adjustedNow - startTime) / 1000);
@@ -658,7 +665,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                                     $statusBadge.text(statusUpper);
                                 }
 
-                            // If not working, update duration text immediately
+                                // If not working, update duration text immediately
                                 if (info.is_working == 0) {
                                     $cell.find('.duration-text').text(formatDuration(info.total_secs));
                                 }

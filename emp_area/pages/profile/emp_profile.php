@@ -82,7 +82,7 @@ if (!isset($_SESSION['emp_id'])) {
                                 </div>
                                 <div>
                                     <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Joined On</div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #1e293b;"><?php echo date('d M Y', strtotime($emp_join)); ?></div>
+                                    <div style="font-size: 13px; font-weight: 600; color: #1e293b;"><?php echo date('d-m-Y', strtotime($emp_join)); ?></div>
                                 </div>
                             </div>
                         </div>
@@ -124,7 +124,7 @@ if (!isset($_SESSION['emp_id'])) {
                                 </div>
                                 <div class="col-md-4" style="margin-bottom: 25px;">
                                     <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Date of Birth</div>
-                                    <div style="font-size: 15px; font-weight: 700; color: #1e293b;"><?php echo date('d M Y', strtotime($emp_dob)); ?></div>
+                                    <div style="font-size: 15px; font-weight: 700; color: #1e293b;"><?php echo date('d-m-Y', strtotime($emp_dob)); ?></div>
                                 </div>
                                 <div class="col-md-8" style="margin-bottom: 25px;">
                                     <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Address</div>

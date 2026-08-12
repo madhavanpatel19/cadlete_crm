@@ -19,7 +19,15 @@ $emp_name = $_SESSION['emp_name'];
 $is_partial = isset($_GET['partial']);
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $required = ['date', 'start_time', 'end_time', 'task'];
+    $progress_input = isset($_POST['task_progress']) ? trim($_POST['task_progress']) : (isset($_POST['task']) ? trim($_POST['task']) : '');
+    $planning_input = isset($_POST['task_planning']) ? trim($_POST['task_planning']) : '';
+    $issues_input   = isset($_POST['task_issues']) ? trim($_POST['task_issues']) : '';
+    $help_input     = isset($_POST['task_help']) ? trim($_POST['task_help']) : '';
+
+    if (empty($progress_input)) {
+        $errorFields[] = 'task_progress';
+    }
+    $required = ['date', 'start_time', 'end_time'];
     foreach ($required as $field) {
         if (empty($_POST[$field])) {
             $errorFields[] = $field;
@@ -27,21 +35,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     if (empty($errorFields)) {
-        // Insert into attendance table
         $attendance_date = mysqli_real_escape_string($con, $_POST['date']);
         $today_date = date('Y-m-d');
 
-        // Server-side validation: only allow current date
         if ($attendance_date !== $today_date) {
             $errorFields[] = 'date';
             $successMessage = "Error: You can only submit worksheet for the current date.";
+        } else {
             $check_in_time = mysqli_real_escape_string($con, $_POST['start_time']);
             $check_out_time = mysqli_real_escape_string($con, $_POST['end_time']);
-            
-            $progress_input = isset($_POST['task_progress']) ? trim($_POST['task_progress']) : (isset($_POST['task']) ? trim($_POST['task']) : '');
-            $planning_input = isset($_POST['task_planning']) ? trim($_POST['task_planning']) : '';
-            $issues_input   = isset($_POST['task_issues']) ? trim($_POST['task_issues']) : '';
-            $help_input     = isset($_POST['task_help']) ? trim($_POST['task_help']) : '';
 
             $parts = [];
             $parts[] = "Today’s Progress:\n" . $progress_input;
@@ -76,11 +78,59 @@ $history_result = mysqli_query($con, $history_query);
 
 // Fetch today's record for auto-filling worksheet
 $today_date = date('Y-m-d');
-$today_q = "SELECT check_in_time, check_out_time FROM attendance WHERE emp_id = '$emp_id' AND attendance_date = '$today_date'";
+$today_q = "SELECT check_in_time, check_out_time, remarks FROM attendance WHERE emp_id = '$emp_id' AND attendance_date = '$today_date'";
 $today_res = mysqli_query($con, $today_q);
 $today_att = mysqli_fetch_assoc($today_res);
 $prefill_in = ($today_att && $today_att['check_in_time']) ? date('H:i', strtotime($today_att['check_in_time'])) : '';
 $prefill_out = ($today_att && $today_att['check_out_time']) ? date('H:i', strtotime($today_att['check_out_time'])) : date('H:i');
+$prefill_task = ($today_att && !empty($today_att['remarks'])) ? $today_att['remarks'] : '';
+
+if (!function_exists('parse_work_details')) {
+    function parse_work_details(string $text = '')
+    {
+        $text = trim($text ?? '');
+        $res = ['progress' => '', 'planning' => '', 'issues' => '', 'help' => ''];
+        if (empty($text)) {
+            return $res;
+        }
+
+        $headers_pattern = "/(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:|Need any Help\?:?)/iu";
+
+        if (preg_match($headers_pattern, $text)) {
+            $clean = function ($s) {
+                $s = preg_replace("/^Today[’']s Progress:\s*/iu", "", $s);
+                $s = preg_replace("/^Planning for Tomorrow:\s*/iu", "", $s);
+                $s = preg_replace("/^Issues:\s*/iu", "", $s);
+                $s = preg_replace("/^Need any Help\??:\s*/iu", "", $s);
+                $s = preg_replace("/\n{2,}/", "\n", $s);
+                return trim($s);
+            };
+
+            if (preg_match("/Today[’']s Progress:\s*(.*?)(?=(?:Planning for Tomorrow:|Issues:|Need any Help\?:?)|$)/isu", $text, $m)) {
+                $res['progress'] = $clean($m[1]);
+            }
+            if (preg_match("/Planning for Tomorrow:\s*(.*?)(?=(?:Today[’']s Progress:|Issues:|Need any Help\?:?)|$)/isu", $text, $m)) {
+                $res['planning'] = $clean($m[1]);
+            }
+            if (preg_match("/Issues:\s*(.*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Need any Help\?:?)|$)/isu", $text, $m)) {
+                $res['issues'] = $clean($m[1]);
+            }
+            if (preg_match("/Need any Help\?:?\s*(.*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:)|$)/isu", $text, $m)) {
+                $res['help'] = $clean($m[1]);
+            }
+
+            if (empty($res['progress'])) {
+                if (preg_match("/^(.*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:|Need any Help\?:?))/isu", $text, $m)) {
+                    $res['progress'] = $clean($m[1]);
+                }
+            }
+        } else {
+            $res['progress'] = $text;
+        }
+        return $res;
+    }
+}
+$parsed_task = parse_work_details($prefill_task);
 ?>
 
 <?php if (!$is_partial) : ?>
@@ -173,7 +223,7 @@ $prefill_out = ($today_att && $today_att['check_out_time']) ? date('H:i', strtot
                                         ?>
                                             <tr>
                                                 <td style="text-align: center; font-weight: 700; color: #64748b;"><?php echo $i++; ?></td>
-                                                <td style="font-weight: 600; color: #1e293b;"><?php echo date('d M Y', strtotime($row['attendance_date'])); ?></td>
+                                                <td style="font-weight: 600; color: #1e293b;"><?php echo date('d-m-Y', strtotime($row['attendance_date'])); ?></td>
                                                 <td style="text-align: center; color: #64748b; font-size: 13px;"><?php echo $row['check_in_time'] ?: '--:--'; ?></td>
                                                 <td style="text-align: center; color: #64748b; font-size: 13px;"><?php echo $row['check_out_time'] ?: '--:--'; ?></td>
                                                 <td style="text-align: center; color: #3b82f6; font-weight: 700;">
@@ -265,25 +315,25 @@ $prefill_out = ($today_att && $today_att['check_out_time']) ? date('H:i', strtot
                                 <div class="form-group">
                                     <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Today’s Progress <span class="text-danger">*</span></label>
                                     <div class="col-md-8">
-                                        <textarea name="task_progress" class="p-input-premium" style="height: 75px; resize: none;" placeholder="What did you accomplish today?" required></textarea>
+                                        <textarea name="task_progress" class="p-input-premium" style="height: 75px; resize: none;" placeholder="What did you accomplish today?" required><?php echo htmlspecialchars($parsed_task['progress']); ?></textarea>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Planning for Tomorrow</label>
                                     <div class="col-md-8">
-                                        <textarea name="task_planning" class="p-input-premium" style="height: 60px; resize: none;" placeholder="What will you work on tomorrow?"></textarea>
+                                        <textarea name="task_planning" class="p-input-premium" style="height: 60px; resize: none;" placeholder="What will you work on tomorrow?"><?php echo htmlspecialchars($parsed_task['planning']); ?></textarea>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Issues</label>
                                     <div class="col-md-8">
-                                        <textarea name="task_issues" class="p-input-premium" style="height: 60px; resize: none;" placeholder="Any blockers or challenges faced today?"></textarea>
+                                        <textarea name="task_issues" class="p-input-premium" style="height: 60px; resize: none;" placeholder="Any blockers or challenges faced today?"><?php echo htmlspecialchars($parsed_task['issues']); ?></textarea>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Need any Help?</label>
                                     <div class="col-md-8">
-                                        <textarea name="task_help" class="p-input-premium" style="height: 60px; resize: none;" placeholder="Do you need any assistance?"></textarea>
+                                        <textarea name="task_help" class="p-input-premium" style="height: 60px; resize: none;" placeholder="Do you need any assistance?"><?php echo htmlspecialchars($parsed_task['help']); ?></textarea>
                                     </div>
                                 </div>
                                 <div class="form-group" style="margin-top: 30px; margin-bottom: 0;">

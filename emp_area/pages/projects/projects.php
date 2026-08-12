@@ -132,10 +132,10 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                             </div>
                                         </td>
                                         <td style="text-align:center;">
-                                            <?php echo !empty($row['project_date']) ? date('d M Y', strtotime($row['project_date'])) : '--'; ?>
+                                            <?php echo !empty($row['project_date']) ? date('d-m-Y', strtotime($row['project_date'])) : '--'; ?>
                                         </td>
                                         <td style="text-align:center;">
-                                            <?php echo !empty($row['deadline']) ? date('d M Y', strtotime($row['deadline'])) : '--'; ?>
+                                            <?php echo !empty($row['deadline']) ? date('d-m-Y', strtotime($row['deadline'])) : '--'; ?>
                                         </td>
                                         <td style="text-align: center; padding: 15px; align-items: center;">
                                             <span style="padding: 6px 14px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: #ffeaeb; color: #dd2127; display: inline-block; min-width: 90px;">
@@ -194,7 +194,7 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                                                                             <i class="fa <?php echo $poster_icon; ?>"></i> <?php echo $poster; ?>
                                                                                         </span>
                                                                                         <div class="remark-time-premium" style="margin: 0; font-size: 11px;">
-                                                                                            <i class="fa fa-clock-o"></i> <?php echo date('d M Y • h:i A', strtotime($r['created_at'])); ?>
+                                                                                            <i class="fa fa-clock-o"></i> <?php echo date('d-m-Y • h:i A', strtotime($r['created_at'])); ?>
                                                                                         </div>
                                                                                     </div>
                                                                                     <div class="remark-text-premium" style="font-size: 13px; color: #334155; font-weight: 600;"><?php echo nl2br(htmlspecialchars($r['remark'])); ?></div>

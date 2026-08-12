@@ -152,29 +152,42 @@ if (!function_exists('parse_work_details')) {
     {
         $text = trim($text ?? '');
         $res = ['progress' => '', 'planning' => '', 'issues' => '', 'help' => ''];
-        $clean = function ($s) {
-            $s = preg_replace("/Today.*?Progress:\s*/iu", "", $s);
-            $s = preg_replace("/Planning for Tomorrow:\s*/iu", "", $s);
-            $s = preg_replace("/Issues:\s*/iu", "", $s);
-            $s = preg_replace("/Need any Help\??:\s*/iu", "", $s);
-            $s = preg_replace("/\n{2,}/", "\n", $s); // collapse blank lines
-            return trim($s);
-        };
-        if (preg_match("/Today.*?Progress:/iu", $text)) {
-            if (preg_match("/Today.*?Progress:\s*(.*?)(?=(?:Planning for Tomorrow:|Issues:|Need any Help\?:?)|$)/isu", $text, $m1)) {
-                $res['progress'] = $clean($m1[1]);
+        if (empty($text)) {
+            return $res;
+        }
+
+        $headers_pattern = "/(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:|Need any Help\?:?)/iu";
+
+        if (preg_match($headers_pattern, $text)) {
+            $clean = function ($s) {
+                $s = preg_replace("/^Today[’']s Progress:\s*/iu", "", $s);
+                $s = preg_replace("/^Planning for Tomorrow:\s*/iu", "", $s);
+                $s = preg_replace("/^Issues:\s*/iu", "", $s);
+                $s = preg_replace("/^Need any Help\??:\s*/iu", "", $s);
+                $s = preg_replace("/\n{2,}/", "\n", $s);
+                return trim($s);
+            };
+
+            if (preg_match("/Today[’']s Progress:\s*(.*?)(?=(?:Planning for Tomorrow:|Issues:|Need any Help\?:?)|$)/isu", $text, $m)) {
+                $res['progress'] = $clean($m[1]);
             }
-            if (preg_match("/Planning for Tomorrow:\s*(.*?)(?=(?:Issues:|Need any Help\?:?)|$)/isu", $text, $m2)) {
-                $res['planning'] = $clean($m2[1]);
+            if (preg_match("/Planning for Tomorrow:\s*(.*?)(?=(?:Today[’']s Progress:|Issues:|Need any Help\?:?)|$)/isu", $text, $m)) {
+                $res['planning'] = $clean($m[1]);
             }
-            if (preg_match("/Issues:\s*(.*?)(?=(?:Need any Help\?:?)|$)/isu", $text, $m3)) {
-                $res['issues'] = $clean($m3[1]);
+            if (preg_match("/Issues:\s*(.*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Need any Help\?:?)|$)/isu", $text, $m)) {
+                $res['issues'] = $clean($m[1]);
             }
-            if (preg_match("/Need any Help\?:?\s*(.*)$/isu", $text, $m4)) {
-                $res['help'] = $clean($m4[1]);
+            if (preg_match("/Need any Help\?:?\s*(.*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:)|$)/isu", $text, $m)) {
+                $res['help'] = $clean($m[1]);
+            }
+
+            if (empty($res['progress'])) {
+                if (preg_match("/^(.*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:|Need any Help\?:?))/isu", $text, $m)) {
+                    $res['progress'] = $clean($m[1]);
+                }
             }
         } else {
-            $res['progress'] = $clean($text);
+            $res['progress'] = $text;
         }
         return $res;
     }
@@ -384,7 +397,7 @@ if (!is_array($prefill_photos)) $prefill_photos = [];
                                         ?>
                                             <tr>
                                                 <td style="text-align: center; font-weight: 700; color: #64748b;"><?php echo $i++; ?></td>
-                                                <td style="font-weight: 600; color: #1e293b; text-align: center;"><?php echo date('d M Y', strtotime($row['attendance_date'])); ?></td>
+                                                <td style="font-weight: 600; color: #1e293b; text-align: center;"><?php echo date('d-m-Y', strtotime($row['attendance_date'])); ?></td>
                                                 <td style="text-align: center; color: #64748b; font-size: 13px;"><?php echo $row['check_in_time'] ?: '--:--'; ?></td>
                                                 <td style="text-align: center; color: #64748b; font-size: 13px;">
                                                     <?php
@@ -432,7 +445,7 @@ if (!is_array($prefill_photos)) $prefill_photos = [];
                                                     if (!empty($photos) || !empty(trim($row['remarks'] ?? ''))) {
                                                         $json_photos = htmlspecialchars(json_encode($photos), ENT_QUOTES, 'UTF-8');
                                                         $emp_name_js = htmlspecialchars($emp_name, ENT_QUOTES, 'UTF-8');
-                                                        $date_js = htmlspecialchars(date('d M Y', strtotime($row['attendance_date'])), ENT_QUOTES, 'UTF-8');
+                                                        $date_js = htmlspecialchars(date('d-m-Y', strtotime($row['attendance_date'])), ENT_QUOTES, 'UTF-8');
                                                         $emp_img_js = htmlspecialchars($emp_img_path, ENT_QUOTES, 'UTF-8');
                                                         $remark_js = htmlspecialchars(json_encode(nl2br(htmlspecialchars($row['remarks'] ?? ''))), ENT_QUOTES, 'UTF-8');
                                                         echo '<button type="button" class="btn btn-sm" style="border-radius: 6px; padding: 4px 12px; font-weight: 600; background: #fff; color: #1e293b; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openRowGallery(\'' . $json_photos . '\', \'' . $emp_name_js . '\', \'' . $date_js . '\', \'' . $emp_img_js . '\', ' . $remark_js . '); event.stopPropagation();"><i class="fa fa-eye" style="color: #dd2127; margin-right: 4px;"></i> View Details</button>';
@@ -634,7 +647,7 @@ if (!is_array($prefill_photos)) $prefill_photos = [];
                         .replace(/(Today[’']s Progress:)/gi, '<strong style="color:#0f172a; display:block; margin-top:6px; margin-bottom:2px; font-weight:700;"><i class="fa fa-tasks" style="color:#dd2127; margin-right:5px;"></i>$1</strong>')
                         .replace(/(Planning for Tomorrow:)/gi, '<strong style="color:#0f172a; display:block; margin-top:10px; margin-bottom:2px; font-weight:700;"><i class="fa fa-calendar-check-o" style="color:#2563eb; margin-right:5px;"></i>$1</strong>')
                         .replace(/(Issues:)/gi, '<strong style="color:#0f172a; display:block; margin-top:10px; margin-bottom:2px; font-weight:700;"><i class="fa fa-exclamation-triangle" style="color:#eab308; margin-right:5px;"></i>$1</strong>')
-                        .replace(/(Need any Help\?:?)/gi, '<strong style="color:#0f172a; display:block; margin-top:10px; margin-bottom:2px; font-weight:700;"><i class="fa fa-question-circle" style="color:#8b5cf6; margin-right:5px;"></i>$1</strong>');
+                        .replace(/(Need any Help\s*\?:?)/gi, '<strong style="color:#0f172a; display:block; margin-top:10px; margin-bottom:2px; font-weight:700;"><i class="fa fa-question-circle" style="color:#8b5cf6; margin-right:5px;"></i>$1</strong>');
                     html += '<div style="background: #fff; padding: 15px 20px; border-radius: 12px; text-align: left; margin-bottom: 20px; border: 1px solid #f1f5f9; box-shadow: 0 2px 8px rgba(0,0,0,0.02); font-size: 14px; color: #475569; width: 100%;"><h5 style="margin-top:0; font-size:13px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Remark</h5>' + formattedRemark + '</div>';
                 }
                 html += '<div class="work-gallery-grid" style="width: 100%;">';
@@ -685,18 +698,37 @@ if (!is_array($prefill_photos)) $prefill_photos = [];
         <style>
             .work-gallery-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-                gap: 25px;
-                padding: 10px;
+                grid-template-columns: repeat(8, minmax(0, 1fr));
+                gap: 10px;
+                padding: 15px;
+            }
+
+            @media (max-width: 1100px) {
+                .work-gallery-grid {
+                    grid-template-columns: repeat(6, minmax(0, 1fr));
+                }
+            }
+
+            @media (max-width: 768px) {
+                .work-gallery-grid {
+                    grid-template-columns: repeat(4, minmax(0, 1fr));
+                }
+            }
+
+            @media (max-width: 480px) {
+                .work-gallery-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
             }
 
             .work-gallery-item {
                 position: relative;
                 aspect-ratio: 1;
-                border-radius: 24px;
+                border-radius: 12px;
                 overflow: hidden;
                 cursor: pointer;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+                border: 1.5px solid #e2e8f0;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }
 
             .work-gallery-item>img {

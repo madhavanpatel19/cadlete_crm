@@ -138,7 +138,7 @@ include("leads_logic.php");
                         </tr>
                         <tr>
                             <th style="border:none; color: #64748b; font-size: 12px; text-transform: uppercase;">Next Follow-up</th>
-                            <td style="border:none; font-weight: 700; color: #4f46e5;"><?php echo !empty($row_lead['followup_date']) ? date('d M, Y', strtotime($row_lead['followup_date'])) : 'Not Scheduled'; ?></td>
+                            <td style="border:none; font-weight: 700; color: #4f46e5;"><?php echo !empty($row_lead['followup_date']) ? date('d-m-Y', strtotime($row_lead['followup_date'])) : 'Not Scheduled'; ?></td>
                         </tr>
                     </table>
 
@@ -185,7 +185,7 @@ include("leads_logic.php");
                                                 <?php echo $f_row['followup_method']; ?> - <?php echo $f_row['followup_type']; ?>
                                             </h4>
                                             <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">
-                                                <?php echo date('d M Y', strtotime($f_row['followup_date'])); ?>
+                                                <?php echo date('d-m-Y', strtotime($f_row['followup_date'])); ?>
                                             </span>
                                         </div>
                                         <p style="margin: 8px 0 0 0; color: #475569; font-size: 13px; line-height: 1.5;">

@@ -32,9 +32,11 @@ if (!isset($_SESSION['emp_id'])) {
         <link rel="shortcut icon" href="../admin_area/images/Cadlete_Black_logo_favicon.png?v=<?php echo time(); ?>" type="image/png">
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
         <script src="../admin_area/js/jquery.min.js"></script>
         <script src="../admin_area/js/bootstrap.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
         <style>
             /* Smooth transitions for dashboard panels */
             .panel {
@@ -44,6 +46,20 @@ if (!isset($_SESSION['emp_id'])) {
             .panel:hover {
                 transform: translateY(-5px);
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+
+            .flatpickr-calendar {
+                font-family: inherit;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+                border: 1px solid #e2e8f0;
+            }
+
+            .flatpickr-day.selected,
+            .flatpickr-day.startRange,
+            .flatpickr-day.endRange {
+                background: #dd2127 !important;
+                border-color: #dd2127 !important;
             }
         </style>
     </head>
@@ -150,7 +166,7 @@ if (!isset($_SESSION['emp_id'])) {
                         <div class="topbar-profile dropdown">
                             <div data-toggle="dropdown" style="display:flex; align-items:center; gap:12px; padding:6px;background: white; border-radius:11px; cursor:pointer;">
                                 <div class="profile-avatar">
-                                    <img src="<?php echo !empty($header_emp_img) ? '../admin_area/uploads/' . $header_emp_img : 'https://ui-avatars.com/api/?name=' . urlencode($emp_name) . '&background=3b82f6&color=fff'; ?>" alt="Employee Avatar">
+                                    <img src="<?php echo !empty($header_emp_img) ? '../admin_area/uploads/' . $header_emp_img : 'https://ui-avatars.com/api/?name=' . urlencode($emp_name) . '&background=dd2127&color=fff'; ?>" alt="Employee Avatar">
                                 </div>
                                 <div class="profile-info">
                                     <span class="profile-name"><?php echo htmlspecialchars($emp_name); ?></span>
@@ -293,6 +309,66 @@ if (!isset($_SESSION['emp_id'])) {
                     })
                     .catch(error => console.log('Error checking announcements:', error));
             }
+
+            // Automatically convert all input[type="date"] & input[type="datetime-local"] to display dd-mm-yyyy format
+            function initGlobalFlatpickr() {
+                if (typeof flatpickr !== 'function') return;
+                $('input[type="date"], input[type="datetime-local"]').each(function() {
+                    if (this._flatpickr || $(this).hasClass('flatpickr-input')) return;
+                    var $input = $(this);
+                    var isReadonly = $input.is('[readonly]');
+                    var rawVal = $input.attr('value') || $input.val();
+                    var isDateTime = $input.attr('type') === 'datetime-local';
+
+                    // Parse initial value to Y-m-d format if present
+                    var defaultDateVal = null;
+                    if (rawVal && rawVal.trim() !== '') {
+                        var d = new Date(rawVal);
+                        if (!isNaN(d.getTime())) {
+                            defaultDateVal = d;
+                        }
+                    }
+
+                    flatpickr(this, {
+                        enableTime: isDateTime,
+                        dateFormat: isDateTime ? 'Y-m-d H:i' : 'Y-m-d',
+                        altInput: true,
+                        altFormat: isDateTime ? 'd-m-Y h:i K' : 'd-m-Y',
+                        allowInput: !isReadonly,
+                        clickOpens: !isReadonly,
+                        defaultDate: defaultDateVal,
+                        onChange: function(selectedDates, dateStr, instance) {
+                            $(instance.element).val(dateStr).trigger('change');
+                        },
+                        onReady: function(selectedDates, dateStr, instance) {
+                            if (instance.altInput) {
+                                instance.altInput.placeholder = $input.attr('placeholder') || (isDateTime ? "dd-mm-yyyy --:-- --" : "dd-mm-yyyy");
+                                if (isReadonly) {
+                                    instance.altInput.readOnly = true;
+                                }
+                                var origStyle = $input.attr('style');
+                                if (origStyle) {
+                                    $(instance.altInput).attr('style', origStyle);
+                                }
+                                var origClass = $input.attr('class');
+                                if (origClass) {
+                                    $(instance.altInput).addClass(origClass);
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+
+            $(document).ready(function() {
+                initGlobalFlatpickr();
+                setTimeout(initGlobalFlatpickr, 300);
+                setTimeout(initGlobalFlatpickr, 1000);
+            });
+
+            $(document).ajaxComplete(function() {
+                setTimeout(initGlobalFlatpickr, 100);
+            });
         </script>
     </body>
 

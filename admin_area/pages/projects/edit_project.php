@@ -143,12 +143,17 @@ $existing_admins = explode(',', $project_data['assigned_admins'] ?? '');
 
 // File Upload Function for Projects
 if (!function_exists('handleProjectImageUpload')) {
-    function handleProjectImageUpload($fileArray, $targetDir = __DIR__ . "/../../uploads/project_images/")
+    /**
+     * @param array $fileArray
+     * @param string $targetDir
+     * @return string
+     */
+    function handleProjectImageUpload(array $fileArray, string $targetDir = __DIR__ . "/../../uploads/project_images/")
     {
         if (!is_dir($targetDir)) {
             mkdir($targetDir, 0777, true);
         }
-        if (isset($fileArray) && $fileArray['error'] == 0) {
+        if (isset($fileArray) && isset($fileArray['error']) && $fileArray['error'] == 0) {
             $file_name = $fileArray['name'];
             $tmp_name = $fileArray['tmp_name'];
             $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
@@ -165,14 +170,17 @@ if (!function_exists('handleProjectImageUpload')) {
 
 $success = false;
 $error = '';
+$project_name = $project_data['project_name'] ?? '';
 
 if (isset($_POST['submit_project'])) {
     $project_name = mysqli_real_escape_string($con, $_POST['project_name']);
     $client_id = mysqli_real_escape_string($con, $_POST['client_id']);
     $project_desc = mysqli_real_escape_string($con, $_POST['project_desc']);
-    $start_date = mysqli_real_escape_string($con, $_POST['start_date']);
-    $deadline = mysqli_real_escape_string($con, $_POST['deadline']);
-    $status = mysqli_real_escape_string($con, $_POST['status']);
+    $start_date_raw = isset($_POST['start_date']) ? trim($_POST['start_date']) : '';
+    $start_date     = !empty($start_date_raw) ? date('Y-m-d', strtotime($start_date_raw)) : '';
+    $deadline_raw   = isset($_POST['deadline']) ? trim($_POST['deadline']) : '';
+    $deadline       = !empty($deadline_raw) ? date('Y-m-d', strtotime($deadline_raw)) : '';
+    $status         = mysqli_real_escape_string($con, $_POST['status']);
 
     // Budget Fields
     $currency = mysqli_real_escape_string($con, $_POST['currency']);

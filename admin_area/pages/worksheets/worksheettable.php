@@ -29,8 +29,14 @@ if (!empty($filter_status) && in_array($filter_status, ['present', 'absent', 'le
     $st_esc = mysqli_real_escape_string($con, $filter_status);
     $where[] = "a.status = '$st_esc'";
 }
-if (!empty($filter_from)) $where[] = "DATE(a.attendance_date) >= '" . mysqli_real_escape_string($con, $filter_from) . "'";
-if (!empty($filter_to))   $where[] = "DATE(a.attendance_date) <= '" . mysqli_real_escape_string($con, $filter_to) . "'";
+if (!empty($filter_from)) {
+    $from_db = date('Y-m-d', strtotime($filter_from));
+    $where[] = "DATE(a.attendance_date) >= '" . mysqli_real_escape_string($con, $from_db) . "'";
+}
+if (!empty($filter_to)) {
+    $to_db = date('Y-m-d', strtotime($filter_to));
+    $where[] = "DATE(a.attendance_date) <= '" . mysqli_real_escape_string($con, $to_db) . "'";
+}
 
 $whereSql = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
 
@@ -176,7 +182,7 @@ $result = mysqli_query($con, $sql);
                                     </div>
                                 </td>
                                 <td>
-                                    <div style="font-weight: 600; color: var(--p-text);"><?php echo date('d M Y', strtotime($row['attendance_date'])); ?></div>
+                                    <div style="font-weight: 600; color: var(--p-text);"><?php echo date('d-m-Y', strtotime($row['attendance_date'])); ?></div>
                                     <div style="font-size: 11px; color: var(--p-secondary);">
                                         <?php
                                         $display_out = $row['check_out_time'];
@@ -212,7 +218,7 @@ $result = mysqli_query($con, $sql);
                                     if (!empty($photos) || !empty(trim($row['remarks'] ?? ''))) {
                                         $json_photos = htmlspecialchars(json_encode($photos), ENT_QUOTES, 'UTF-8');
                                         $emp_name = htmlspecialchars($row['emp_name'], ENT_QUOTES, 'UTF-8');
-                                        $date = htmlspecialchars(date('d M Y', strtotime($row['attendance_date'])), ENT_QUOTES, 'UTF-8');
+                                        $date = htmlspecialchars(date('d-m-Y', strtotime($row['attendance_date'])), ENT_QUOTES, 'UTF-8');
                                         $emp_img = htmlspecialchars($img, ENT_QUOTES, 'UTF-8');
                                         $remark_js = htmlspecialchars(json_encode(nl2br(htmlspecialchars($row['remarks'] ?: '-'))), ENT_QUOTES, 'UTF-8');
                                         echo '<button type="button" class="btn btn-sm" style="border-radius: 6px; padding: 4px 12px; font-weight: 600; background: #fff; color: #1e293b; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openRowGallery(\'' . $json_photos . '\', \'' . $emp_name . '\', \'' . $date . '\', \'' . $emp_img . '\', ' . $remark_js . '); event.stopPropagation();"><i class="fa fa-eye" style="color: #dd2127; margin-right: 4px;"></i> View Details</button>';
@@ -1032,7 +1038,7 @@ $result = mysqli_query($con, $sql);
                 .replace(/(Today[’']s Progress:)/gi, '<strong style="color:#0f172a; display:block; margin-top:6px; margin-bottom:2px; font-weight:700;"><i class="fa fa-tasks" style="color:#dd2127; margin-right:5px;"></i>$1</strong>')
                 .replace(/(Planning for Tomorrow:)/gi, '<strong style="color:#0f172a; display:block; margin-top:10px; margin-bottom:2px; font-weight:700;"><i class="fa fa-calendar-check-o" style="color:#2563eb; margin-right:5px;"></i>$1</strong>')
                 .replace(/(Issues:)/gi, '<strong style="color:#0f172a; display:block; margin-top:10px; margin-bottom:2px; font-weight:700;"><i class="fa fa-exclamation-triangle" style="color:#eab308; margin-right:5px;"></i>$1</strong>')
-                .replace(/(Need any Help\?:?)/gi, '<strong style="color:#0f172a; display:block; margin-top:10px; margin-bottom:2px; font-weight:700;"><i class="fa fa-question-circle" style="color:#8b5cf6; margin-right:5px;"></i>$1</strong>');
+                .replace(/(Need any Help\s*\?:?)/gi, '<strong style="color:#0f172a; display:block; margin-top:10px; margin-bottom:2px; font-weight:700;"><i class="fa fa-question-circle" style="color:#8b5cf6; margin-right:5px;"></i>$1</strong>');
             html += '<div style="background: #fff; padding: 15px 20px; border-radius: 12px; text-align: left; margin-bottom: 20px; border: 1px solid #f1f5f9; box-shadow: 0 2px 8px rgba(0,0,0,0.02); font-size: 14px; color: #475569; width: 100%;"><h5 style="margin-top:0; font-size:13px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Remark</h5>' + formattedRemark + '</div>';
         }
         html += '<div class="work-gallery-grid" style="width: 100%;">';
@@ -1057,22 +1063,39 @@ $result = mysqli_query($con, $sql);
 <style>
     .work-gallery-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 25px;
-        padding: 10px;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: 10px;
+        padding: 15px;
     }
 
+    @media (max-width: 1100px) {
+        .work-gallery-grid {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 768px) {
+        .work-gallery-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 480px) {
+        .work-gallery-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
 
     .work-gallery-item {
         position: relative;
         aspect-ratio: 1;
-        border-radius: 24px;
+        border-radius: 12px;
         overflow: hidden;
         cursor: pointer;
         background: #fff;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-        border: 1px solid rgba(241, 245, 249, 0.8);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.25s ease;
+        border: 1.5px solid #e2e8f0;
     }
 
     .work-gallery-item:hover {
@@ -1096,7 +1119,7 @@ $result = mysqli_query($con, $sql);
     .item-overlay {
         position: absolute;
         inset: 0;
-        background: linear-gradient(180deg, transparent 0%, rgba(15, 23, 42, 0) 50%, rgba(15, 23, 42, 0.8) 100%);
+        background: linear-gradient(180deg, transparent 0%, rgba(100, 33, 33, 0) 50%, rgba(196, 116, 116, 0.8) 100%);
         display: flex;
         flex-direction: column;
         justify-content: flex-end;

@@ -23,29 +23,42 @@ if (!function_exists('parse_work_details')) {
     {
         $text = trim($text ?? '');
         $res = ['progress' => '', 'planning' => '', 'issues' => '', 'help' => ''];
-        $strip_all = function ($s) {
-            $s = preg_replace("/Today.*?Progress:\s*/iu", "", $s);
-            $s = preg_replace("/Planning for Tomorrow:\s*/iu", "", $s);
-            $s = preg_replace("/Issues:\s*/iu", "", $s);
-            $s = preg_replace("/Need any Help\??:\s*/iu", "", $s);
-            $s = preg_replace("/\n{2,}/", "\n", $s); // collapse multiple blank lines
-            return trim($s);
-        };
-        if (preg_match("/Today.*?Progress:/iu", $text)) {
-            if (preg_match("/Today.*?Progress:\s*(.*?)(?=(?:Planning for Tomorrow:|Issues:|Need any Help\?:?)|$)/isu", $text, $m1)) {
-                $res['progress'] = $strip_all($m1[1]);
+        if (empty($text)) {
+            return $res;
+        }
+
+        $headers_pattern = "/(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:|Need any Help\?:?)/iu";
+
+        if (preg_match($headers_pattern, $text)) {
+            $clean = function ($s) {
+                $s = preg_replace("/^Today[’']s Progress:\s*/iu", "", $s);
+                $s = preg_replace("/^Planning for Tomorrow:\s*/iu", "", $s);
+                $s = preg_replace("/^Issues:\s*/iu", "", $s);
+                $s = preg_replace("/^Need any Help\??:\s*/iu", "", $s);
+                $s = preg_replace("/\n{2,}/", "\n", $s);
+                return trim($s);
+            };
+
+            if (preg_match("/Today[’']s Progress:\s*(.*?)(?=(?:Planning for Tomorrow:|Issues:|Need any Help\?:?)|$)/isu", $text, $m)) {
+                $res['progress'] = $clean($m[1]);
             }
-            if (preg_match("/Planning for Tomorrow:\s*(.*?)(?=(?:Issues:|Need any Help\?:?)|$)/isu", $text, $m2)) {
-                $res['planning'] = $strip_all($m2[1]);
+            if (preg_match("/Planning for Tomorrow:\s*(.*?)(?=(?:Today[’']s Progress:|Issues:|Need any Help\?:?)|$)/isu", $text, $m)) {
+                $res['planning'] = $clean($m[1]);
             }
-            if (preg_match("/Issues:\s*(.*?)(?=(?:Need any Help\?:?)|$)/isu", $text, $m3)) {
-                $res['issues'] = $strip_all($m3[1]);
+            if (preg_match("/Issues:\s*(.*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Need any Help\?:?)|$)/isu", $text, $m)) {
+                $res['issues'] = $clean($m[1]);
             }
-            if (preg_match("/Need any Help\?:?\s*(.*)$/isu", $text, $m4)) {
-                $res['help'] = $strip_all($m4[1]);
+            if (preg_match("/Need any Help\?:?\s*(.*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:)|$)/isu", $text, $m)) {
+                $res['help'] = $clean($m[1]);
+            }
+
+            if (empty($res['progress'])) {
+                if (preg_match("/^(.*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:|Need any Help\?:?))/isu", $text, $m)) {
+                    $res['progress'] = $clean($m[1]);
+                }
             }
         } else {
-            $res['progress'] = $strip_all($text);
+            $res['progress'] = $text;
         }
         return $res;
     }
@@ -1067,7 +1080,7 @@ function getResourceTypePhp(string $url)
                 <?php foreach ($tasks as $task):
                     $done     = (int)$task['status'] === 1;
                     $priority = strtolower($task['priority'] ?? 'low');
-                    $due      = !empty($task['due_date']) ? date('d M', strtotime($task['due_date'])) : '';
+                    $due      = !empty($task['due_date']) ? date('d-m-Y', strtotime($task['due_date'])) : '';
                     $pname    = $task['project_name'] ?: 'General';
                     $task_id  = $task['id'];
                 ?>
@@ -1107,7 +1120,7 @@ function getResourceTypePhp(string $url)
                 <div style="max-height: 320px; overflow-y: auto; padding-right: 5px;" class="custom-scrollbar">
                     <?php foreach ($projects as $proj):
                         $init = strtoupper(mb_substr($proj['project_name'], 0, 2));
-                        $dl   = !empty($proj['deadline']) ? date('d M Y', strtotime($proj['deadline'])) : 'No deadline';
+                        $dl   = !empty($proj['deadline']) ? date('d-m-Y', strtotime($proj['deadline'])) : 'No deadline';
                     ?>
                         <div class="p-row">
                             <div class="p-av"><?php echo $init; ?></div>
@@ -1272,31 +1285,40 @@ function getResourceTypePhp(string $url)
 
         window.parseWorkDetails = function(text) {
             text = text || '';
-            var progress = '',
-                planning = '',
-                issues = '',
-                help = '';
+            var progress = '', planning = '', issues = '', help = '';
 
             function cleanHeaders(s) {
                 if (!s) return '';
-                s = s.replace(/Today.*?Progress:\s*/gi, '')
-                    .replace(/Planning for Tomorrow:\s*/gi, '')
-                    .replace(/Issues:\s*/gi, '')
-                    .replace(/Need any Help\??:\s*/gi, '');
-                return s.trim();
+                return s.replace(/^Today[’']s Progress:\s*/gi, '')
+                        .replace(/^Planning for Tomorrow:\s*/gi, '')
+                        .replace(/^Issues:\s*/gi, '')
+                        .replace(/^Need any Help\??:\s*/gi, '')
+                        .trim();
             }
-            if (/Today.*?Progress:/i.test(text)) {
-                var matchP = text.match(/Today.*?Progress:\s*([\s\S]*?)(?=(?:Planning for Tomorrow:|Issues:|Need any Help\?:?)|$)/i);
+
+            var headersPattern = /(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:|Need any Help\?:?)/i;
+
+            if (headersPattern.test(text)) {
+                var matchP = text.match(/Today[’']s Progress:\s*([\s\S]*?)(?=(?:Planning for Tomorrow:|Issues:|Need any Help\?:?)|$)/i);
                 if (matchP) progress = cleanHeaders(matchP[1]);
-                var matchPlan = text.match(/Planning for Tomorrow:\s*([\s\S]*?)(?=(?:Issues:|Need any Help\?:?)|$)/i);
+
+                var matchPlan = text.match(/Planning for Tomorrow:\s*([\s\S]*?)(?=(?:Today[’']s Progress:|Issues:|Need any Help\?:?)|$)/i);
                 if (matchPlan) planning = cleanHeaders(matchPlan[1]);
-                var matchIss = text.match(/Issues:\s*([\s\S]*?)(?=(?:Need any Help\?:?)|$)/i);
+
+                var matchIss = text.match(/Issues:\s*([\s\S]*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Need any Help\?:?)|$)/i);
                 if (matchIss) issues = cleanHeaders(matchIss[1]);
-                var matchHelp = text.match(/Need any Help\?:?\s*([\s\S]*?)$/i);
+
+                var matchHelp = text.match(/Need any Help\?:?\s*([\s\S]*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:)|$)/i);
                 if (matchHelp) help = cleanHeaders(matchHelp[1]);
+
+                if (!progress) {
+                    var matchFirst = text.match(/^([\s\S]*?)(?=(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:|Need any Help\?:?))/i);
+                    if (matchFirst) progress = cleanHeaders(matchFirst[1]);
+                }
             } else {
-                progress = cleanHeaders(text);
+                progress = text.trim();
             }
+
             return {
                 progress: progress,
                 planning: planning,

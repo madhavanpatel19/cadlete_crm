@@ -424,7 +424,11 @@ if ($run_stats) {
                                 <td class="text-center" style="font-weight: 600; color: #1e293b; font-size: 13px;">
                                     <?php echo $duration_str; ?>
                                 </td>
-                                <td class="p-cell-wrap" style="font-size: 13px; color: #475569; font-weight: 500;"><?php echo htmlspecialchars($row['reason']); ?></td>
+                                <td style="padding: 12px 15px; text-align: center; vertical-align: middle;">
+                                    <div style="max-width: 350px; margin: 0 auto; font-size: 13px; line-height: 1.5; color: #475569; max-height: 70px; overflow-y: auto; text-align: center; word-break: break-word;">
+                                        <?php echo htmlspecialchars(preg_replace('/\s+/', ' ', trim($row['reason']))); ?>
+                                    </div>
+                                </td>
                                 <td class="text-center" style="font-size: 11px; color: #94a3b8;">
                                     <?php echo date('d-m-Y', strtotime($row['created_at'])); ?>
                                 </td>

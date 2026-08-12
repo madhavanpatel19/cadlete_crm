@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'])) {
     exit();
 }
 
-$current_date    = date("d F Y");
+$current_date    = date("d-m-Y");
 $formatted_join  = date("d-m-Y", strtotime($join_date));
 $formatted_rel   = date("d-m-Y", strtotime($relieve_date));
 $employee_id     = isset($row_exp['employee_id']) && $row_exp['employee_id'] !== '' ? $row_exp['employee_id'] : 'CD011';

@@ -52,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['name'])) {
 }
 
 $date_formatted =
-    date("d F Y", strtotime($start_date));
-$current_date = date("d F Y");
+    date("d-m-Y", strtotime($start_date));
+    $current_date = date("d-m-Y");
 
 ?>
 

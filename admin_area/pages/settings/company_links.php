@@ -32,7 +32,7 @@ while ($erow = mysqli_fetch_assoc($empQ)) {
     }
 
     .select2-container--default.select2-container--focus .select2-selection--multiple {
-        border-color: #dd2127 !important;    
+        border-color: #dd2127 !important;
         box-shadow: 0 0 0 3px #ffeaeb !important;
     }
 
@@ -440,7 +440,7 @@ while ($erow = mysqli_fetch_assoc($empQ)) {
     $(document).ready(function() {
         let allResources = [];
         // Fake currently logged in admin user for UI purposes
-        const currentUserAvatar = `<?php echo isset($admin_image) && !empty($admin_image) ? 'admin_images/' . $admin_image : 'https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff'; ?>`;
+        const currentUserAvatar = `<?php echo isset($admin_image) && !empty($admin_image) ? 'admin_images/' . $admin_image : 'https://ui-avatars.com/api/?name=Admin&background=dd2127&color=fff'; ?>`;
         const currentUserName = `<?php echo isset($header_display_name) ? $header_display_name : 'Admin User'; ?>`;
 
         function getResourceType(url) {

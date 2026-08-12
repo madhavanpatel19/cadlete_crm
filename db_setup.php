@@ -167,6 +167,9 @@ if (mysqli_num_rows($check_col) == 0) {
     echo "<div style='color: #64748b; margin-bottom: 10px;'>• Column <b>work_photos</b> already exists.</div>";
 }
 
+// 1b. Ensure remarks column in attendance is TEXT
+mysqli_query($con, "ALTER TABLE attendance MODIFY COLUMN remarks TEXT");
+
 // 2. Add currency to leads (just in case)
 $check_col = mysqli_query($con, "SHOW COLUMNS FROM leads LIKE 'currency'");
 if (mysqli_num_rows($check_col) == 0) {

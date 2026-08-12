@@ -79,27 +79,33 @@ if ($result && mysqli_num_rows($result) > 0) {
     .work-gallery-grid {
         display: grid;
         grid-template-columns: repeat(8, minmax(0, 1fr));
-        gap: 12px;
-        padding: 20px;
-        animation: galleryReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        gap: 10px;
+        padding: 15px;
+        animation: galleryReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 1100px) {
         .work-gallery-grid {
             grid-template-columns: repeat(6, minmax(0, 1fr));
         }
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 768px) {
         .work-gallery-grid {
             grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 480px) {
+        .work-gallery-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 
     @keyframes galleryReveal {
         from {
             opacity: 0;
-            transform: scale(0.98) translateY(20px);
+            transform: scale(0.98) translateY(15px);
         }
 
         to {
@@ -111,13 +117,13 @@ if ($result && mysqli_num_rows($result) > 0) {
     .work-gallery-item {
         position: relative;
         aspect-ratio: 1;
-        border-radius: 14px;
+        border-radius: 12px;
         overflow: hidden;
         cursor: pointer;
         background: #fff;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-        border: 1px solid rgba(241, 245, 249, 0.8);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.25s ease;
+        border: 1.5px solid #e2e8f0;
     }
 
     .work-gallery-item:hover {

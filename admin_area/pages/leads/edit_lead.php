@@ -62,7 +62,8 @@ if (isset($_POST['update_lead'])) {
     $budget = isset($_POST['budget']) ? mysqli_real_escape_string($con, $_POST['budget']) : '';
     $currency = isset($_POST['currency']) ? mysqli_real_escape_string($con, $_POST['currency']) : '';
     $status = isset($_POST['status']) ? mysqli_real_escape_string($con, $_POST['status']) : '';
-    $followup_date = isset($_POST['followup_date']) ? mysqli_real_escape_string($con, $_POST['followup_date']) : '';
+    $followup_date_raw = isset($_POST['followup_date']) ? trim($_POST['followup_date']) : '';
+    $followup_date = !empty($followup_date_raw) ? date('Y-m-d', strtotime($followup_date_raw)) : '';
 
     $lead_sources = isset($_POST['lead_source']) ? $_POST['lead_source'] : [];
     $lead_source_str = implode(', ', $lead_sources);

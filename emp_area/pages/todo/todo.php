@@ -11,7 +11,8 @@ if (!isset($_SESSION['emp_id']) || !isset($_SESSION['emp_name'])) {
 
 $emp_id = $_SESSION['emp_id'];
 
-$filter_date = isset($_GET['date']) ? mysqli_real_escape_string($con, $_GET['date']) : date('Y-m-d');
+$filter_date_raw = isset($_GET['date']) ? trim($_GET['date']) : date('Y-m-d');
+$filter_date     = date('Y-m-d', strtotime($filter_date_raw));
 
 // Fetch todos assigned to this employee
 // Pending tasks (status=0) show up first
@@ -30,12 +31,13 @@ $result = mysqli_query($con, $query);
     <div class="row">
         <div class="page-header-premium" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 25px; margin-bottom: 0px;">
             <h1></h1>
-            <div class="header-actions-premium" style="display: flex; gap: 16px; align-items: center;">
-                <div style="position: relative; display: flex; align-items: center; gap: 8px;">
-                    <label style="font-size: 13px; font-weight: 700; color: #64748b; margin: 0;">Completed On:</label>
-                    <input type="date" value="<?php echo htmlspecialchars($filter_date); ?>" onchange="window.location.href='index.php?todo&date=' + this.value" style="padding: 10px 15px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 600; outline: none; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div class="header-actions-premium" style="display: flex; gap: 14px; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px; background: #ffffff; padding: 6px 14px; border-radius: 12px; border: 1.5px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+                    <i class="fa fa-calendar" style="color: #dd2127; font-size: 14px;"></i>
+                    <span style="font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">Completed On:</span>
+                    <input type="date" value="<?php echo htmlspecialchars($filter_date); ?>" onchange="if(this.value) window.location.href='index.php?todo&date=' + this.value" style="height: 38px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 12px; font-size: 13px; color: #0f172a; font-weight: 700; background: #f8fafc; outline: none; width: 145px; transition: all 0.2s;" onfocus="this.style.borderColor='#dd2127'; this.style.boxShadow='0 0 0 3px rgba(221,33,39,0.1)';" onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';">
                 </div>
-                <button data-toggle="modal" data-target="#addTodoModal" class="btn-premium-add">
+                <button data-toggle="modal" data-target="#addTodoModal" class="btn-premium-add" style="height: 52px; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; font-size: 13px; font-weight: 700; border-radius: 12px;">
                     <i class="fa fa-plus"></i> Add Task
                 </button>
             </div>
@@ -88,7 +90,7 @@ $result = mysqli_query($con, $query);
                                             </div>
                                         </td>
                                         <td style="font-weight: 600; color: #475569; font-size: 13px; text-align: center;">
-                                            <?php echo !empty($row['due_date']) ? date('d M Y', strtotime($row['due_date'])) : '--'; ?>
+                                            <?php echo !empty($row['due_date']) ? date('d-m-Y', strtotime($row['due_date'])) : '--'; ?>
                                         </td>
                                         <td style="text-align: center;">
                                             <span style="padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; <?php echo $priority_badge; ?> display: inline-block; <?php echo $is_completed ? 'opacity: 0.8;' : ''; ?>">

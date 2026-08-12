@@ -177,7 +177,7 @@ if (isset($_POST['ajax_delete_offer']) || isset($_GET['ajax_delete_offer'])) {
                             $name = $row_offer['name'];
                             $email = $row_offer['email'];
                             $position = $row_offer['position'];
-                            $start_date = date("d M Y", strtotime($row_offer['start_date']));
+                            $start_date = date("d-m-Y", strtotime($row_offer['start_date']));
                             $salary = $row_offer['salary'];
                             $i++;
                     ?>

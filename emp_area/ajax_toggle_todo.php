@@ -41,7 +41,7 @@ if ($task_id > 0) {
                     if (!empty($curr_remarks)) {
                         if (preg_match("/Today['']s Progress:/i", $curr_remarks)) {
                             // Append new task after the last line of the progress section
-                            $new_remarks = preg_replace("/(?=(\nPlanning for Tomorrow:|\nIssues:|\nNeed any Help\?:|$))/i", "\n- " . $entry_text, $curr_remarks, 1);
+                            $new_remarks = preg_replace("/(?=(\nPlanning for Tomorrow:|\nIssues:|\nNeed any Help\?:?|$))/i", "\n- " . $entry_text, $curr_remarks, 1);
                         } else {
                             $new_remarks = "Today's Progress:\n- " . $entry_text . "\n" . $curr_remarks;
                         }

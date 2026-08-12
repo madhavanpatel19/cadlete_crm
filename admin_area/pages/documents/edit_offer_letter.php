@@ -36,7 +36,8 @@ if (isset($_POST['update_offer'])) {
     $u_number = mysqli_real_escape_string($con, $_POST['number']);
     $u_position = mysqli_real_escape_string($con, $_POST['position']);
     $u_salary = mysqli_real_escape_string($con, $_POST['salary']);
-    $u_start_date = mysqli_real_escape_string($con, $_POST['start_date']);
+    $u_start_date_raw = isset($_POST['start_date']) ? trim($_POST['start_date']) : '';
+    $u_start_date     = !empty($u_start_date_raw) ? date('Y-m-d', strtotime($u_start_date_raw)) : '';
     $u_notice_period = mysqli_real_escape_string($con, $_POST['notice_period']);
 
     $update_query = "UPDATE offer_letters SET 

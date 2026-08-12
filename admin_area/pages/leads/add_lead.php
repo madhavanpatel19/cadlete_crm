@@ -23,7 +23,8 @@ if (isset($_POST['save_lead'])) {
     $budget = isset($_POST['budget']) ? mysqli_real_escape_string($con, $_POST['budget']) : '';
     $currency = isset($_POST['currency']) ? mysqli_real_escape_string($con, $_POST['currency']) : 'INR';
     $status = isset($_POST['status']) ? mysqli_real_escape_string($con, $_POST['status']) : 'active';
-    $followup_date = isset($_POST['followup_date']) ? mysqli_real_escape_string($con, $_POST['followup_date']) : '';
+    $followup_date_raw = isset($_POST['followup_date']) ? trim($_POST['followup_date']) : '';
+    $followup_date = !empty($followup_date_raw) ? date('Y-m-d', strtotime($followup_date_raw)) : '';
 
     // Handle multiple checkboxes for lead source
     $lead_sources = isset($_POST['lead_source']) ? $_POST['lead_source'] : [];

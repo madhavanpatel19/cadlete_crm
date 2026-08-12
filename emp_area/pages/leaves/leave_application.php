@@ -368,22 +368,22 @@ $result = mysqli_query($con, $query);
                                         ?>
                                             <tr>
                                                 <td style="text-align: center; font-weight: 700; color: #64748b;"><?php echo $i++; ?></td>
-                                                <td style="text-align: center; font-weight: 500; color: #64748b; font-size: 13px;"><?php echo date('d M Y', strtotime($row['created_at'])); ?></td>
+                                                <td style="text-align: center; font-weight: 500; color: #64748b; font-size: 13px;"><?php echo date('d-m-Y', strtotime($row['created_at'])); ?></td>
                                                 <td style="text-align: center; padding: 12px;">
                                                     <span style="background: #ffeaeb; color: #dc2626; font-weight: 700; padding: 4px 12px; border-radius: 8px; font-size: 11px; display: inline-block;">
                                                         <?php echo !empty($row['leave_name']) ? htmlspecialchars($row['leave_name']) : 'General Leave'; ?>
                                                     </span>
                                                 </td>
-                                                <td style="text-align: center; font-weight: 600; color: #1e293b;"><?php echo date('d M Y', strtotime($row['leave_from'])); ?></td>
-                                                <td style="text-align: center; font-weight: 600; color: #1e293b;"><?php echo date('d M Y', strtotime($row['leave_to'])); ?></td>
+                                                <td style="text-align: center; font-weight: 600; color: #1e293b;"><?php echo date('d-m-Y', strtotime($row['leave_from'])); ?></td>
+                                                <td style="text-align: center; font-weight: 600; color: #1e293b;"><?php echo date('d-m-Y', strtotime($row['leave_to'])); ?></td>
                                                 <td style="text-align: center; padding: 15px;">
                                                     <span style="padding: 6px 14px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; <?php echo $badge_style; ?> display: inline-block; min-width: 90px;">
                                                         <?php echo ucfirst($st); ?>
                                                     </span>
                                                 </td>
-                                                <td style="text-align: center; padding: 15px;">
-                                                    <div style="font-size: 13px; line-height: 1.6;">
-                                                        <?php echo htmlspecialchars($row['reason']); ?>
+                                                <td style="padding: 12px 15px; text-align: center; vertical-align: middle;">
+                                                    <div style="max-width: 350px; margin: 0 auto; font-size: 13px; line-height: 1.5; color: #334155; max-height: 70px; overflow-y: auto; text-align: center; word-break: break-word;">
+                                                        <?php echo htmlspecialchars(preg_replace('/\s+/', ' ', trim($row['reason']))); ?>
                                                     </div>
                                                 </td>
                                             </tr>

@@ -177,7 +177,7 @@ if (isset($_POST['ajax_delete_nda']) || isset($_GET['ajax_delete_nda'])) {
                             $name = $row_nda['name'];
                             $email = $row_nda['email'];
                             $position = $row_nda['position'];
-                            $start_date = date("d M Y", strtotime($row_nda['start_date']));
+                            $start_date = date("d-m-Y", strtotime($row_nda['start_date']));
                             $i++;
                     ?>
                             <tr data-nda-row="<?php echo $id; ?>" style="transition: background 0.2s;">

@@ -79,8 +79,8 @@ if (!isset($_SESSION['admin_email'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_announcement'])) {
         $announcement_title = trim($_POST['announcement_title']);
         $announcement_message = trim($_POST['announcement_message']);
-        $publish_date = !empty($_POST['publish_date']) ? $_POST['publish_date'] : date('Y-m-d H:i:s');
-        $end_date_val = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
+        $publish_date = !empty($_POST['publish_date']) ? date('Y-m-d H:i:s', strtotime($_POST['publish_date'])) : date('Y-m-d H:i:s');
+        $end_date_val = !empty($_POST['end_date']) ? date('Y-m-d H:i:s', strtotime($_POST['end_date'])) : null;
 
         if ($announcement_title === '' || $announcement_message === '') {
             $announcement_error = 'Title and message are required.';
@@ -113,8 +113,8 @@ if (!isset($_SESSION['admin_email'])) {
         $edit_id = intval($_POST['edit_id']);
         $announcement_title = trim($_POST['announcement_title']);
         $announcement_message = trim($_POST['announcement_message']);
-        $publish_date = !empty($_POST['publish_date']) ? $_POST['publish_date'] : date('Y-m-d H:i:s');
-        $end_date_val = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
+        $publish_date = !empty($_POST['publish_date']) ? date('Y-m-d H:i:s', strtotime($_POST['publish_date'])) : date('Y-m-d H:i:s');
+        $end_date_val = !empty($_POST['end_date']) ? date('Y-m-d H:i:s', strtotime($_POST['end_date'])) : null;
 
         if ($announcement_title === '' || $announcement_message === '') {
             $announcement_error = 'Title and message are required.';
@@ -407,6 +407,7 @@ if (!isset($_SESSION['admin_email'])) {
                 color: #64748b;
                 display: -webkit-box;
                 -webkit-line-clamp: 1;
+                line-clamp: 1;
                 -webkit-box-orient: vertical;
                 overflow: hidden;
                 text-overflow: ellipsis;

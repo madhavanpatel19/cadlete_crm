@@ -23,6 +23,7 @@ if (!isset($_SESSION['admin_email'])) {
     $admin_about = $row_admin['admin_about'];
     $admin_is_super = !empty($row_admin['is_super_admin']);
     $admin_role_label = $admin_is_super ? 'Super Admin' : (!empty($row_admin['admin_job']) ? htmlspecialchars($row_admin['admin_job']) : 'Admin');
+    $header_display_name = !empty($admin_name) ? htmlspecialchars($admin_name) : 'Admin User';
     include("includes/admin_permissions.php");
     ?>
 
@@ -39,9 +40,26 @@ if (!isset($_SESSION['admin_email'])) {
         <link rel="shortcut icon" href="images/Cadlete_Black_logo_favicon.png?v=<?php echo time(); ?>" type="image/png">
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
         <script src="js/jquery.min.js"></script>
         <script src="js/bootstrap.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+        <style>
+            .flatpickr-calendar {
+                font-family: inherit;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+                border: 1px solid #e2e8f0;
+            }
+
+            .flatpickr-day.selected,
+            .flatpickr-day.startRange,
+            .flatpickr-day.endRange {
+                background: #dd2127 !important;
+                border-color: #dd2127 !important;
+            }
+        </style>
     </head>
 
 
@@ -153,7 +171,7 @@ if (!isset($_SESSION['admin_email'])) {
                         <div class="topbar-profile dropdown">
                             <div data-toggle="dropdown" style="display:flex; align-items:center; gap:12px; padding:6px;background: white; border-radius:11px; cursor:pointer;">
                                 <div class="profile-avatar">
-                                    <img src="<?php echo !empty($admin_image) ? 'admin_images/' . $admin_image : 'https://ui-avatars.com/api/?name=' . urlencode($header_display_name) . '&background=3b82f6&color=fff'; ?>" alt="Admin Avatar">
+                                    <img src="<?php echo !empty($admin_image) ? 'admin_images/' . $admin_image : 'https://ui-avatars.com/api/?name=' . urlencode($header_display_name) . '&background=dd2127&color=fff'; ?>" alt="Admin Avatar">
                                 </div>
                                 <div class="profile-info">
                                     <span class="profile-name"><?php echo $header_display_name; ?></span>
@@ -600,6 +618,66 @@ if (!isset($_SESSION['admin_email'])) {
                     })
                     .catch(error => console.log('Error checking admin notifications:', error));
             }
+
+            // Automatically convert all input[type="date"] & input[type="datetime-local"] to display dd-mm-yyyy format
+            function initGlobalFlatpickr() {
+                if (typeof flatpickr !== 'function') return;
+                $('input[type="date"], input[type="datetime-local"]').each(function() {
+                    if (this._flatpickr || $(this).hasClass('flatpickr-input')) return;
+                    var $input = $(this);
+                    var isReadonly = $input.is('[readonly]');
+                    var rawVal = $input.attr('value') || $input.val();
+                    var isDateTime = $input.attr('type') === 'datetime-local';
+
+                    // Parse initial value to Y-m-d format if present
+                    var defaultDateVal = null;
+                    if (rawVal && rawVal.trim() !== '') {
+                        var d = new Date(rawVal);
+                        if (!isNaN(d.getTime())) {
+                            defaultDateVal = d;
+                        }
+                    }
+
+                    flatpickr(this, {
+                        enableTime: isDateTime,
+                        dateFormat: isDateTime ? 'Y-m-d H:i' : 'Y-m-d',
+                        altInput: true,
+                        altFormat: isDateTime ? 'd-m-Y h:i K' : 'd-m-Y',
+                        allowInput: !isReadonly,
+                        clickOpens: !isReadonly,
+                        defaultDate: defaultDateVal,
+                        onChange: function(selectedDates, dateStr, instance) {
+                            $(instance.element).val(dateStr).trigger('change');
+                        },
+                        onReady: function(selectedDates, dateStr, instance) {
+                            if (instance.altInput) {
+                                instance.altInput.placeholder = $input.attr('placeholder') || (isDateTime ? "dd-mm-yyyy --:-- --" : "dd-mm-yyyy");
+                                if (isReadonly) {
+                                    instance.altInput.readOnly = true;
+                                }
+                                var origStyle = $input.attr('style');
+                                if (origStyle) {
+                                    $(instance.altInput).attr('style', origStyle);
+                                }
+                                var origClass = $input.attr('class');
+                                if (origClass) {
+                                    $(instance.altInput).addClass(origClass);
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+
+            $(document).ready(function() {
+                initGlobalFlatpickr();
+                setTimeout(initGlobalFlatpickr, 300);
+                setTimeout(initGlobalFlatpickr, 1000);
+            });
+
+            $(document).ajaxComplete(function() {
+                setTimeout(initGlobalFlatpickr, 100);
+            });
 
             // Close sidebar when clicking outside on mobile
             document.addEventListener('click', function(event) {

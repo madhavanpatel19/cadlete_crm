@@ -391,7 +391,7 @@ $run_leads = mysqli_query($con, $get_leads);
                                 <td style="text-align: center; font-weight: 600;">
                                     <?php
                                     if (!empty($f_date)) {
-                                        $display_date = date('d M Y', strtotime($f_date));
+                                        $display_date = date('d-m-Y', strtotime($f_date));
                                         $today_str = date('Y-m-d');
 
                                         if ($f_date == $today_str && $status == 'active') {

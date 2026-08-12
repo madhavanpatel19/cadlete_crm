@@ -52,12 +52,12 @@ elseif (isset($_GET['id'])) {
     exit();
 }
 
-$date                  = date("d F Y");
+$date                  = date("d-m-Y");
 $annual_salary         = $salary * 12;
 $formatted_salary      = number_format($salary);
 $lpa_value             = $annual_salary / 100000;
 $formatted_annual      = rtrim(rtrim(number_format($lpa_value, 2, '.', ''), '0'), '.');
-$formatted_start       = date("d F Y", strtotime($start_date));
+$formatted_start       = date("d-m-Y", strtotime($start_date));
 ?>
 <!DOCTYPE html>
 <html lang="en">
