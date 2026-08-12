@@ -1,5 +1,7 @@
 <?php
-if (!isset($con)) { include(__DIR__ . '/../../includes/db.php'); }
+if (!isset($con)) {
+    include(__DIR__ . '/../../includes/db.php');
+}
 
 header('Content-Type: application/json');
 
@@ -28,4 +30,3 @@ if (isset($_POST['doc_id'])) {
 } else {
     echo json_encode(["status" => "error"]);
 }
-?>

@@ -80,6 +80,7 @@ $current_date   = date("d F Y");
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="../../css/style.css" rel="stylesheet">
     <style>
         :root {
             --red: #e31e24;
@@ -624,8 +625,8 @@ $current_date   = date("d F Y");
 
     <!-- Action Buttons -->
     <div class="actions">
-        <button onclick="window.print()" class="btn btn-print">🖨️ Print / Save PDF</button>
-        <a href="javascript:window.close();" class="btn-back">← Back</a>
+        <button onclick="window.print()" class="btn-premium-add">🖨️ Print / Save PDF</button>
+        <a href="javascript:window.close();" class="btn-premium-cancel">← Back</a>
     </div>
 
     <div class="page-wrap">

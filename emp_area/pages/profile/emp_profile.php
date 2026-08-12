@@ -1,4 +1,9 @@
 <?php
+if (!isset($con)) {
+    include(__DIR__ . '/../../includes/db.php');
+}
+/** @var mysqli $con */
+
 if (!isset($_SESSION['emp_id'])) {
     echo "<script>window.open('../../pages/auth/login.php','_self')</script>";
 } else {
@@ -16,6 +21,7 @@ if (!isset($_SESSION['emp_id'])) {
 
     $emp_name = $employee['name'];
     $emp_email = $employee['email'];
+    $emp_designation = !empty($employee['designation']) ? $employee['designation'] : 'Employee';
     $emp_contact = $employee['phone_number'];
     $emp_address = $employee['address'];
     $emp_image = $employee['employee_image'];
@@ -27,10 +33,20 @@ if (!isset($_SESSION['emp_id'])) {
 
 ?>
 
-    <div class="premium-ui-enabled">
+    <div class="page-wrapper">
+        <div class="page-header-premium">
+            <h1>My Profile</h1>
+            <div class="header-actions">
+                <button class="btn-premium-add" onclick="window.location.reload();">
+                    <i class="fa fa-refresh"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Container -->
         <div class="row">
-            <!-- Left Column: Profile Card -->
-            <div class="col-lg-4">
+            <!-- Left Profile Card -->
+            <div class="col-md-4">
                 <div class="premium-card" style="border: none; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08); background: #fff; margin-bottom: 30px;">
                     <div style="height: 100px; background: var(--p-bg-header)"></div>
                     <div style="padding: 0 30px 30px 30px; margin-top: -50px; text-align: center;">
@@ -38,8 +54,8 @@ if (!isset($_SESSION['emp_id'])) {
                             <img src="../admin_area/uploads/<?php echo !empty($emp_image) ? $emp_image : '../admin_images/default.png'; ?>" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); background: #fff;">
                             <div style="position: absolute; bottom: 5px; right: 5px; width: 22px; height: 22px; background: #10b981; border: 3px solid #fff; border-radius: 50%;"></div>
                         </div>
-                        <h2 style="margin: 15px 0 5px 0; font-size: 20px; font-weight: 800; color: #1e293b;"><?php echo $emp_name; ?></h2>
-                        <p style="color: #64748b; font-size: 14px; margin-bottom: 20px; font-weight: 600;">Employee (ID: #<?php echo $emp_id; ?>)</p>
+                        <h2 style="margin: 15px 0 5px 0; font-size: 20px; font-weight: 800; color: #1e293b;"><?php echo htmlspecialchars($emp_name); ?></h2>
+                        <p style="color: #64748b; font-size: 14px; margin-bottom: 20px; font-weight: 600;"><?php echo htmlspecialchars($emp_designation); ?> (ID: #<?php echo $emp_id; ?>)</p>
 
                         <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; display: flex; flex-direction: column; gap: 15px; text-align: left;">
                             <div style="display: flex; align-items: center; gap: 12px;">
@@ -79,7 +95,7 @@ if (!isset($_SESSION['emp_id'])) {
                 <div class="premium-card" style="border: none; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08); background: #fff; margin-bottom: 30px;">
                     <div class="card-hdr" style="background: var(--p-bg-header); color: #fff; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <i class="fa fa-id-card-o" style="font-size: 18px;"></i>
+                            <i class="fa fa-user" style="font-size: 18px;"></i>
                             <h3 style="margin: 0; font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #fff;">Employee Information</h3>
                         </div>
                         <button class="btn-premium-add" data-toggle="modal" data-target="#editProfileModal">

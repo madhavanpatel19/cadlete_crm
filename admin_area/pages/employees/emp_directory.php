@@ -190,11 +190,21 @@ if ($attendanceTable && mysqli_num_rows($attendanceTable) > 0) {
     }
 }
 
+/**
+ * @param int $m
+ * @return string
+ */
 function monthName($m)
 {
-    return date('F', mktime(0, 0, 0, $m, 10));
+    return date('F', mktime(0, 0, 0, (int)$m, 10));
 }
-// File Upload Function (Auto Remove PDF Password)
+
+/**
+ * File Upload Function (Auto Remove PDF Password)
+ * @param array $fileArray
+ * @param string $targetDir
+ * @return string|bool
+ */
 function handleFileUpload($fileArray, $targetDir = "../../uploads/")
 {
 
@@ -1880,6 +1890,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
             docId,
             empId
         };
+        docDeleteOverlay.style.display = 'flex';
         docDeleteOverlay.classList.add('active');
     }
 
@@ -2025,17 +2036,19 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
     const deleteNameLabel = document.getElementById('delete_emp_name_label');
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     let currentDocDelete = null;
-    const docDeleteOverlay = document.getElementById('docDeleteConfimOverlay');
+    const docDeleteOverlay = document.getElementById('docDeleteConfirmOverlay');
     const confirmDocDeleteBtn = document.getElementById('confirmDocDeleteBtn');
 
     function showDeleteConfirm(id, name) {
         currentDeleteId = id;
         deleteNameLabel.textContent = name;
+        deleteOverlay.style.display = 'flex';
         deleteOverlay.classList.add('active');
     }
 
     function closeDeleteConfirm() {
         deleteOverlay.classList.remove('active');
+        deleteOverlay.style.display = 'none';
         currentDeleteId = null;
         confirmDeleteBtn.disabled = false;
         confirmDeleteBtn.innerHTML = 'Delete Now';
@@ -2086,6 +2099,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
 
     function closeDocDeleteConfirm() {
         docDeleteOverlay.classList.remove('active');
+        docDeleteOverlay.style.display = 'none';
         currentDocDelete = null;
         confirmDocDeleteBtn.disabled = false;
         confirmDocDeleteBtn.innerHTML = 'Delete Document';

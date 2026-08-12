@@ -605,11 +605,11 @@ if ($res && mysqli_num_rows($res) > 0) {
             $('.duration-cell[data-is-working="1"]').each(function() {
                 var $cell = $(this);
                 var totalSecs = parseInt($cell.attr('data-total-secs')) || 0;
-                var lastResumeStr = $cell.attr('data-last-resume');
-                var checkInStr = $cell.attr('data-check-in');
+                    var lastResumeStr = $cell.attr('data-last-resume');
+                    var checkInStr = $cell.attr('data-check-in');
 
                 var startStr = (totalSecs > 0 && lastResumeStr) ? lastResumeStr : checkInStr;
-                if (startStr) {
+                    if (startStr) {
                     var startTime = new Date(startStr).getTime();
                     var adjustedNow = Date.now() + serverClientOffset;
                     var elapsedSinceResume = Math.floor((adjustedNow - startTime) / 1000);
@@ -658,7 +658,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                                     $statusBadge.text(statusUpper);
                                 }
 
-                                // If not working, update duration text immediately
+                            // If not working, update duration text immediately
                                 if (info.is_working == 0) {
                                     $cell.find('.duration-text').text(formatDuration(info.total_secs));
                                 }

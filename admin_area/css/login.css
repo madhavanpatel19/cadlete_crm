@@ -13,7 +13,7 @@
   --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --input-bg: #ffffff;
   --p-bg-color: #FFEAEB;
-  --p-bg-btn: #DF2127;
+  --p-bg-btn: #dd2127;
 }
 
 body {
@@ -172,8 +172,8 @@ body {
 }
 
 .form-control:focus {
-  border-color: var(--p-bg-btn);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  border-color: #dd2127 !important;
+  box-shadow: 0 0 0 3px #ffeaeb !important;
   outline: none;
 }
 

@@ -133,42 +133,42 @@ $result = mysqli_query($con, $query);
 
 <!-- Add Todo Modal -->
 <div id="addTodoModal" class="modal fade" tabindex="-1" role="dialog" style="z-index: 99999;">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.2);">
-            <div class="modal-header" style="border-bottom: 1px solid #f1f5f9; padding: 20px 24px; background: #ffeaeb; border-radius: 14px 14px 0 0; position: relative;">
-
+    <div class="modal-dialog" role="document" style="max-width: 500px; margin: 50px auto;">
+        <div class="modal-content" style="border-radius: 20px; overflow: hidden; border: none; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); background: #fff;">
+            <div class="modal-header" style="border-bottom: 1px solid #f1f5f9; padding: 20px 24px; background: #ffeaeb; border-radius: 20px 20px 0 0; position: relative;">
                 <div style="display: flex; align-items: center; width: 100%; gap: 12px;">
-                    <div style="width: 36px; height: 36px; background: #dc2626; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa fa-tasks" style="color: #fff; font-size: 14px;"></i>
+                    <div style="width: 38px; height: 38px; background: #dd2127; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(221, 33, 39, 0.25);">
+                        <i class="fa fa-tasks" style="color: #fff; font-size: 15px;"></i>
                     </div>
                     <div>
                         <h5 class="modal-title" style="font-weight: 800; color: #0f172a; font-size: 17px; margin: 0;">Add Personal Task</h5>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748b; font-weight: 600;">Create a new item in your personal to-do list</p>
                     </div>
                 </div>
-                <button type="button" class="btn-modal-close" data-dismiss="modal" aria-label="Close" style="background:transparent; border:none; color:#64748b; font-size:20px; cursor:pointer;">
+                <button type="button" class="btn-modal-close" data-dismiss="modal" aria-label="Close">
                     <i class="fa fa-times"></i>
                 </button>
             </div>
 
             <div class="modal-body" style="padding: 25px; background: #fff;">
                 <form id="add-todo-form">
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-weight: 700; color: #475569; font-size: 13px; margin-bottom: 8px; display: block;">Task Name <span style="color:#df2127;">*</span></label>
-                        <input type="text" name="task_name" required style="width: 100%; padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; outline: none; font-size: 14px;" placeholder="What do you need to do?">
+                    <div style="margin-bottom: 18px;">
+                        <label style="font-weight: 700; color: #475569; font-size: 13px; margin-bottom: 8px; display: block;">Task Name <span style="color:#dd2127;">*</span></label>
+                        <input type="text" name="task_name" required class="p-input-premium" placeholder="What do you need to do?">
                     </div>
-                    <div style="margin-bottom: 15px;">
+                    <div style="margin-bottom: 18px;">
                         <label style="font-weight: 700; color: #475569; font-size: 13px; margin-bottom: 8px; display: block;">Due Date</label>
-                        <input type="date" name="due_date" style="width: 100%; padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; outline: none; font-size: 14px;">
+                        <input type="date" name="due_date" class="p-input-premium">
                     </div>
-                    <div style="margin-bottom: 20px;">
+                    <div style="margin-bottom: 24px;">
                         <label style="font-weight: 700; color: #475569; font-size: 13px; margin-bottom: 8px; display: block;">Priority</label>
-                        <select name="priority" style="width: 100%; padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; outline: none; font-size: 14px; background:#fff;">
+                        <select name="priority" class="p-input-premium">
                             <option value="Low">Low</option>
                             <option value="Medium" selected>Medium</option>
                             <option value="High">High</option>
                         </select>
                     </div>
-                    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px;">
                         <button type="button" data-dismiss="modal" class="btn-premium-cancel">Cancel</button>
                         <button type="submit" id="btn-save-todo" class="btn-premium-add">Save Task</button>
                     </div>
@@ -176,7 +176,7 @@ $result = mysqli_query($con, $query);
             </div>
         </div>
     </div>
-</div>
+</div>  
 
 <script>
     $(document).ready(function() {

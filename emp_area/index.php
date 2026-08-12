@@ -11,6 +11,7 @@ if (session_status() == PHP_SESSION_NONE) {
 if (!isset($con)) {
     include(__DIR__ . '/includes/db.php');
 }
+/** @var mysqli $con */
 
 if (!isset($_SESSION['emp_id'])) {
     echo "<script>window.open('pages/auth/login.php','_self')</script>";
@@ -133,13 +134,17 @@ if (!isset($_SESSION['emp_id'])) {
                             </ul>
                         </div>
                         <?php
-                        // Fetch employee image for header
+                        // Fetch employee image and designation for header
                         $header_emp_img = '';
-                        $get_header_img = "SELECT employee_image FROM emp_list WHERE id = '$emp_id'";
+                        $emp_designation = 'Employee';
+                        $get_header_img = "SELECT employee_image, designation FROM emp_list WHERE id = '$emp_id'";
                         $run_header_img = mysqli_query($con, $get_header_img);
                         if ($run_header_img) {
                             $header_row = mysqli_fetch_array($run_header_img);
                             $header_emp_img = $header_row['employee_image'] ?? '';
+                            if (!empty($header_row['designation'])) {
+                                $emp_designation = $header_row['designation'];
+                            }
                         }
                         ?>
                         <div class="topbar-profile dropdown">
@@ -149,7 +154,7 @@ if (!isset($_SESSION['emp_id'])) {
                                 </div>
                                 <div class="profile-info">
                                     <span class="profile-name"><?php echo htmlspecialchars($emp_name); ?></span>
-                                    <span class="profile-role">Employee</span>
+                                    <span class="profile-role"><?php echo htmlspecialchars($emp_designation); ?></span>
                                 </div>
                                 <i class="fa fa-angle-down"></i>
                             </div>

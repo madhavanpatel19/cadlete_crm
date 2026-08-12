@@ -159,18 +159,25 @@ if (!isset($_SESSION['admin_email'])) {
         </div>
 
         <style>
-            .table-premium th {
+            .table-premium th,
+            .table-premium td {
+                vertical-align: middle !important;
                 text-align: center !important;
             }
 
-            .table-premium th:nth-child(2),
-            .table-premium td:nth-child(2) {
+            .table-premium th:first-child,
+            .table-premium td:first-child {
                 text-align: left !important;
+                padding-left: 24px !important;
             }
 
+            .table-premium th:nth-child(2),
+            .table-premium td:nth-child(2),
             .table-premium th:nth-child(3),
-            .table-premium td:nth-child(3) {
-                text-align: left !important;
+            .table-premium td:nth-child(3),
+            .table-premium th:nth-child(4),
+            .table-premium td:nth-child(4) {
+                text-align: center !important;
             }
 
             .premium-notification {
@@ -568,15 +575,15 @@ if (!isset($_SESSION['admin_email'])) {
             }
 
             .page-link:hover:not(.disabled) {
-                background: #DF2127;
+                background: #DD2127;
                 color: #FFEAEB;
-                border-color: #DF2127;
+                border-color: #DD2127;
             }
 
             .page-link.active {
                 background: #FFEAEB;
-                color: #DF2127;
-                border-color: #DF2127;
+                color: #DD2127;
+                border-color: #DD2127;
                 text-decoration: none !important;
             }
 
@@ -623,6 +630,9 @@ if (!isset($_SESSION['admin_email'])) {
                         $totalPages = ceil($totalRecords / $limit);
 
                         $i = $offset; // Adjust numbering
+                        // Auto deactivate expired announcements
+                        mysqli_query($con, "UPDATE announcements SET is_active = '0' WHERE end_date IS NOT NULL AND end_date <= NOW() AND is_active = '1' AND deleted_at IS NULL");
+
                         $get_announcements = "SELECT * FROM announcements WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT $offset, $limit";
                         $run_announcements = mysqli_query($con, $get_announcements);
 
@@ -655,21 +665,24 @@ if (!isset($_SESSION['admin_email'])) {
                                     $badge_text = 'Expired';
                                     $dot_class = '';
                                     $is_grey = true;
+                                    $toggle_is_active = 0;
                                 } else if ($is_active == 0) {
                                     $badge_class = '';
                                     $badge_text = 'Inactive';
                                     $dot_class = '';
                                     $is_grey = true;
+                                    $toggle_is_active = 0;
                                 } else {
                                     $badge_class = $is_scheduled ? 'badge-scheduled' : '';
                                     $badge_text = $is_scheduled ? 'Scheduled' : 'Published';
                                     $dot_class = $is_scheduled ? 'dot-scheduled' : '';
                                     $is_grey = false;
+                                    $toggle_is_active = 1;
                                 }
                         ?>
                                 <tr data-announcement-row="<?php echo $announcement_id; ?>">
-                                    <td style="padding-left: 24px;">
-                                        <div class="announcement-left">
+                                    <td style="padding-left: 24px; vertical-align: middle;">
+                                        <div class="announcement-left" style="display: flex; align-items: center; gap: 16px;">
                                             <div class="announcement-icon-box" style="background: <?php echo $icon_data['bg']; ?>; color: <?php echo $icon_data['color']; ?>;">
                                                 <i class="fa <?php echo $icon_data['icon']; ?>"></i>
                                             </div>
@@ -679,24 +692,24 @@ if (!isset($_SESSION['admin_email'])) {
                                             </div>
                                         </div>
                                     </td>
-                                    <td style="text-align: center;">
-                                        <div class="announcement-date-col" style="align-items: center; text-align: center;">
+                                    <td style="text-align: center; vertical-align: middle;">
+                                        <div class="announcement-date-col" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
                                             <div class="announcement-date-val"><?php echo date('d M Y, h:i A', strtotime($announcement_date)); ?></div>
                                             <div class="announcement-date-author">by Admin</div>
                                         </div>
                                     </td>
-                                    <td style="text-align: center;">
-                                        <div style="display: flex; justify-content: center;">
+                                    <td style="text-align: center; vertical-align: middle;">
+                                        <div style="display: flex; justify-content: center; align-items: center;">
                                             <div class="announcement-status-badge <?php echo $badge_class; ?>" style="<?php echo $is_grey ? 'background: #f1f5f9; color: #64748b;' : ''; ?>">
                                                 <span class="status-dot <?php echo $dot_class; ?>" style="<?php echo $is_grey ? 'background: #94a3b8;' : ''; ?>"></span> <?php echo $badge_text; ?>
                                             </div>
                                         </div>
                                     </td>
-                                    <td style="text-align: center;">
-                                        <div class="announcement-actions" style="justify-content: center;">
+                                    <td style="text-align: center; vertical-align: middle;">
+                                        <div class="announcement-actions" style="display: flex; justify-content: center; align-items: center; gap: 8px;">
                                             <?php if (canAdminAccess('announcement_update')): ?>
-                                                <button type="button" class="btn-icon-premium" style="color: <?php echo $is_active == 1 ? '#10b981' : '#94a3b8'; ?>" title="<?php echo $is_active == 1 ? 'Set Inactive' : 'Set Active'; ?>" onclick="toggleStatus(<?php echo $announcement_id; ?>, <?php echo $is_active == 1 ? 0 : 1; ?>)">
-                                                    <i class="fa <?php echo $is_active == 1 ? 'fa-toggle-on' : 'fa-toggle-off'; ?>" style="font-size: 16px;"></i>
+                                                <button type="button" class="btn-icon-premium" style="color: <?php echo $toggle_is_active == 1 ? '#10b981' : '#94a3b8'; ?>;" title="<?php echo $toggle_is_active == 1 ? 'Set Inactive' : 'Set Active'; ?>" onclick="toggleStatus(<?php echo $announcement_id; ?>, <?php echo $toggle_is_active == 1 ? 0 : 1; ?>)">
+                                                    <i class="fa <?php echo $toggle_is_active == 1 ? 'fa-toggle-on' : 'fa-toggle-off'; ?>" style="font-size: 16px;"></i>
                                                 </button>
                                             <?php endif; ?>
                                             <?php
@@ -737,7 +750,7 @@ if (!isset($_SESSION['admin_email'])) {
                                     </div>
                                 </td>
                             </tr>
-                        <?php } ?>  
+                        <?php } ?>
                     </tbody>
                 </table>
             </div>
@@ -795,22 +808,22 @@ if (!isset($_SESSION['admin_email'])) {
                     <div class="modal-body" style="padding: 30px 25px; background: #fff;">
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label style="font-weight: 700; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Announcement Title</label>
-                            <input type="text" name="announcement_title" class="form-control" required placeholder="Enter a concise title..." style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                            <input type="text" name="announcement_title" class="form-control" required placeholder="Enter a concise title..." style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                         </div>
 
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label style="font-weight: 700; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Publish Date & Time (Optional)</label>
-                            <input type="datetime-local" name="publish_date" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                            <input type="datetime-local" name="publish_date" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                         </div>
 
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label style="font-weight: 700; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">End Date & Time (Optional)</label>
-                            <input type="datetime-local" name="end_date" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                            <input type="datetime-local" name="end_date" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                         </div>
 
                         <div class="form-group" style="margin-bottom: 0;">
                             <label style="font-weight: 700; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Detailed Message</label>
-                            <textarea name="announcement_message" class="form-control" rows="6" required placeholder="Type the announcement content here..." style="background: #f8fafc; border-radius: 14px; border: 1.5px solid #e2e8f0; padding: 15px 20px; width: 100%; color: #0f172a; font-size: 14px; font-weight: 600; outline: none; transition: all 0.3s; resize: none;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"></textarea>
+                            <textarea name="announcement_message" class="form-control" rows="6" required placeholder="Type the announcement content here..." style="background: #f8fafc; border-radius: 14px; border: 1.5px solid #e2e8f0; padding: 15px 20px; width: 100%; color: #0f172a; font-size: 14px; font-weight: 600; outline: none; transition: all 0.3s; resize: none;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"></textarea>
                         </div>
                     </div>
 
@@ -847,22 +860,22 @@ if (!isset($_SESSION['admin_email'])) {
                     <div class="modal-body" style="padding: 30px 25px; background: #fff;">
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label style="font-weight: 700; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Announcement Title</label>
-                            <input type="text" name="announcement_title" id="edit_announcement_title" class="form-control" required placeholder="Enter a concise title..." style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                            <input type="text" name="announcement_title" id="edit_announcement_title" class="form-control" required placeholder="Enter a concise title..." style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                         </div>
 
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label style="font-weight: 700; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Publish Date & Time (Optional)</label>
-                            <input type="datetime-local" name="publish_date" id="edit_publish_date" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                            <input type="datetime-local" name="publish_date" id="edit_publish_date" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                         </div>
 
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label style="font-weight: 700; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">End Date & Time (Optional)</label>
-                            <input type="datetime-local" name="end_date" id="edit_end_date" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                            <input type="datetime-local" name="end_date" id="edit_end_date" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                         </div>
 
                         <div class="form-group" style="margin-bottom: 0;">
                             <label style="font-weight: 700; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Detailed Message</label>
-                            <textarea name="announcement_message" id="edit_announcement_message" class="form-control" rows="6" required placeholder="Type the announcement content here..." style="background: #f8fafc; border-radius: 14px; border: 1.5px solid #e2e8f0; padding: 15px 20px; width: 100%; color: #0f172a; font-size: 14px; font-weight: 600; outline: none; transition: all 0.3s; resize: none;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"></textarea>
+                            <textarea name="announcement_message" id="edit_announcement_message" class="form-control" rows="6" required placeholder="Type the announcement content here..." style="background: #f8fafc; border-radius: 14px; border: 1.5px solid #e2e8f0; padding: 15px 20px; width: 100%; color: #0f172a; font-size: 14px; font-weight: 600; outline: none; transition: all 0.3s; resize: none;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"></textarea>
                         </div>
                     </div>
 

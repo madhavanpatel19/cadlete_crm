@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_exp'])) {
     <form method="post" action="">
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
             <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 32px; height: 32px; background: #DF2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
+                <div style="width: 32px; height: 32px; background: #DD2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
                     1
                 </div>
                 <div>
@@ -88,33 +88,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_exp'])) {
                 <div class="row">
                     <div class="col-md-6" style="margin-bottom: 20px;">
                         <label style="font-weight: 700; color: #475569; display: block; margin-bottom: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Candidate Name</label>
-                        <input type="text" name="name" class="p-input-premium" value="<?php echo htmlspecialchars($name); ?>" required style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                        <input type="text" name="name" class="p-input-premium" value="<?php echo htmlspecialchars($name); ?>" required style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                     </div>
                     <div class="col-md-6" style="margin-bottom: 20px;">
                         <label style="font-weight: 700; color: #475569; display: block; margin-bottom: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Designation</label>
-                        <input type="text" name="designation" class="p-input-premium" value="<?php echo htmlspecialchars($designation); ?>" required style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                        <input type="text" name="designation" class="p-input-premium" value="<?php echo htmlspecialchars($designation); ?>" required style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6" style="margin-bottom: 20px;">
                         <label style="font-weight: 700; color: #475569; display: block; margin-bottom: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Email Address</label>
-                        <input type="email" name="email" class="p-input-premium" value="<?php echo htmlspecialchars($email); ?>" required style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                        <input type="email" name="email" class="p-input-premium" value="<?php echo htmlspecialchars($email); ?>" required style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                     </div>
                     <div class="col-md-6" style="margin-bottom: 20px;">
                         <label style="font-weight: 700; color: #475569; display: block; margin-bottom: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Phone Number</label>
-                        <input type="text" name="number" class="p-input-premium" value="<?php echo htmlspecialchars($number); ?>" style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                        <input type="text" name="number" class="p-input-premium" value="<?php echo htmlspecialchars($number); ?>" style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6" style="margin-bottom: 20px;">
                         <label style="font-weight: 700; color: #475569; display: block; margin-bottom: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Joining Date</label>
-                        <input type="date" name="join_date" class="p-input-premium" value="<?php echo htmlspecialchars($join_date); ?>" required style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                        <input type="date" name="join_date" class="p-input-premium" value="<?php echo htmlspecialchars($join_date); ?>" required style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                     </div>
                     <div class="col-md-6" style="margin-bottom: 20px;">
                         <label style="font-weight: 700; color: #475569; display: block; margin-bottom: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Relieving Date</label>
-                        <input type="date" name="relieve_date" class="p-input-premium" value="<?php echo htmlspecialchars($relieve_date); ?>" required style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DF2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                        <input type="date" name="relieve_date" class="p-input-premium" value="<?php echo htmlspecialchars($relieve_date); ?>" required style="height: 48px; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0 15px; transition: all 0.3s;" onfocus="this.style.borderColor='#DD2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                     </div>
                 </div>
 

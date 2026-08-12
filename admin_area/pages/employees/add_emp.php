@@ -72,7 +72,7 @@ function add_user($con)
     // -- Show loading spinner while processing --
     echo '
     <div id="php_server_loader" style="width: 100%; min-height: 80vh; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif;">
-        <div style="width: 50px; height: 50px; border: 4px solid #f1f5f9; border-top: 4px solid #DF2127; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <div style="width: 50px; height: 50px; border: 4px solid #f1f5f9; border-top: 4px solid #dd2127; border-radius: 50%; animation: spin 1s linear infinite;"></div>
         <h3 style="margin-top: 20px; color: #1e293b;">Saving Employee...</h3>
         <p style="color: #64748b; margin-top: 5px;">Please wait while we upload documents.</p>
         <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
@@ -96,7 +96,7 @@ function add_user($con)
                     icon: 'error',
                     title: 'Validation Error',
                     text: 'Phone must be 10 digits!',
-                    confirmButtonColor: '#DF2127'
+                    confirmButtonColor: '#dd2127'
                 }).then((result) => {
                     window.history.back();
                 });
@@ -231,7 +231,7 @@ function add_user($con)
         //     $mail->Subject = 'Welcome to Cadlete – Your Login Credentials';
         //     $mail->Body    = "
         //         <div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px;border:1px solid #eee;border-radius:10px;'>
-        //             <h2 style='color:#DF2127;'>Welcome to Cadlete Designs!</h2>
+        //             <h2 style='color:#dd2127;'>Welcome to Cadlete Designs!</h2>
         //             <p>Dear <strong>$name</strong>,</p>
         //             <p>Your employee account has been created. Here are your login credentials:</p>
         //             <table style='background:#f8fafc;padding:15px;border-radius:8px;width:100%;'>
@@ -266,7 +266,7 @@ function add_user($con)
                 <h2 class="success-title">Success!</h2>
                 <p class="success-message">
                     Employee <strong><?php echo htmlspecialchars($name); ?></strong> has been registered successfully.<br>
-                    <small style="color:#64748b;">Login Password: <strong style="color:#DF2127;"><?php echo htmlspecialchars($plainPassword); ?></strong></small>
+                    <small style="color:#64748b;">Login Password: <strong style="color:#dd2127;"><?php echo htmlspecialchars($plainPassword); ?></strong></small>
                 </p>
                 <div class="success-actions">
                     <a href="index.php?emp_directory" class="btn-success-go">
@@ -301,7 +301,7 @@ function add_user($con)
                     icon: 'error',
                     title: 'Database Error',
                     text: '{$dbError}',
-                    confirmButtonColor: '#DF2127'
+                    confirmButtonColor: '#dd2127'
                 }).then((result) => {
                     window.history.back();
                 });
@@ -331,7 +331,7 @@ if (isset($_POST['submit'])) {
         <!-- 1. Personal Information -->
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
             <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 32px; height: 32px; background: #DF2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">1</div>
+                <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">1</div>
                 <div>
                     <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #1e293b;">Personal Information</h3>
                     <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Basic details and identity</p>
@@ -433,7 +433,7 @@ if (isset($_POST['submit'])) {
         <!-- 2. Contact Information -->
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
             <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 32px; height: 32px; background: #DF2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">2</div>
+                <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">2</div>
                 <div>
                     <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #1e293b;">Contact Information</h3>
                     <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">How to reach the employee</p>
@@ -475,7 +475,7 @@ if (isset($_POST['submit'])) {
                     <div class="col-md-12">
                         <div class="form-group">
                             <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">
-                                <i class="fa fa-key" style="color:#DF2127;"></i> Login Password
+                                <i class="fa fa-key" style="color:#dd2127;"></i> Login Password
                                 <span style="font-weight:400; color:#64748b; font-size:12px; margin-left:8px;">(Leave blank to auto-generate, or type a custom password)</span>
                             </label>
                             <div style="display: flex; gap: 10px; align-items: center;">
@@ -487,7 +487,7 @@ if (isset($_POST['submit'])) {
                                         style="padding-left: 40px; font-family: monospace; letter-spacing: 1px;">
                                 </div>
                                 <button type="button" onclick="generateAutoPassword()"
-                                    style="white-space:nowrap; background: linear-gradient(135deg,#DF2127,#ff6b6b); color:#fff; border:none; border-radius:8px; padding:12px 20px; font-weight:600; cursor:pointer; font-size:13px; transition:0.3s;">
+                                    style="white-space:nowrap; background: linear-gradient(135deg,#dd2127,#ff6b6b); color:#fff; border:none; border-radius:8px; padding:12px 20px; font-weight:600; cursor:pointer; font-size:13px; transition:0.3s;">
                                     <i class="fa fa-refresh"></i> Auto Generate
                                 </button>
                                 <button type="button" onclick="toggleAddPassword()"
@@ -509,7 +509,7 @@ if (isset($_POST['submit'])) {
         <!-- 3. Employee Documents -->
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
             <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 32px; height: 32px; background: #DF2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">3</div>
+                <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">3</div>
                 <div>
                     <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #1e293b;">Employee Documents</h3>
                     <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Upload important files</p>
@@ -575,7 +575,7 @@ if (isset($_POST['submit'])) {
         <!-- 4. Emergency Contact Details -->
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
             <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 32px; height: 32px; background: #DF2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">4</div>
+                <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">4</div>
                 <div>
                     <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #1e293b;">Emergency Contact Details</h3>
                     <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Who to call in an emergency</p>
@@ -618,7 +618,7 @@ if (isset($_POST['submit'])) {
         <!-- 5. Educational Background -->
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
             <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 32px; height: 32px; background: #DF2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">5</div>
+                <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">5</div>
                 <div>
                     <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #1e293b;">Educational Background</h3>
                     <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Academic history</p>
@@ -659,7 +659,7 @@ if (isset($_POST['submit'])) {
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
             <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="width: 32px; height: 32px; background: #DF2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">6</div>
+                    <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">6</div>
                     <div>
                         <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #1e293b;">Employment History</h3>
                         <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Previous work experience</p>
@@ -705,7 +705,7 @@ if (isset($_POST['submit'])) {
         <!-- 7. Bank Account Details -->
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
             <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 32px; height: 32px; background: #DF2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">7</div>
+                <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">7</div>
                 <div>
                     <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #1e293b;">Bank Account Details</h3>
                     <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Financial information</p>
@@ -748,7 +748,7 @@ if (isset($_POST['submit'])) {
         <!-- 8. Professional & Salary Details -->
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
             <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 32px; height: 32px; background: #DF2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">8</div>
+                <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">8</div>
                 <div>
                     <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #1e293b;">Professional & Salary Details</h3>
                     <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Compensation structure</p>

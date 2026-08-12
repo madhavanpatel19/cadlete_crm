@@ -1,4 +1,8 @@
 <?php
+if (!isset($con)) {
+    include(__DIR__ . '/../../includes/db.php');
+}
+
 if (!isset($_SESSION['admin_email'])) {
     echo "<script>window.open('../../pages/auth/login.php','_self')</script>";
     exit();
@@ -233,7 +237,7 @@ $result = mysqli_query($con, $sql);
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="8" style="padding: 100px 20px; text-align: center;">
+                            <td colspan="7" style="padding: 100px 20px; text-align: center;">
                                 <div style="width: 60px; height: 60px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
                                     <i class="fa fa-folder-open-o" style="font-size: 24px; color: #94a3b8;"></i>
                                 </div>
@@ -467,23 +471,6 @@ $result = mysqli_query($con, $sql);
         margin-bottom: 8px;
     }
 
-    .btn-apply-filter {
-        background: #4f46e5;
-        color: white;
-        border: none;
-        padding: 10px 25px;
-        border-radius: 10px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .btn-apply-filter:hover {
-        background: #dd2127;
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(221, 33, 39, 0.4);
-    }
-
     .btn-clear-filter {
         background: #f1f5f9;
         color: #dd2127;
@@ -515,56 +502,6 @@ $result = mysqli_query($con, $sql);
     .p-input-premium:focus {
         border-color: #dd2127 !important;
         box-shadow: 0 0 0 3px #ffeaeb !important;
-    }
-
-    /* Inline Mini Thumbnails */
-    .work-photo-container-premium {
-        display: flex;
-        gap: 10px;
-        margin-top: 15px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-
-    .work-photo-item-mini {
-        width: 54px;
-        height: 54px;
-        border-radius: 12px;
-        overflow: hidden;
-        position: relative;
-        cursor: pointer;
-        border: 2.5px solid #fff;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    .work-photo-item-mini:hover {
-        transform: translateY(-5px) scale(1.1);
-        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
-        z-index: 10;
-    }
-
-    .work-photo-item-mini img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .work-photo-overlay-mini {
-        position: absolute;
-        inset: 0;
-        background: rgba(221, 33, 39, 0.4);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        opacity: 0;
-        transition: 0.3s;
-        font-size: 14px;
-    }
-
-    .work-photo-item-mini:hover .work-photo-overlay-mini {
-        opacity: 1;
     }
 
     /* Premium Modal V2 */
@@ -650,46 +587,6 @@ $result = mysqli_query($con, $sql);
         }
     }
 
-    /* Modal Header Filter Styling */
-    .modal-header-filter {
-        display: flex;
-        align-items: center;
-        background: #dd2127;
-        padding: 8px 15px;
-        border-radius: 14px;
-        border: 1px solid rgba(241, 99, 99, 0.3);
-        gap: 10px;
-        transition: all 0.3s;
-    }
-
-    .modal-header-filter:hover {
-        background: #dd2127;
-        border-color: rgba(241, 99, 99, 0.3);
-    }
-
-    .modal-header-filter i {
-        color: white;
-        font-size: 16px;
-    }
-
-    .modal-select-premium {
-        background: transparent;
-        border: none;
-        color: #fff;
-        font-weight: 700;
-        font-size: 13px;
-        outline: none;
-        cursor: pointer;
-        padding-right: 5px;
-    }
-
-    .modal-select-premium option {
-        background: #0f172a;
-        color: #fff;
-    }
-</style>
-
-<style>
     /* ── Log detail panel styles ── */
     .ws-emp-row:hover {
         background: #fef9ff !important;
@@ -926,9 +823,9 @@ $result = mysqli_query($con, $sql);
                 container.html('<div style="padding: 100px; text-align: center; color: #ef4444; font-weight: 700;"><i class="fa fa-exclamation-triangle"></i> ARCHIVE TEMPORARILY OFFLINE</div>');
             }
         });
-    }
+    };
 
-    // ── Expandable Log Row Handler ─────────────────────────────────────────
+    // Expandable Log Row Handler
     var logLoaded = {};
 
     $(document).on('click', '.ws-emp-row', function(e) {
@@ -972,8 +869,7 @@ $result = mysqli_query($con, $sql);
                     return;
                 }
 
-                // ── Summary header bar ──────────────────────────────────────────────
-                // Determine correct status color & label based on record status
+                // Determine status color & label
                 var isLeave = (d.status === 'leave');
                 var isAbsent = (d.status === 'absent');
                 var statusColor, statusLabel;
@@ -993,11 +889,10 @@ $result = mysqli_query($con, $sql);
                     statusColor = '#64748b';
                     statusLabel = '✓ Completed';
                 }
+
                 var cinDisplay = d.check_in_time || '--';
-                // Show 'Still working' only if employee actually has a check-in but no checkout yet
                 var coutDisplay = d.check_out_time ? d.check_out_time :
-                    (d.check_in_time && !isLeave && !isAbsent) ? 'Still working' :
-                    '--';
+                    (d.check_in_time && !isLeave && !isAbsent) ? 'Still working' : '--';
 
                 var summaryBar = `
                     <div class="seg-summary-bar">
@@ -1023,7 +918,6 @@ $result = mysqli_query($con, $sql);
                         </div>
                     </div>`;
 
-                // ── Segment table ───────────────────────────────────────────────────
                 var segHtml = '';
                 if (d.segments && d.segments.length > 0) {
                     var rowsHtml = '';
@@ -1102,7 +996,7 @@ $result = mysqli_query($con, $sql);
                 $content.html(summaryBar + segHtml).show();
                 logLoaded[attId] = true;
 
-                // ── Live counters ─────────────────────────────────────────────────
+                // Live counters
                 if (d.is_live) {
                     var totalSecs = parseInt(d.duration_secs);
                     var lastSeg = d.segments && d.segments.length > 0 ? d.segments[d.segments.length - 1] : null;
@@ -1152,17 +1046,17 @@ $result = mysqli_query($con, $sql);
         html += '</div>';
         $('#previewModalImageContainer').html(html);
         $('#imagePreviewModal').modal('show');
-    }
+    };
 </script>
 
 <style>
-    /* ── Gallery Styles for Modal ── */
     .work-gallery-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
         gap: 25px;
         padding: 10px;
     }
+
 
     .work-gallery-item {
         position: relative;
@@ -1416,9 +1310,7 @@ $result = mysqli_query($con, $sql);
         align-items: center;
         gap: 5px;
     }
-</style>
 
-<style>
     @keyframes slideDown {
         from {
             opacity: 0;

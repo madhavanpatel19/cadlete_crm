@@ -290,12 +290,24 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
 
 <script>
     $(document).ready(function() {
-        // Toggle project details timeline
+        // Toggle project details timeline (Accordion style - only single option open at a time)
         $(document).on('click', '.toggle-detail-btn', function() {
-            const tr = $(this).closest('tr');
-            const detailRow = tr.next('.project-detail-row');
-            detailRow.toggle(300);
-            $(this).toggleClass('active');
+            const $btn = $(this);
+            const tr = $btn.closest('tr');
+            const targetDetailRow = tr.next('.project-detail-row');
+            const isOpen = targetDetailRow.is(':visible');
+
+            // Close all other open project detail rows and deactivate their buttons
+            $('.project-detail-row').not(targetDetailRow).slideUp(300);
+            $('.toggle-detail-btn').not($btn).removeClass('active');
+
+            if (isOpen) {
+                targetDetailRow.slideUp(300);
+                $btn.removeClass('active');
+            } else {
+                targetDetailRow.slideDown(300);
+                $btn.addClass('active');
+            }
         });
 
         // Post progress update remark

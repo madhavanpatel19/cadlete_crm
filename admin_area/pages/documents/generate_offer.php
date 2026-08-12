@@ -69,6 +69,7 @@ $formatted_start       = date("d F Y", strtotime($start_date));
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="../../css/style.css" rel="stylesheet">
     <style>
         :root {
             --red: #e31e24;
@@ -454,10 +455,10 @@ $formatted_start       = date("d F Y", strtotime($start_date));
 <body>
 
     <div class="actions no-print">
-        <button onclick="window.print()" class="btn btn-print">
+        <button onclick="window.print()" class="btn-premium-add">
             <i class="fa fa-print"></i> Print / Save PDF
         </button>
-        <a href="../../index.php?view_offer_letters" class="btn btn-back">Back</a>
+        <a href="../../index.php?view_offer_letters" class="btn-premium-cancel">Back</a>
     </div>
 
     <div class="page-wrap">

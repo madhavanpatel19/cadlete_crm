@@ -406,7 +406,7 @@ $showDataScreen      = ($is_daily && $selected_date) || ($selected_emp_id > 0);
 
         <div style="padding: 35px 30px; background: #fff;">
             <?php if ($message) : ?>
-                <div class="alert alert-info" style="border-radius: 10px; margin-bottom: 25px; font-weight: 600; border: none; background: #f0f9ff; color: #df2127;">
+                <div class="alert alert-info" style="border-radius: 10px; margin-bottom: 25px; font-weight: 600; border: none; background: #f0f9ff; color: #DD2127;">
                     <i class="fa fa-info-circle"></i> <?php echo $message; ?>
                 </div>
             <?php endif; ?>

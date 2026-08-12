@@ -558,16 +558,16 @@ $run_leads = mysqli_query($con, $get_leads);
     }
 
     .page-link:hover:not(.disabled) {
-        background: #DF2127;
+        background: #dd2127;
         color: #FFEAEB;
-        border-color: #DF2127;
+        border-color: #dd2127;
     }
 
 
     .page-link.active {
         background: #FFEAEB;
-        color: #DF2127;
-        border-color: #DF2127;
+        color: #dd2127;
+        border-color: #dd2127;
         text-decoration: none !important;
     }
 

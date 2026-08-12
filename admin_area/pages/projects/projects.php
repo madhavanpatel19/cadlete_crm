@@ -389,11 +389,11 @@ $run_projects = mysqli_query($con, $get_projects);
                         </div>
                     </div>
                     <div style="display: flex; gap: 12px; margin-right: 40px;">
-                        <button type="button" id="btn-add-artifact" class="btn-premium-add-inline" onclick="toggleAddResourceForm('document')" style="background: #DF2127; color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);">
+                        <button type="button" id="btn-add-artifact" class="btn-premium-add-inline" onclick="toggleAddResourceForm('document')" style="background: #dd2127; color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);">
                             <i class="fa fa-upload"></i>
                             <span class="btn-text">Add Document</span>
                         </button>
-                        <button type="button" id="btn-add-link" class="btn-premium-add-inline" onclick="toggleAddResourceForm('link')" style="background: #DF2127; color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-weight: 700; font-size: 13px; display: none; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);">
+                        <button type="button" id="btn-add-link" class="btn-premium-add-inline" onclick="toggleAddResourceForm('link')" style="background: #dd2127; color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-weight: 700; font-size: 13px; display: none; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);">
                             <i class="fa fa-globe"></i> <span class="btn-text">Add Link</span>
                         </button>
                     </div>
@@ -1165,15 +1165,15 @@ $run_projects = mysqli_query($con, $get_projects);
     }
 
     .page-link:hover:not(.disabled) {
-        background: #DF2127;
+        background: #dd2127;
         color: #FFEAEB;
-        border-color: #DF2127;
+        border-color: #dd2127;
     }
 
     .page-link.active {
         background: #FFEAEB;
-        color: #DF2127;
-        border-color: #DF2127;
+        color: #dd2127;
+        border-color: #dd2127;
         text-decoration: none !important;
     }
 
@@ -2287,14 +2287,19 @@ $run_projects = mysqli_query($con, $get_projects);
         const targetId = btn.attr('data-target');
         const detailRow = $(targetId);
         const mainRow = btn.closest('.budget-phase-row');
+        const isCurrentlyVisible = detailRow.is(':visible');
 
-        detailRow.toggle();
+        // Close all other open phase detail rows
+        $('.phase-detail-box-row').not(detailRow).hide();
+        $('.btn-toggle-phase-detail').not(btn).html('<i class="fa fa-chevron-down"></i>').css('background', '#f1f5f9').css('color', '#475569');
 
-        if (detailRow.is(':visible')) {
+        if (isCurrentlyVisible) {
+            detailRow.hide();
+            btn.html('<i class="fa fa-chevron-down"></i>').css('background', '#f1f5f9').css('color', '#475569');
+        } else {
+            detailRow.show();
             btn.html('<i class="fa fa-chevron-up"></i>').css('background', '#e0e7ff').css('color', '#4f46e5');
             renderPhasePaymentsList(mainRow, detailRow);
-        } else {
-            btn.html('<i class="fa fa-chevron-down"></i>').css('background', '#f1f5f9').css('color', '#475569');
         }
     });
 

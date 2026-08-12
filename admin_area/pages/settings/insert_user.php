@@ -50,7 +50,7 @@ if (isset($_POST['submit'])) {
         <!-- Card 1: Basic Account Details -->
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
             <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 32px; height: 32px; background: #DF2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
+                <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
                     1
                 </div>
                 <div>
@@ -65,13 +65,13 @@ if (isset($_POST['submit'])) {
                     <div class="col-md-4">
                         <label class="premium-label" style="font-size: 14px; color: #334155;">User Photo <span style="color: #ef4444;">*</span></label>
                         <div class="upload-area" style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 30px; text-align: center; background: #f8fafc; position: relative; transition: 0.3s;">
-                            <div style="width: 100px; height: 100px; background: #eff6ff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #DF2127; font-size: 20px; margin-bottom: 15px; margin-left: auto; margin-right: auto;">
+                            <div style="width: 100px; height: 100px; background: #eff6ff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #dd2127; font-size: 20px; margin-bottom: 15px; margin-left: auto; margin-right: auto;">
                                 <img id="usr_preview" src="admin_images/default.png" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
                             </div>
                             <h4 style="margin: 0 0 5px 0; font-size: 15px; font-weight: 700; color: #1e293b;">Upload user photo</h4>
                             <p style="margin: 0 0 15px 0; font-size: 12px; color: #64748b;">JPG, PNG up to 5MB</p>
 
-                            <label for="admin_image" class="btn btn-outline-primary" style="background: #fff; border: 1px solid #e2e8f0; color: #DF2127; font-weight: 600; padding: 8px 20px; border-radius: 8px; cursor: pointer;">
+                            <label for="admin_image" class="btn btn-outline-primary" style="background: #fff; border: 1px solid #e2e8f0; color: #dd2127; font-weight: 600; padding: 8px 20px; border-radius: 8px; cursor: pointer;">
                                 Choose File
                             </label>
                             <input type="file" name="admin_image" id="admin_image" style="display: none;" accept="image/*" required onchange="previewImg(this)">
@@ -142,7 +142,7 @@ if (isset($_POST['submit'])) {
         <!-- Card 2: Access Permissions -->
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
             <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 32px; height: 32px; background: #DF2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
+                <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
                     2
                 </div>
                 <div>
@@ -235,7 +235,7 @@ if (isset($_POST['submit'])) {
     }
 
     .upload-area:hover {
-        border-color: #DF2127;
+        border-color: #dd2127;
     }
 
     /* Toggle Switch Styles */
@@ -279,7 +279,7 @@ if (isset($_POST['submit'])) {
     }
 
     input:checked+.toggle-slider {
-        background-color: #DF2127;
+        background-color: #dd2127;
     }
 
     input:checked+.toggle-slider:before {

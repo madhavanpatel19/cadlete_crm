@@ -15,8 +15,8 @@ $emp = mysqli_fetch_assoc($res);
 $doc_labels = [
     'offer_latter' => ['label' => 'Offer Letter', 'icon' => 'fa-file-text-o'],
     'NDA' => ['label' => 'NDA', 'icon' => 'fa-shield'],
-    'Aadhar_card' => ['label' => 'Aadhar Card', 'icon' => 'fa-id-card-o'],
-    'Pan_card' => ['label' => 'PAN Card', 'icon' => 'fa-id-card'],
+    'Aadhar_card' => ['label' => 'Aadhar Card', 'icon' => 'fa-credit-card-alt'],
+    'Pan_card' => ['label' => 'PAN Card', 'icon' => 'fa-credit-card'],
     'Passportsize_photo' => ['label' => 'Passport Size Photo', 'icon' => 'fa-image'],
     'old_company_slary_slip' => ['label' => 'Old Company Salary Slip', 'icon' => 'fa-money']
 ];

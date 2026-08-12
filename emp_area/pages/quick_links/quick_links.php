@@ -8,7 +8,6 @@ if (!isset($_SESSION['emp_id']) || !isset($_SESSION['emp_name'])) {
     header('Location: ../../pages/auth/login.php');
     exit();
 }
-
 $emp_id = $_SESSION['emp_id'];
 
 // Fetch allowed categories for this employee
@@ -97,12 +96,12 @@ if (!empty($allowed_categories)) {
         <!-- Header -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px;">
             <div style="display: flex; align-items: center; gap: 20px;">
-                <div style="width: 60px; height: 60px; background: #ffeaeb; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #df2127;">
+                <div style="width: 60px; height: 60px; background: #ffeaeb; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #dd2127;">
                     <i class="fa fa-folder"></i>
                 </div>
                 <div>
                     <h2 id="hub-section-title" style="margin: 0; color: #0f172a; font-size: 24px; font-weight: 800;">Section</h2>
-                    <p id="hub-section-stats" style="margin: 4px 0 0 0; color: #df2127; font-size: 14px; font-weight: 500;">
+                    <p id="hub-section-stats" style="margin: 4px 0 0 0; color: #dd2127; font-size: 14px; font-weight: 500;">
                         0 Files &bull; 0 Links
                     </p>
                 </div>
@@ -358,7 +357,7 @@ if (!empty($allowed_categories)) {
                     html += `
                     <div class="folder-card" data-category="${cat}" data-mode="company">
                         <div style="display:flex;gap:15px;align-items:center;">
-                            <div style="width:50px;height:50px;background:#FFEAEB;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#DF2127;font-size:24px;">
+                            <div style="width:50px;height:50px;background:#FFEAEB;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#dd2127;font-size:24px;">
                                 <i class="fa fa-folder"></i>
                             </div>
                             <div>
@@ -429,7 +428,7 @@ if (!empty($allowed_categories)) {
                     <tr class="table-row-hover">
                         <td style="padding: 15px 20px; vertical-align: middle;">
                             <div style="display: flex; align-items: center; justify-content: flex-start; gap: 12px;">
-                                <div style="width: 32px; height: 32px; border-radius: 6px; background: ${isPrivate ? '#e0f2fe' : '#ffeaeb'}; color: ${isPrivate ? '#0284c7' : '#df2127'}; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                                <div style="width: 32px; height: 32px; border-radius: 6px; background: ${isPrivate ? '#e0f2fe' : '#ffeaeb'}; color: ${isPrivate ? '#0284c7' : '#dd2127'}; display: flex; align-items: center; justify-content: center; font-size: 16px;">
                                     <i class="fa ${typeInfo.icon}"></i>
                                 </div>
                                 <span style="color: #0f172a; font-weight: 500; font-size: 14px;">${item.link_name}</span>
@@ -437,7 +436,7 @@ if (!empty($allowed_categories)) {
                         </td>
                         <td style="padding: 15px 20px; text-align: center; vertical-align: middle; color: #475569; font-size: 14px;">${typeInfo.type}</td>
                         <td style="padding: 15px 20px; text-align: center; vertical-align: middle;">
-                            <span style="color: ${isPrivate ? '#0284c7' : '#df2127'}; cursor: pointer; font-size: 14px; font-weight: 500;" onclick="openResourceHub('${item.category}', '${mode}')">${item.category} ${isPrivate ? '(Private)' : ''}</span>
+                            <span style="color: ${isPrivate ? '#0284c7' : '#dd2127'}; cursor: pointer; font-size: 14px; font-weight: 500;" onclick="openResourceHub('${item.category}', '${mode}')">${item.category} ${isPrivate ? '(Private)' : ''}</span>
                         </td>
                         <td style="padding: 15px 20px; text-align: center; vertical-align: middle; color: #475569; font-size: 14px;">${updatedOn}</td>
                         <td style="padding: 15px 20px; text-align: center; vertical-align: middle;">
@@ -573,7 +572,7 @@ if (!empty($allowed_categories)) {
                         </div>
                     </td>
                     <td style="padding:12px 20px;text-align:center;vertical-align:middle;">
-                        <a href="${url}" target="_blank" style="color:#df2127;font-size:13px;text-decoration:none;word-break:break-all;">${url}</a>
+                        <a href="${url}" target="_blank" style="color:#dd2127;font-size:13px;text-decoration:none;word-break:break-all;">${url}</a>
                     </td>
                     <td style="padding:12px 20px;text-align:center;vertical-align:middle;color:#475569;font-size:13px;">${dateOn}</td>
                     <td style="padding:12px 20px;text-align:center;vertical-align:middle;">

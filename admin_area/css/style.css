@@ -811,7 +811,7 @@ body {
     --p-success: #10b981;
     --p-bg: #f8fafc;
     --p-bg-color: #FFEAEB;
-    --p-bg-btn: #DF2127;
+    --p-bg-btn: #dd2127;
     --p-bg-header: #5b5b5b;
     --p-card-bg: #ffffff;
     --p-text: #0f172a;
@@ -883,7 +883,7 @@ body {
 
 /* Black Premium Action Button */
 .btn-premium-add {
-    background: #DF2127 !important;
+    background: #DD2127 !important;
     color: #fff !important;
     padding: 12px 24px !important;
     border-radius: 12px !important;
@@ -1097,7 +1097,7 @@ table.table-premium>tfoot>tr>td,
 }
 
 .p-radio-item input[type="radio"]:checked {
-    border-color: #DF2127;
+    border-color: #DD2127;
 }
 
 .p-radio-item input[type="radio"]:checked::after {
@@ -1108,16 +1108,16 @@ table.table-premium>tfoot>tr>td,
     transform: translate(-50%, -50%);
     width: 10px;
     height: 10px;
-    background: #DF2127;
+    background: #DD2127;
     border-radius: 50%;
 }
 
 .p-radio-item:hover {
-    color: #DF2127;
+    color: #DD2127;
 }
 
 .p-radio-item:hover input[type="radio"] {
-    border-color: #DF2127;
+    border-color: #DD2127;
 }
 
 .p-input-premium {
@@ -1611,7 +1611,7 @@ table.table-premium>tfoot>tr>td,
 .btn-icon-folder,
 .btn-icon-brand,
 .btn-icon-premium.btn-icon-folder {
-    color: #df2127 !important;
+    color: #DD2127 !important;
     background: #ffeaeb !important;
     border-color: #fecaca !important;
 }

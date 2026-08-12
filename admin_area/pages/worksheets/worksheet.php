@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // session_start();
 if (!isset($con)) {
     include(__DIR__ . '/../../includes/db.php');
@@ -35,25 +35,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($attendance_date !== $today_date) {
             $errorFields[] = 'date';
             $successMessage = "Error: You can only submit worksheet for the current date.";
-        } else {
             $check_in_time = mysqli_real_escape_string($con, $_POST['start_time']);
             $check_out_time = mysqli_real_escape_string($con, $_POST['end_time']);
             $remarks = mysqli_real_escape_string($con, $_POST['task']);
-        }
 
-        // Check if record exists for this emp/date
-        $check = mysqli_query($con, "SELECT id FROM attendance WHERE emp_id='$emp_id' AND attendance_date='$attendance_date'");
-        if (mysqli_num_rows($check) > 0) {
-            // Update
-            $update = "UPDATE attendance SET check_in_time='$check_in_time', check_out_time='$check_out_time', remarks='$remarks' WHERE emp_id='$emp_id' AND attendance_date='$attendance_date'";
-            if (mysqli_query($con, $update)) {
-                $successMessage = "Worksheet updated successfully!";
-            }
-        } else {
-            // Insert
-            $insert = "INSERT INTO attendance (emp_id, attendance_date, check_in_time, check_out_time, status, remarks) VALUES ('$emp_id', '$attendance_date', '$check_in_time', '$check_out_time', 'present', '$remarks')";
-            if (mysqli_query($con, $insert)) {
-                $successMessage = "Worksheet submitted successfully!";
+            // Check if record exists for this emp/date
+            $check = mysqli_query($con, "SELECT id FROM attendance WHERE emp_id='$emp_id' AND attendance_date='$attendance_date'");
+            if (mysqli_num_rows($check) > 0) {
+                // Update
+                $update = "UPDATE attendance SET check_in_time='$check_in_time', check_out_time='$check_out_time', remarks='$remarks' WHERE emp_id='$emp_id' AND attendance_date='$attendance_date'";
+                if (mysqli_query($con, $update)) {
+                    $successMessage = "Worksheet updated successfully!";
+                }
+            } else {
+                // Insert
+                $insert = "INSERT INTO attendance (emp_id, attendance_date, check_in_time, check_out_time, status, remarks) VALUES ('$emp_id', '$attendance_date', '$check_in_time', '$check_out_time', 'present', '$remarks')";
+                if (mysqli_query($con, $insert)) {
+                    $successMessage = "Worksheet submitted successfully!";
+                }
             }
         }
     }

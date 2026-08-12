@@ -242,6 +242,7 @@ function getResourceTypePhp($url)
         padding: 18px;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 14px;
         position: relative;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
@@ -478,14 +479,23 @@ function getResourceTypePhp($url)
     .t-row {
         display: flex;
         align-items: center;
-        gap: 11px;
-        padding: 10px 0;
-        border-bottom: 1px solid #f3f4f6;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #f1f5f9;
+        background: #fff;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .t-row:hover {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        transform: translateX(2px);
     }
 
     .t-row:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
+        margin-bottom: 0;
     }
 
     .t-chk {
@@ -578,13 +588,22 @@ function getResourceTypePhp($url)
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 10px 0;
-        border-bottom: 1px solid #f3f4f6;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #f1f5f9;
+        background: #fff;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .p-row:hover {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        transform: translateX(2px);
     }
 
     .p-row:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
+        margin-bottom: 0;
     }
 
     .p-av {
@@ -796,15 +815,24 @@ function getResourceTypePhp($url)
     /* ── Empty state ── */
     .empty-s {
         text-align: center;
-        padding: 22px 0;
-        color: #9ca3af;
+        padding: 30px 15px;
+        color: #94a3b8;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 150px;
+        font-size: 13px;
+        font-weight: 500;
     }
 
     .empty-s i {
-        font-size: 32px;
+        font-size: 36px;
         display: block;
-        margin-bottom: 8px;
-        opacity: .3;
+        margin-bottom: 10px;
+        opacity: .4;
+        color: #94a3b8;
     }
 
     /* ── Scrollbars ── */

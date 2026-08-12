@@ -121,7 +121,7 @@ if ($run_stats) {
                 <div class="modal-header" style="background: #ffeaeb; color: #000; padding: 25px; border: none; position: relative;">
                     <button type="button" class="btn-modal-close" data-dismiss="modal" aria-label="Close"><i class="fa fa-times"></i></button>
                     <div style="display: flex; align-items: center; gap: 15px;">
-                        <div style="width: 45px; height: 45px; background:#df2127; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff;">
+                        <div style="width: 45px; height: 45px; background:#dd2127; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff;">
                             <i class="fa fa-calendar-o"></i>
                         </div>
                         <div>
@@ -234,7 +234,7 @@ if ($run_stats) {
         }
 
         .filter-input:focus {
-            border-color: #DF2127;
+            border-color: #dd2127;
             box-shadow: 0 0 0 3px rgba(223, 33, 39, 0.1);
         }
 
@@ -252,7 +252,7 @@ if ($run_stats) {
         }
 
         .btn-filter {
-            background: #DF2127;
+            background: #dd2127;
             color: #fff;
             border: none;
             height: 42px;
