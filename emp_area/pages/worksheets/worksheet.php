@@ -29,7 +29,15 @@ $emp_img_path = !empty($emp_data['employee_image']) ? '../admin_area/uploads/' .
 $is_partial = isset($_GET['partial']);
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $required = ['date', 'start_time', 'end_time', 'task'];
+    $progress_input = isset($_POST['task_progress']) ? trim($_POST['task_progress']) : (isset($_POST['task']) ? trim($_POST['task']) : '');
+    $planning_input = isset($_POST['task_planning']) ? trim($_POST['task_planning']) : '';
+    $issues_input   = isset($_POST['task_issues']) ? trim($_POST['task_issues']) : '';
+    $help_input     = isset($_POST['task_help']) ? trim($_POST['task_help']) : '';
+
+    if (empty($progress_input)) {
+        $errorFields[] = 'task_progress';
+    }
+    $required = ['date', 'start_time', 'end_time'];
     foreach ($required as $field) {
         if (empty($_POST[$field])) {
             $errorFields[] = $field;
@@ -46,73 +54,80 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             $check_in_time  = mysqli_real_escape_string($con, $_POST['start_time']);
             $check_out_time = mysqli_real_escape_string($con, $_POST['end_time']);
-            $remarks        = mysqli_real_escape_string($con, $_POST['task']);
-        }
 
-        $check = mysqli_query($con, "SELECT id, work_photos FROM attendance WHERE emp_id='$emp_id' AND attendance_date='$attendance_date'");
-        if (mysqli_num_rows($check) > 0) {
-            $row_att = mysqli_fetch_assoc($check);
-            $existing_photos = !empty($row_att['work_photos']) ? json_decode($row_att['work_photos'], true) : [];
-            if (!is_array($existing_photos)) $existing_photos = [];
+            $parts = [];
+            $parts[] = "Today’s Progress:\n" . $progress_input;
+            if (!empty($planning_input)) $parts[] = "Planning for Tomorrow:\n" . $planning_input;
+            if (!empty($issues_input))   $parts[] = "Issues:\n" . $issues_input;
+            if (!empty($help_input))     $parts[] = "Need any Help?:\n" . $help_input;
 
-            $uploaded_photos = $existing_photos;
-            if (isset($_FILES['work_photos'])) {
-                $upload_dir = __DIR__ . '/../../../admin_area/uploads/';
-                foreach ($_FILES['work_photos']['name'] as $key => $name) {
-                    if ($_FILES['work_photos']['error'][$key] == 0) {
-                        $tmp_name = $_FILES['work_photos']['tmp_name'][$key];
-                        $ext = pathinfo($name, PATHINFO_EXTENSION);
-                        $new_name = time() . '_' . rand(1000, 9999) . '.' . $ext;
-                        if (move_uploaded_file($tmp_name, $upload_dir . $new_name)) {
-                            $uploaded_photos[] = 'uploads/' . $new_name;
+            $remarks = mysqli_real_escape_string($con, implode("\n\n", $parts));
+
+            $check = mysqli_query($con, "SELECT id, work_photos FROM attendance WHERE emp_id='$emp_id' AND attendance_date='$attendance_date'");
+            if (mysqli_num_rows($check) > 0) {
+                $row_att = mysqli_fetch_assoc($check);
+                $existing_photos = !empty($row_att['work_photos']) ? json_decode($row_att['work_photos'], true) : [];
+                if (!is_array($existing_photos)) $existing_photos = [];
+
+                $uploaded_photos = $existing_photos;
+                if (isset($_FILES['work_photos'])) {
+                    $upload_dir = __DIR__ . '/../../../admin_area/uploads/';
+                    foreach ($_FILES['work_photos']['name'] as $key => $name) {
+                        if ($_FILES['work_photos']['error'][$key] == 0) {
+                            $tmp_name = $_FILES['work_photos']['tmp_name'][$key];
+                            $ext = pathinfo($name, PATHINFO_EXTENSION);
+                            $new_name = time() . '_' . rand(1000, 9999) . '.' . $ext;
+                            if (move_uploaded_file($tmp_name, $upload_dir . $new_name)) {
+                                $uploaded_photos[] = 'uploads/' . $new_name;
+                            }
                         }
                     }
                 }
-            }
-            $photos_json = empty($uploaded_photos) ? '' : json_encode($uploaded_photos);
+                $photos_json = empty($uploaded_photos) ? '' : json_encode($uploaded_photos);
 
-            $status = 'present';
-            if (!empty($check_in_time)) {
-                $tstamp = strtotime('1970-01-01 ' . $check_in_time);
-                $late_cutoff = strtotime('1970-01-01 10:15:00');
-                if ($tstamp !== false && $tstamp > $late_cutoff) {
-                    $status = 'late';
+                $status = 'present';
+                if (!empty($check_in_time)) {
+                    $tstamp = strtotime('1970-01-01 ' . $check_in_time);
+                    $late_cutoff = strtotime('1970-01-01 10:15:00');
+                    if ($tstamp !== false && $tstamp > $late_cutoff) {
+                        $status = 'late';
+                    }
                 }
-            }
 
-            $update = "UPDATE attendance SET check_in_time='$check_in_time', check_out_time='$check_out_time', status='$status', remarks='$remarks', work_photos='$photos_json' WHERE emp_id='$emp_id' AND attendance_date='$attendance_date'";
-            if (mysqli_query($con, $update)) {
-                $successMessage = "Worksheet updated successfully!";
-            }
-        } else {
-            $uploaded_photos = [];
-            if (isset($_FILES['work_photos'])) {
-                $upload_dir = __DIR__ . '/../../../admin_area/uploads/';
-                foreach ($_FILES['work_photos']['name'] as $key => $name) {
-                    if ($_FILES['work_photos']['error'][$key] == 0) {
-                        $tmp_name = $_FILES['work_photos']['tmp_name'][$key];
-                        $ext = pathinfo($name, PATHINFO_EXTENSION);
-                        $new_name = time() . '_' . rand(1000, 9999) . '.' . $ext;
-                        if (move_uploaded_file($tmp_name, $upload_dir . $new_name)) {
-                            $uploaded_photos[] = 'uploads/' . $new_name;
+                $update = "UPDATE attendance SET check_in_time='$check_in_time', check_out_time='$check_out_time', status='$status', remarks='$remarks', work_photos='$photos_json' WHERE emp_id='$emp_id' AND attendance_date='$attendance_date'";
+                if (mysqli_query($con, $update)) {
+                    $successMessage = "Worksheet updated successfully!";
+                }
+            } else {
+                $uploaded_photos = [];
+                if (isset($_FILES['work_photos'])) {
+                    $upload_dir = __DIR__ . '/../../../admin_area/uploads/';
+                    foreach ($_FILES['work_photos']['name'] as $key => $name) {
+                        if ($_FILES['work_photos']['error'][$key] == 0) {
+                            $tmp_name = $_FILES['work_photos']['tmp_name'][$key];
+                            $ext = pathinfo($name, PATHINFO_EXTENSION);
+                            $new_name = time() . '_' . rand(1000, 9999) . '.' . $ext;
+                            if (move_uploaded_file($tmp_name, $upload_dir . $new_name)) {
+                                $uploaded_photos[] = 'uploads/' . $new_name;
+                            }
                         }
                     }
                 }
-            }
-            $photos_json = empty($uploaded_photos) ? '' : json_encode($uploaded_photos);
+                $photos_json = empty($uploaded_photos) ? '' : json_encode($uploaded_photos);
 
-            $status = 'present';
-            if (!empty($check_in_time)) {
-                $tstamp = strtotime('1970-01-01 ' . $check_in_time);
-                $late_cutoff = strtotime('1970-01-01 10:15:00');
-                if ($tstamp !== false && $tstamp > $late_cutoff) {
-                    $status = 'late';
+                $status = 'present';
+                if (!empty($check_in_time)) {
+                    $tstamp = strtotime('1970-01-01 ' . $check_in_time);
+                    $late_cutoff = strtotime('1970-01-01 10:15:00');
+                    if ($tstamp !== false && $tstamp > $late_cutoff) {
+                        $status = 'late';
+                    }
                 }
-            }
 
-            $insert = "INSERT INTO attendance (emp_id, attendance_date, check_in_time, check_out_time, status, remarks, work_photos) VALUES ('$emp_id', '$attendance_date', '$check_in_time', '$check_out_time', '$status', '$remarks', '$photos_json')";
-            if (mysqli_query($con, $insert)) {
-                $successMessage = "Worksheet submitted successfully!";
+                $insert = "INSERT INTO attendance (emp_id, attendance_date, check_in_time, check_out_time, status, remarks, work_photos) VALUES ('$emp_id', '$attendance_date', '$check_in_time', '$check_out_time', '$status', '$remarks', '$photos_json')";
+                if (mysqli_query($con, $insert)) {
+                    $successMessage = "Worksheet submitted successfully!";
+                }
             }
         }
     }
@@ -132,6 +147,71 @@ $today_att   = mysqli_fetch_assoc($today_res);
 $prefill_in  = ($today_att && $today_att['check_in_time'])  ? date('H:i', strtotime($today_att['check_in_time']))  : '';
 $prefill_out = ($today_att && $today_att['check_out_time']) ? date('H:i', strtotime($today_att['check_out_time'])) : date('H:i');
 $prefill_task = ($today_att && !empty($today_att['remarks'])) ? $today_att['remarks'] : '';
+if (!function_exists('parse_work_details')) {
+    function parse_work_details(string $text = '')
+    {
+        $text = trim($text ?? '');
+        $res = ['progress' => '', 'planning' => '', 'issues' => '', 'help' => ''];
+        $clean = function ($s) {
+            $s = preg_replace("/Today.*?Progress:\s*/iu", "", $s);
+            $s = preg_replace("/Planning for Tomorrow:\s*/iu", "", $s);
+            $s = preg_replace("/Issues:\s*/iu", "", $s);
+            $s = preg_replace("/Need any Help\??:\s*/iu", "", $s);
+            $s = preg_replace("/\n{2,}/", "\n", $s); // collapse blank lines
+            return trim($s);
+        };
+        if (preg_match("/Today.*?Progress:/iu", $text)) {
+            if (preg_match("/Today.*?Progress:\s*(.*?)(?=(?:Planning for Tomorrow:|Issues:|Need any Help\?:?)|$)/isu", $text, $m1)) {
+                $res['progress'] = $clean($m1[1]);
+            }
+            if (preg_match("/Planning for Tomorrow:\s*(.*?)(?=(?:Issues:|Need any Help\?:?)|$)/isu", $text, $m2)) {
+                $res['planning'] = $clean($m2[1]);
+            }
+            if (preg_match("/Issues:\s*(.*?)(?=(?:Need any Help\?:?)|$)/isu", $text, $m3)) {
+                $res['issues'] = $clean($m3[1]);
+            }
+            if (preg_match("/Need any Help\?:?\s*(.*)$/isu", $text, $m4)) {
+                $res['help'] = $clean($m4[1]);
+            }
+        } else {
+            $res['progress'] = $clean($text);
+        }
+        return $res;
+    }
+}
+$parsed_task = parse_work_details($prefill_task);
+
+// ── Auto-fill today's completed To-Do tasks into Today's Progress ──────────
+// Build authoritative deduplicated list from DB (single source of truth)
+$ws_today = date('Y-m-d');
+$todos_today_q = mysqli_query($con, "SELECT t.task_name, p.project_name
+    FROM project_team_todos t
+    LEFT JOIN client_projects p ON t.project_id = p.id
+    WHERE t.emp_id = '$emp_id'
+      AND t.status = 1
+      AND DATE(COALESCE(t.completed_at, t.due_date, t.created_at)) = '$ws_today'
+      AND t.deleted_at IS NULL
+    ORDER BY t.id ASC");
+if ($todos_today_q && mysqli_num_rows($todos_today_q) > 0) {
+    $db_entries   = [];
+    while ($ct = mysqli_fetch_assoc($todos_today_q)) {
+        $t_name = trim($ct['task_name']);
+        $p_name = !empty($ct['project_name']) ? trim($ct['project_name']) : '';
+        $entry  = $p_name ? "Completed Task [$p_name]: $t_name" : "Completed Task: $t_name";
+        $db_entries[] = '- ' . $entry;
+    }
+    // Keep any custom (non-Completed Task) lines the employee wrote
+    $custom_lines = [];
+    foreach (explode("\n", $parsed_task['progress']) as $line) {
+        $line = trim($line);
+        if ($line !== '' && stripos($line, 'Completed Task') === false) {
+            $custom_lines[] = $line;
+        }
+    }
+    $all_lines = array_merge($db_entries, $custom_lines);
+    $parsed_task['progress'] = implode("\n", $all_lines);
+}
+
 $prefill_photos = ($today_att && !empty($today_att['work_photos'])) ? json_decode($today_att['work_photos'], true) : [];
 if (!is_array($prefill_photos)) $prefill_photos = [];
 ?>
@@ -418,9 +498,27 @@ if (!is_array($prefill_photos)) $prefill_photos = [];
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Work Details <span class="text-danger">*</span></label>
+                                    <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Today’s Progress <span class="text-danger">*</span></label>
                                     <div class="col-md-8">
-                                        <textarea name="task" class="p-input-premium" style="height: 120px; resize: none;" placeholder="What did you accomplish today?" required><?php echo htmlspecialchars($prefill_task); ?></textarea>
+                                        <textarea name="task_progress" class="p-input-premium" style="height: 85px; resize: none;" placeholder="What did you accomplish today?"><?php echo htmlspecialchars($parsed_task['progress']); ?></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Planning for Tomorrow</label>
+                                    <div class="col-md-8">
+                                        <textarea name="task_planning" class="p-input-premium" style="height: 60px; resize: none;" placeholder="What will you work on tomorrow?"><?php echo htmlspecialchars($parsed_task['planning']); ?></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Issues</label>
+                                    <div class="col-md-8">
+                                        <textarea name="task_issues" class="p-input-premium" style="height: 60px; resize: none;" placeholder="Any blockers or challenges faced today?"><?php echo htmlspecialchars($parsed_task['issues']); ?></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Need any Help?</label>
+                                    <div class="col-md-8">
+                                        <textarea name="task_help" class="p-input-premium" style="height: 60px; resize: none;" placeholder="Do you need any assistance?"><?php echo htmlspecialchars($parsed_task['help']); ?></textarea>
                                     </div>
                                 </div>
                                 <div class="form-group">
@@ -466,18 +564,18 @@ if (!is_array($prefill_photos)) $prefill_photos = [];
                 var date = document.querySelector('input[name="date"]');
                 var start = document.querySelector('input[name="start_time"]');
                 var end = document.querySelector('input[name="end_time"]');
-                var task = document.querySelector('textarea[name="task"]');
+                var task = document.querySelector('textarea[name="task_progress"]');
                 var valid = true;
                 [date, start, end, task].forEach(function(field) {
-                    if (!field.value) {
+                    if (field && !field.value) {
                         field.parentElement.classList.add('has-error');
                         valid = false;
-                    } else {
+                    } else if (field) {
                         if (field.name === 'date') {
                             var dateVal = new Date(field.value);
                             var day = dateVal.getDay();
                             if (day === 0 || day === 6) {
-                                Swal.fire('Notification', "Selected date is a " + (day === 0 ? "Sunday" : "Saturday", 'info') + ", which is a holiday.");
+                                Swal.fire('Notification', "Selected date is a " + (day === 0 ? "Sunday" : "Saturday") + ", which is a holiday.");
                                 field.value = "";
                                 valid = false;
                             }
@@ -532,7 +630,12 @@ if (!is_array($prefill_photos)) $prefill_photos = [];
                 var photos = JSON.parse(photosJson);
                 var html = '';
                 if (remarkHtml && remarkHtml !== '-') {
-                    html += '<div style="background: #fff; padding: 15px 20px; border-radius: 12px; text-align: left; margin-bottom: 20px; border: 1px solid #f1f5f9; box-shadow: 0 2px 8px rgba(0,0,0,0.02); font-size: 14px; color: #475569; width: 100%;"><h5 style="margin-top:0; font-size:13px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Remark</h5>' + remarkHtml + '</div>';
+                    var formattedRemark = remarkHtml
+                        .replace(/(Today[’']s Progress:)/gi, '<strong style="color:#0f172a; display:block; margin-top:6px; margin-bottom:2px; font-weight:700;"><i class="fa fa-tasks" style="color:#dd2127; margin-right:5px;"></i>$1</strong>')
+                        .replace(/(Planning for Tomorrow:)/gi, '<strong style="color:#0f172a; display:block; margin-top:10px; margin-bottom:2px; font-weight:700;"><i class="fa fa-calendar-check-o" style="color:#2563eb; margin-right:5px;"></i>$1</strong>')
+                        .replace(/(Issues:)/gi, '<strong style="color:#0f172a; display:block; margin-top:10px; margin-bottom:2px; font-weight:700;"><i class="fa fa-exclamation-triangle" style="color:#eab308; margin-right:5px;"></i>$1</strong>')
+                        .replace(/(Need any Help\?:?)/gi, '<strong style="color:#0f172a; display:block; margin-top:10px; margin-bottom:2px; font-weight:700;"><i class="fa fa-question-circle" style="color:#8b5cf6; margin-right:5px;"></i>$1</strong>');
+                    html += '<div style="background: #fff; padding: 15px 20px; border-radius: 12px; text-align: left; margin-bottom: 20px; border: 1px solid #f1f5f9; box-shadow: 0 2px 8px rgba(0,0,0,0.02); font-size: 14px; color: #475569; width: 100%;"><h5 style="margin-top:0; font-size:13px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Remark</h5>' + formattedRemark + '</div>';
                 }
                 html += '<div class="work-gallery-grid" style="width: 100%;">';
                 photos.forEach(function(url) {

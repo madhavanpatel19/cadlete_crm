@@ -16,12 +16,11 @@ $filter_date = isset($_GET['date']) ? mysqli_real_escape_string($con, $_GET['dat
 // Fetch todos assigned to this employee
 // Pending tasks (status=0) show up first
 // Completed tasks (status=1) show up at the bottom of the table, filtered by selected date
-$query = "SELECT t.*, p.project_name, c.name as client_name 
+$query = "SELECT t.*, p.project_name
           FROM project_team_todos t 
           LEFT JOIN client_projects p ON t.project_id = p.id 
-          LEFT JOIN clients c ON p.client_id = c.id
           WHERE t.emp_id = $emp_id 
-          AND (t.status = 0 OR (t.status = 1 AND DATE(COALESCE(t.due_date, t.created_at)) = '$filter_date'))
+          AND (t.status = 0 OR (t.status = 1 AND DATE(COALESCE(t.completed_at, t.due_date, t.created_at)) = '$filter_date'))
           ORDER BY t.status ASC, CASE WHEN t.priority = 'High' THEN 1 WHEN t.priority = 'Medium' THEN 2 ELSE 3 END ASC, t.due_date ASC, t.id DESC";
 $result = mysqli_query($con, $query);
 
@@ -87,11 +86,6 @@ $result = mysqli_query($con, $query);
                                             <div style="font-weight: 700; color: #334155; font-size: 13px;">
                                                 <?php echo $proj_name; ?>
                                             </div>
-                                            <?php if (!empty($row['client_name'])) : ?>
-                                                <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-top: 2px;">
-                                                    <i class="fa fa-user"></i> <?php echo htmlspecialchars($row['client_name']); ?>
-                                                </div>
-                                            <?php endif; ?>
                                         </td>
                                         <td style="font-weight: 600; color: #475569; font-size: 13px; text-align: center;">
                                             <?php echo !empty($row['due_date']) ? date('d M Y', strtotime($row['due_date'])) : '--'; ?>
@@ -176,7 +170,7 @@ $result = mysqli_query($con, $query);
             </div>
         </div>
     </div>
-</div>  
+</div>
 
 <script>
     $(document).ready(function() {

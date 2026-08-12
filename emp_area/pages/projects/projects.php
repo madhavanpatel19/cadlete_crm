@@ -32,9 +32,8 @@ if ($countResult) {
 $totalPages = ceil($totalRecords / $limit);
 
 // Fetch projects assigned to this employee
-$query = "SELECT cp.*, c.name as client_name 
+$query = "SELECT cp.* 
           FROM client_projects cp 
-          LEFT JOIN clients c ON cp.client_id = c.id 
           $where_clause 
           ORDER BY cp.id DESC LIMIT $offset, $limit";
 $result = mysqli_query($con, $query);
@@ -107,7 +106,6 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                             <tr style="background: #fcfdfe; border-bottom: 1.5px solid #f1f5f9;">
                                 <th style="text-align:center;">ID</th>
                                 <th style="text-align:left;">Project Name</th>
-                                <th style="text-align:center;">Client</th>
                                 <th style="text-align:center;">Start Date</th>
                                 <th style="text-align:center;">Deadline</th>
                                 <th style="text-align:center;">Status</th>
@@ -131,12 +129,6 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                         <td style="text-align:left;">
                                             <div style="font-weight: 700; color: #1e293b; font-size: 14px;">
                                                 <?php echo htmlspecialchars($row['project_name']); ?>
-                                            </div>
-                                        </td>
-                                        <td style="text-align:center;">
-                                            <div style="font-weight: 600; color: #64748b; font-size: 13px;">
-                                                <i class="fa fa-user" style="margin-right: 5px; opacity: 0.6;"></i>
-                                                <?php echo htmlspecialchars($row['client_name'] ?? 'N/A'); ?>
                                             </div>
                                         </td>
                                         <td style="text-align:center;">

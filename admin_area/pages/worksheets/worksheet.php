@@ -37,7 +37,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $successMessage = "Error: You can only submit worksheet for the current date.";
             $check_in_time = mysqli_real_escape_string($con, $_POST['start_time']);
             $check_out_time = mysqli_real_escape_string($con, $_POST['end_time']);
-            $remarks = mysqli_real_escape_string($con, $_POST['task']);
+            
+            $progress_input = isset($_POST['task_progress']) ? trim($_POST['task_progress']) : (isset($_POST['task']) ? trim($_POST['task']) : '');
+            $planning_input = isset($_POST['task_planning']) ? trim($_POST['task_planning']) : '';
+            $issues_input   = isset($_POST['task_issues']) ? trim($_POST['task_issues']) : '';
+            $help_input     = isset($_POST['task_help']) ? trim($_POST['task_help']) : '';
+
+            $parts = [];
+            $parts[] = "Today’s Progress:\n" . $progress_input;
+            if (!empty($planning_input)) $parts[] = "Planning for Tomorrow:\n" . $planning_input;
+            if (!empty($issues_input))   $parts[] = "Issues:\n" . $issues_input;
+            if (!empty($help_input))     $parts[] = "Need any Help?:\n" . $help_input;
+
+            $remarks = mysqli_real_escape_string($con, implode("\n\n", $parts));
 
             // Check if record exists for this emp/date
             $check = mysqli_query($con, "SELECT id FROM attendance WHERE emp_id='$emp_id' AND attendance_date='$attendance_date'");
@@ -251,9 +263,27 @@ $prefill_out = ($today_att && $today_att['check_out_time']) ? date('H:i', strtot
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Work Details <span class="text-danger">*</span></label>
+                                    <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Today’s Progress <span class="text-danger">*</span></label>
                                     <div class="col-md-8">
-                                        <textarea name="task" class="p-input-premium" style="height: 120px; resize: none;" placeholder="What did you accomplish today?" required></textarea>
+                                        <textarea name="task_progress" class="p-input-premium" style="height: 75px; resize: none;" placeholder="What did you accomplish today?" required></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Planning for Tomorrow</label>
+                                    <div class="col-md-8">
+                                        <textarea name="task_planning" class="p-input-premium" style="height: 60px; resize: none;" placeholder="What will you work on tomorrow?"></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Issues</label>
+                                    <div class="col-md-8">
+                                        <textarea name="task_issues" class="p-input-premium" style="height: 60px; resize: none;" placeholder="Any blockers or challenges faced today?"></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Need any Help?</label>
+                                    <div class="col-md-8">
+                                        <textarea name="task_help" class="p-input-premium" style="height: 60px; resize: none;" placeholder="Do you need any assistance?"></textarea>
                                     </div>
                                 </div>
                                 <div class="form-group" style="margin-top: 30px; margin-bottom: 0;">
@@ -275,13 +305,13 @@ $prefill_out = ($today_att && $today_att['check_out_time']) ? date('H:i', strtot
                 var date = document.querySelector('input[name="date"]');
                 var start = document.querySelector('input[name="start_time"]');
                 var end = document.querySelector('input[name="end_time"]');
-                var task = document.querySelector('textarea[name="task"]');
+                var task = document.querySelector('textarea[name="task_progress"]');
                 var valid = true;
                 [date, start, end, task].forEach(function(field) {
-                    if (!field.value) {
+                    if (field && !field.value) {
                         field.parentElement.classList.add('has-error');
                         valid = false;
-                    } else {
+                    } else if (field) {
                         // Weekend blocking for Worksheet
                         if (field.name === 'date') {
                             var dateVal = new Date(field.value);

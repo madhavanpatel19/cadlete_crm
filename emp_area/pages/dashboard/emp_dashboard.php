@@ -18,9 +18,74 @@ $emp_id   = (int)$_SESSION['emp_id'];
 $emp_name = $_SESSION['emp_name'];
 $today    = date('Y-m-d');
 
+if (!function_exists('parse_work_details')) {
+    function parse_work_details(string $text = '')
+    {
+        $text = trim($text ?? '');
+        $res = ['progress' => '', 'planning' => '', 'issues' => '', 'help' => ''];
+        $strip_all = function ($s) {
+            $s = preg_replace("/Today.*?Progress:\s*/iu", "", $s);
+            $s = preg_replace("/Planning for Tomorrow:\s*/iu", "", $s);
+            $s = preg_replace("/Issues:\s*/iu", "", $s);
+            $s = preg_replace("/Need any Help\??:\s*/iu", "", $s);
+            $s = preg_replace("/\n{2,}/", "\n", $s); // collapse multiple blank lines
+            return trim($s);
+        };
+        if (preg_match("/Today.*?Progress:/iu", $text)) {
+            if (preg_match("/Today.*?Progress:\s*(.*?)(?=(?:Planning for Tomorrow:|Issues:|Need any Help\?:?)|$)/isu", $text, $m1)) {
+                $res['progress'] = $strip_all($m1[1]);
+            }
+            if (preg_match("/Planning for Tomorrow:\s*(.*?)(?=(?:Issues:|Need any Help\?:?)|$)/isu", $text, $m2)) {
+                $res['planning'] = $strip_all($m2[1]);
+            }
+            if (preg_match("/Issues:\s*(.*?)(?=(?:Need any Help\?:?)|$)/isu", $text, $m3)) {
+                $res['issues'] = $strip_all($m3[1]);
+            }
+            if (preg_match("/Need any Help\?:?\s*(.*)$/isu", $text, $m4)) {
+                $res['help'] = $strip_all($m4[1]);
+            }
+        } else {
+            $res['progress'] = $strip_all($text);
+        }
+        return $res;
+    }
+}
+
 // ── Attendance today ──────────────────────────────────────────
 $res          = mysqli_query($con, "SELECT * FROM attendance WHERE emp_id='$emp_id' AND attendance_date='$today'");
 $today_record = mysqli_fetch_assoc($res);
+$parsed_remarks = parse_work_details($today_record['remarks'] ?? '');
+
+// ── Auto-fill today's completed To-Do tasks into Today's Progress ──────────
+// Build authoritative deduplicated list from DB (single source of truth)
+$todos_today_q = mysqli_query($con, "SELECT t.task_name, p.project_name
+    FROM project_team_todos t
+    LEFT JOIN client_projects p ON t.project_id = p.id
+    WHERE t.emp_id = '$emp_id'
+      AND t.status = 1
+      AND DATE(COALESCE(t.completed_at, t.due_date, t.created_at)) = '$today'
+      AND t.deleted_at IS NULL
+    ORDER BY t.id ASC");
+if ($todos_today_q && mysqli_num_rows($todos_today_q) > 0) {
+    $db_entries   = [];
+    while ($ct = mysqli_fetch_assoc($todos_today_q)) {
+        $t_name = trim($ct['task_name']);
+        $p_name = !empty($ct['project_name']) ? trim($ct['project_name']) : '';
+        $entry  = $p_name ? "Completed Task [$p_name]: $t_name" : "Completed Task: $t_name";
+        $db_entries[] = '- ' . $entry;
+    }
+    // Keep any custom (non-Completed Task) lines the employee wrote
+    $custom_lines = [];
+    foreach (explode("\n", $parsed_remarks['progress']) as $line) {
+        $line = trim($line);
+        if ($line !== '' && stripos($line, 'Completed Task') === false) {
+            $custom_lines[] = $line;
+        }
+    }
+    $all_lines = array_merge($db_entries, $custom_lines);
+    $parsed_remarks['progress'] = implode("\n", $all_lines);
+}
+
 
 if ($today_record) {
     $att_id = (int)$today_record['id'];
@@ -140,14 +205,14 @@ if ($today_record && $today_record['is_working']) {
     }
 }
 
-function fmtHM($secs)
+function fmtHM(int $secs)
 {
     $h = floor($secs / 3600);
     $m = floor(($secs % 3600) / 60);
     return "{$h}h " . str_pad($m, 2, '0', STR_PAD_LEFT) . "m";
 }
 
-function fmtHMS($secs)
+function fmtHMS(int $secs)
 {
     $h = floor($secs / 3600);
     $m = floor(($secs % 3600) / 60);
@@ -175,7 +240,7 @@ if (!empty($allowed_categories)) {
     }
 }
 
-function getResourceTypePhp($url)
+function getResourceTypePhp(string $url)
 {
     $path = parse_url($url, PHP_URL_PATH);
     $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
@@ -1205,13 +1270,68 @@ function getResourceTypePhp($url)
             $('#checkOutModal').modal('show');
         });
 
+        window.parseWorkDetails = function(text) {
+            text = text || '';
+            var progress = '',
+                planning = '',
+                issues = '',
+                help = '';
+
+            function cleanHeaders(s) {
+                if (!s) return '';
+                s = s.replace(/Today.*?Progress:\s*/gi, '')
+                    .replace(/Planning for Tomorrow:\s*/gi, '')
+                    .replace(/Issues:\s*/gi, '')
+                    .replace(/Need any Help\??:\s*/gi, '');
+                return s.trim();
+            }
+            if (/Today.*?Progress:/i.test(text)) {
+                var matchP = text.match(/Today.*?Progress:\s*([\s\S]*?)(?=(?:Planning for Tomorrow:|Issues:|Need any Help\?:?)|$)/i);
+                if (matchP) progress = cleanHeaders(matchP[1]);
+                var matchPlan = text.match(/Planning for Tomorrow:\s*([\s\S]*?)(?=(?:Issues:|Need any Help\?:?)|$)/i);
+                if (matchPlan) planning = cleanHeaders(matchPlan[1]);
+                var matchIss = text.match(/Issues:\s*([\s\S]*?)(?=(?:Need any Help\?:?)|$)/i);
+                if (matchIss) issues = cleanHeaders(matchIss[1]);
+                var matchHelp = text.match(/Need any Help\?:?\s*([\s\S]*?)$/i);
+                if (matchHelp) help = cleanHeaders(matchHelp[1]);
+            } else {
+                progress = cleanHeaders(text);
+            }
+            return {
+                progress: progress,
+                planning: planning,
+                issues: issues,
+                help: help
+            };
+        };
+
         /* Confirm Check Out */
         $(document).on('click', '#confirmCheckOut', function() {
-            var wd = $('#workDetails').val().trim();
-            if (!wd) {
-                Swal.fire('Notification', 'Please provide work details.', 'info');
+            function cleanHeaders(s) {
+                if (!s) return '';
+                s = s.replace(/Today.*?Progress:\s*/gi, '')
+                    .replace(/Planning for Tomorrow:\s*/gi, '')
+                    .replace(/Issues:\s*/gi, '')
+                    .replace(/Need any Help\??:\s*/gi, '');
+                return s.trim();
+            }
+            var progress = cleanHeaders($('#wsTodayProgress').val());
+            var planning = cleanHeaders($('#wsPlanningTomorrow').val());
+            var issues = cleanHeaders($('#wsIssues').val());
+            var help = cleanHeaders($('#wsNeedHelp').val());
+
+            if (!progress) {
+                Swal.fire('Notification', 'Please provide Today’s Progress.', 'info');
                 return;
             }
+
+            var parts = [];
+            parts.push("Today’s Progress:\n" + progress);
+            if (planning) parts.push("Planning for Tomorrow:\n" + planning);
+            if (issues) parts.push("Issues:\n" + issues);
+            if (help) parts.push("Need any Help?:\n" + help);
+
+            var wd = parts.join("\n\n");
             if (!$('#modalCheckInTime').val() || !$('#modalCheckOutTime').val()) {
                 Swal.fire('Notification', 'Check-in and check-out times required.', 'info');
                 return;
@@ -1435,8 +1555,20 @@ function getResourceTypePhp($url)
             dataType: 'json',
             success: function(r) {
                 if (r.success) {
-                    if (r.work_details) {
-                        $('#workDetails').val(r.work_details);
+                    if (r.all_progress) {
+                        // Use the complete list of today's completed tasks
+                        $('#wsTodayProgress').val(r.all_progress);
+                    } else if (r.work_details) {
+                        var parsed = (typeof window.parseWorkDetails === 'function') ? window.parseWorkDetails(r.work_details) : {
+                            progress: r.work_details,
+                            planning: '',
+                            issues: '',
+                            help: ''
+                        };
+                        $('#wsTodayProgress').val(parsed.progress);
+                        $('#wsPlanningTomorrow').val(parsed.planning);
+                        $('#wsIssues').val(parsed.issues);
+                        $('#wsNeedHelp').val(parsed.help);
                     }
                     $row.slideUp(300, function() {
                         $(this).remove();
@@ -1498,8 +1630,20 @@ function getResourceTypePhp($url)
                         <div class="col-md-8"><input type="time" id="modalCheckOutTime" class="form-control" style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='var(--p-bg-color)'; this.style.boxShadow='0 4px 10px rgba(166, 166, 167, 0.2)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';" required readonly></div>
                     </div>
                     <div class="form-group">
-                        <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Work Details <span class="text-danger">*</span></label>
-                        <div class="col-md-8"><textarea id="workDetails" class="form-control" style="height:90px;border-radius:10px;border:1px solid #e2e8f0;resize:none;" placeholder="What did you accomplish today?" required><?php echo htmlspecialchars($today_record['remarks'] ?? ''); ?></textarea></div>
+                        <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Today’s Progress <span class="text-danger">*</span></label>
+                        <div class="col-md-8"><textarea id="wsTodayProgress" class="form-control" style="height:85px;border-radius:12px;border:1.5px solid #e2e8f0;resize:none;padding:10px 14px;font-size:13px;outline:none;" placeholder="What did you accomplish today?"><?php echo htmlspecialchars($parsed_remarks['progress']); ?></textarea></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Planning for Tomorrow</label>
+                        <div class="col-md-8"><textarea id="wsPlanningTomorrow" class="form-control" style="height:60px;border-radius:12px;border:1.5px solid #e2e8f0;resize:none;padding:10px 14px;font-size:13px;outline:none;" placeholder="What will you work on tomorrow?"><?php echo htmlspecialchars($parsed_remarks['planning']); ?></textarea></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Issues</label>
+                        <div class="col-md-8"><textarea id="wsIssues" class="form-control" style="height:60px;border-radius:12px;border:1.5px solid #e2e8f0;resize:none;padding:10px 14px;font-size:13px;outline:none;" placeholder="Any blockers or challenges faced today?"><?php echo htmlspecialchars($parsed_remarks['issues']); ?></textarea></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Need any Help?</label>
+                        <div class="col-md-8"><textarea id="wsNeedHelp" class="form-control" style="height:60px;border-radius:12px;border:1.5px solid #e2e8f0;resize:none;padding:10px 14px;font-size:13px;outline:none;" placeholder="Do you need any assistance?"><?php echo htmlspecialchars($parsed_remarks['help']); ?></textarea></div>
                     </div>
                     <div class="form-group">
                         <label class="col-md-4 control-label" style="text-align:left;color:#64748b;font-weight:600;">Work Photos <span class="text-danger">*</span></label>
