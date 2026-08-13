@@ -229,7 +229,7 @@ if (isset($_POST['submit_project'])) {
             $docDir = __DIR__ . "/../../uploads/project_documents/";
             if (!is_dir($docDir)) mkdir($docDir, 0777, true);
             foreach ($_FILES['proposal_file']['name'] as $key => $fileName) {
-                $pName = mysqli_real_escape_string($con, $_POST['proposal_name'][$key]);
+                $pName = isset($_POST['proposal_name'][$key]) ? trim(mysqli_real_escape_string($con, $_POST['proposal_name'][$key])) : '';
                 if (empty($pName)) $pName = "Project Proposal";
                 $tmpName = $_FILES['proposal_file']['tmp_name'][$key];
                 $error = $_FILES['proposal_file']['error'][$key];
@@ -983,7 +983,7 @@ $run_admins = mysqli_query($con, $get_admins);
             const newProp = `
                 <tr class="proposal-row" style="border-top: 1px solid #fee2e2;">
                     <td style="padding: 15px 20px;">
-                        <input type="text" name="proposal_name[]" class="p-input-premium" style="height: 42px; border-radius: 6px; width: 100%; border-color: #fecaca;" placeholder="e.g. Project Proposal Document" required>
+                        <input type="text" name="proposal_name[]" class="p-input-premium" style="height: 42px; border-radius: 6px; width: 100%; border-color: #fecaca;" value="Project Proposal" placeholder="Project Proposal">
                     </td>
                     <td style="padding: 15px 20px;">
                         <input type="file" name="proposal_file[]" style="width: 100%;" required>
