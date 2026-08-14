@@ -80,8 +80,8 @@ $result = mysqli_query($con, $query);
                                             <span style="background:<?php echo $is_completed ? '#e2e8f0' : '#f1f5f9'; ?>; padding:4px 8px; border-radius:6px; font-size:12px; color:<?php echo $is_completed ? '#475569' : '#64748b'; ?>;">#<?php echo str_pad($row['id'], 3, '0', STR_PAD_LEFT); ?></span>
                                         </td>
                                         <td>
-                                            <div style="font-weight: 700; color: <?php echo $is_completed ? '#64748b' : '#1e293b'; ?>; font-size: 14px; text-align: left; <?php echo $is_completed ? 'text-decoration: line-through;' : ''; ?>">
-                                                <?php echo htmlspecialchars($row['task_name']); ?>
+                                            <div onclick="openEmpTaskDetail(<?php echo $row['id']; ?>)" style="font-weight: 700; color: <?php echo $is_completed ? '#64748b' : '#1e293b'; ?>; font-size: 14px; text-align: left; <?php echo $is_completed ? 'text-decoration: line-through;' : ''; ?> cursor: pointer;" title="Click to view task details and comments">
+                                                <i class="fa fa-info-circle" style="color: #dd2127; margin-right: 6px;"></i> <?php echo htmlspecialchars($row['task_name']); ?>
                                             </div>
                                         </td>
                                         <td style="text-align: center;">
@@ -232,4 +232,287 @@ $result = mysqli_query($con, $query);
             }
         });
     }
+
+    /* ===== EMPLOYEE TASK DETAIL POPUP MODAL (READ-ONLY TITLE/DATE/PRIORITY/DESC) ===== */
+    let _empModalTaskId = null;
+    let _empModalStatus = 0;
+
+    function openEmpTaskDetail(taskId) {
+        _empModalTaskId = taskId;
+        $('#emp-td-title').val('');
+        $('#emp-td-description').val('');
+        $('#emp-td-due-date-display').text('--').css('color', '#94a3b8');
+        $('#emp-td-priority-display').text('--').css('color', '#94a3b8');
+        $('#emp-td-activity').html('<div style="text-align:center;padding:20px;color:#94a3b8;"><i class="fa fa-circle-o-notch fa-spin"></i></div>');
+        $('#emp-td-check-circle').css({
+            'background': 'transparent',
+            'border-color': '#cbd5e1',
+            'color': 'transparent'
+        });
+
+        $('#empTaskDetailOverlay').fadeIn(200);
+        $('body').css('overflow', 'hidden');
+
+        $.ajax({
+            url: '../admin_area/ajax/projects/ajax_get_todo_detail.php',
+            method: 'POST',
+            data: {
+                task_id: taskId
+            },
+            success: function(res) {
+                if (!res || !res.success) return;
+                const t = res.task;
+                _empModalStatus = parseInt(t.status);
+
+                $('#emp-td-title').val(t.task_name);
+                $('#emp-td-description').val(t.description || 'No description provided');
+                $('#emp-td-project-name').text(t.project_name || 'Personal / General Task');
+
+                // Due date formatting
+                if (t.due_date && t.due_date !== '0000-00-00' && t.due_date !== '0000-00-00 00:00:00') {
+                    const d = new Date(t.due_date.replace(/-/g, '/'));
+                    if (!isNaN(d.getTime())) {
+                        const dateStr = d.toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                        });
+                        $('#emp-td-due-date-display').text(dateStr).css('color', '#334155');
+                    } else {
+                        $('#emp-td-due-date-display').text(t.due_date).css('color', '#334155');
+                    }
+                } else {
+                    $('#emp-td-due-date-display').text('No due date').css('color', '#94a3b8');
+                }
+
+                // Priority formatting
+                if (t.priority) {
+                    const prioColor = t.priority.toLowerCase() === 'high' ? '#dc2626' : (t.priority.toLowerCase() === 'medium' ? '#2563eb' : '#059669');
+                    $('#emp-td-priority-display').text(t.priority).css('color', prioColor);
+                } else {
+                    $('#emp-td-priority-display').text('Medium').css('color', '#2563eb');
+                }
+
+                // Status checkmark
+                if (_empModalStatus === 1) {
+                    $('#emp-td-check-circle').css({
+                        'background': '#10b981',
+                        'border-color': '#10b981',
+                        'color': '#ffffff'
+                    });
+                } else {
+                    $('#emp-td-check-circle').css({
+                        'background': 'transparent',
+                        'border-color': '#cbd5e1',
+                        'color': 'transparent'
+                    });
+                }
+
+                renderEmpTdActivity(res.comments || [], t);
+            }
+        });
+    }
+
+    function closeEmpTaskDetail() {
+        $('#empTaskDetailOverlay').fadeOut(180);
+        $('body').css('overflow', '');
+        _empModalTaskId = null;
+    }
+
+    function empTdToggleStatus() {
+        if (!_empModalTaskId) return;
+        const newStatus = _empModalStatus === 1 ? 0 : 1;
+        $.ajax({
+            url: '../admin_area/ajax/projects/ajax_toggle_team_todo.php',
+            method: 'POST',
+            data: {
+                task_id: _empModalTaskId,
+                status: newStatus
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res && res.success) {
+                    _empModalStatus = newStatus;
+                    if (newStatus === 1) {
+                        $('#emp-td-check-circle').css({
+                            'background': '#10b981',
+                            'border-color': '#10b981',
+                            'color': '#ffffff'
+                        });
+                    } else {
+                        $('#emp-td-check-circle').css({
+                            'background': 'transparent',
+                            'border-color': '#cbd5e1',
+                            'color': 'transparent'
+                        });
+                    }
+                    if (typeof location !== 'undefined') {
+                        setTimeout(() => location.reload(), 400);
+                    }
+                } else {
+                    alert(res ? res.message : 'Failed to update status.');
+                }
+            },
+            error: function() {
+                alert('Network error while toggling task status.');
+            }
+        });
+    }
+
+    function empTdSubmitComment() {
+        const comment = $('#emp-td-comment-input').val().trim();
+        if (!comment || !_empModalTaskId) return;
+        const btn = $('#emp-td-comment-save');
+        btn.prop('disabled', true).text('Saving...');
+        $.ajax({
+            url: '../admin_area/ajax/projects/ajax_add_todo_comment.php',
+            method: 'POST',
+            dataType: 'json',
+            data: {
+                task_id: _empModalTaskId,
+                comment: comment,
+                posted_by: 'employee'
+            },
+            success: function(res) {
+                btn.prop('disabled', false).text('Save');
+                if (typeof res === 'string') {
+                    try {
+                        res = JSON.parse(res);
+                    } catch (e) {}
+                }
+                if (res && res.success) {
+                    $('#emp-td-comment-input').val('');
+                    $('#emp-td-comment-actions').hide();
+                    $.ajax({
+                        url: '../admin_area/ajax/projects/ajax_get_todo_detail.php',
+                        method: 'POST',
+                        dataType: 'json',
+                        data: {
+                            task_id: _empModalTaskId
+                        },
+                        success: function(r) {
+                            if (typeof r === 'string') {
+                                try {
+                                    r = JSON.parse(r);
+                                } catch (e) {}
+                            }
+                            if (r && r.success) renderEmpTdActivity(r.comments || [], r.task);
+                        }
+                    });
+                } else {
+                    alert(res && res.message ? res.message : 'Could not save comment.');
+                }
+            },
+            error: function(xhr, status, err) {
+                btn.prop('disabled', false).text('Save');
+                alert('Server error while saving comment.');
+            }
+        });
+    }
+
+    function renderEmpTdActivity(comments, task) {
+        const list = $('#emp-td-activity');
+        list.empty();
+        comments.forEach(c => {
+            const author = c.author_name || c.admin_name || c.comment_author_emp_name || 'User';
+            const init = author.charAt(0).toUpperCase();
+            const empTag = c.emp_name ?
+                `<span style="display:inline-block; background:#ffeaeb; color:#dd2127; font-size:10px; font-weight:700; border-radius:4px; padding:1px 7px; margin-left:8px; vertical-align:middle;">${escapeHtmlEmp(c.emp_name)}</span>` :
+                '';
+            list.append(`
+                <div class="td-act-item" style="display:flex; gap:12px; margin-bottom:14px;">
+                    <div style="width:32px; height:32px; border-radius:50%; background:#dd2127; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex-shrink:0;">${escapeHtmlEmp(init)}</div>
+                    <div style="flex:1; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <strong style="font-size:13px; color:#0f172a;">${escapeHtmlEmp(author)}</strong>${empTag}
+                            <small style="font-size:11px; color:#94a3b8;">${empTdTimeAgo(c.created_at)}</small>
+                        </div>
+                        <div style="font-size:13px; color:#334155; line-height:1.4;">${escapeHtmlEmp(c.comment)}</div>
+                    </div>
+                </div>
+            `);
+        });
+
+        if (task.created_at) {
+            list.append(`
+                <div style="font-size:12px; color:#64748b; padding:8px 0; border-top:1px solid #f1f5f9; display:flex; align-items:center; gap:8px;">
+                    <i class="fa fa-plus-circle" style="color:#dd2127;"></i> Task created &nbsp;<small style="color:#94a3b8;">${empTdTimeAgo(task.created_at)}</small>
+                </div>
+            `);
+        }
+
+        if (comments.length === 0 && !task.created_at) {
+            list.html('<div style="color:#94a3b8;font-size:13px;text-align:center;padding:12px;">No activity yet</div>');
+        }
+    }
+
+    function empTdTimeAgo(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr.replace(/-/g, '/'));
+        const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + ' hr ago';
+        return Math.floor(diff / 86400) + 'd ago';
+    }
+
+    function escapeHtmlEmp(unsafe) {
+        if (unsafe === null || unsafe === undefined) return '';
+        return String(unsafe).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
 </script>
+
+<!-- ===== EMPLOYEE TASK DETAIL MODAL HTML ===== -->
+<div id="empTaskDetailOverlay" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); overflow-y: auto; padding: 40px 16px;">
+    <div style="background: #ffffff; border-radius: 20px; max-width: 860px; width: 100%; margin: 0 auto; padding: 24px 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25); position: relative; box-sizing: border-box;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 14px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #475569;">
+                <i class="fa fa-briefcase" style="color: #dd2127;"></i> <span id="emp-td-project-name">Project</span>
+            </div>
+            <button type="button" onclick="closeEmpTaskDetail()" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #f1f5f9; color: #64748b; font-size: 15px; cursor: pointer;" title="Close"><i class="fa fa-times"></i></button>
+        </div>
+
+        <div style="display: flex; gap: 28px; flex-wrap: wrap;">
+            <!-- Left Side: Read-Only Info -->
+            <div style="flex: 1; min-width: 320px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 18px;">
+                    <div id="emp-td-check-circle" onclick="empTdToggleStatus()" style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; justify-content: center; color: transparent; transition: 0.2s;" title="Toggle Mark Complete">
+                        <i class="fa fa-check" style="font-size: 12px;"></i>
+                    </div>
+                    <input type="text" id="emp-td-title" readonly style="flex: 1; font-size: 18px; font-weight: 800; color: #0f172a; border: none; background: transparent; pointer-events: none; outline: none;">
+                </div>
+
+                <div style="display: flex; gap: 16px; margin-bottom: 20px; background: #f8fafc; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div>
+                        <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px;">DUE DATE</label>
+                        <div id="emp-td-due-date-display" style="font-size: 13px; font-weight: 700; color: #334155; margin-top: 2px;">--</div>
+                    </div>
+                    <div style="border-left: 1px solid #e2e8f0; padding-left: 16px;">
+                        <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px;">PRIORITY</label>
+                        <div id="emp-td-priority-display" style="font-size: 13px; font-weight: 700; color: #dc2626; margin-top: 2px;">--</div>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 8px; letter-spacing: 0.5px;"><i class="fa fa-align-left"></i> Description</label>
+                    <textarea id="emp-td-description" readonly rows="5" style="width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; font-size: 13px; color: #334155; background: #f8fafc; outline: none; resize: vertical;"></textarea>
+                </div>
+            </div>
+
+            <!-- Right Side: Comment & Activity Stream -->
+            <div style="flex: 1; min-width: 300px; border-left: 1px solid #f1f5f9; padding-left: 24px;">
+                <h4 style="margin: 0 0 14px 0; font-size: 14px; font-weight: 800; color: #0f172a;"><i class="fa fa-comments-o"></i> Comments & Activity</h4>
+
+                <div style="margin-bottom: 18px;">
+                    <textarea id="emp-td-comment-input" rows="2" placeholder="Write a comment..." style="width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; font-size: 13px; outline: none;" onfocus="document.getElementById('emp-td-comment-actions').style.display='flex';" onkeydown="if(event.ctrlKey && event.key==='Enter'){empTdSubmitComment();}"></textarea>
+                    <div id="emp-td-comment-actions" style="display: none; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <span style="font-size: 11px; color: #94a3b8;">Ctrl + Enter to post</span>
+                        <button type="button" id="emp-td-comment-save" onclick="empTdSubmitComment()" style="background: #dd2127; color: #fff; border: none; border-radius: 8px; padding: 6px 16px; font-size: 12px; font-weight: 700; cursor: pointer;">Save</button>
+                    </div>
+                </div>
+
+                <div id="emp-td-activity" style="max-height: 280px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+</div>

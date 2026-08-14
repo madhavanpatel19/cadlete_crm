@@ -12,8 +12,25 @@ if (!function_exists('isSuperAdmin')) {
 if (isset($_GET['project_id'])) {
     $project_id = mysqli_real_escape_string($con, $_GET['project_id']);
 
-    $is_super = isSuperAdmin();
-    $where_proposal = $is_super ? "" : " AND (is_proposal = 0 OR is_proposal IS NULL) ";
+    $current_admin_id = 0;
+    if (isset($_SESSION['admin_email'])) {
+        $email_esc = mysqli_real_escape_string($con, $_SESSION['admin_email']);
+        $r_adm = mysqli_query($con, "SELECT admin_id FROM admins WHERE admin_email = '$email_esc' LIMIT 1");
+        if ($r_adm && $row_a = mysqli_fetch_assoc($r_adm)) {
+            $current_admin_id = (int)$row_a['admin_id'];
+        }
+    }
+
+    $res_p = mysqli_query($con, "SELECT assigned_admins FROM client_projects WHERE id = '$project_id' LIMIT 1");
+    $assigned_admins_list = [];
+    if ($res_p && $row_p = mysqli_fetch_assoc($res_p)) {
+        if (!empty($row_p['assigned_admins'])) {
+            $assigned_admins_list = array_map('trim', explode(',', $row_p['assigned_admins']));
+        }
+    }
+
+    $can_see_proposal = isSuperAdmin() || ($current_admin_id > 0 && in_array((string)$current_admin_id, $assigned_admins_list, true));
+    $where_proposal = $can_see_proposal ? "" : " AND (is_proposal = 0 OR is_proposal IS NULL) ";
 
     $get_docs = "SELECT * FROM project_documents WHERE project_id = '$project_id' AND deleted_at IS NULL $where_proposal ORDER BY created_at DESC";
     $run_docs = mysqli_query($con, $get_docs);
@@ -33,12 +50,15 @@ if (isset($_GET['project_id'])) {
                     $file_url = htmlspecialchars($raw_path);
                     $target_attr = 'target="_blank"';
                 } else {
-                    $possible_paths = [
+                    $file_basename = basename($raw_path);
+                    $possible_paths = array_unique([
                         $raw_path,
-                        'project_docs/' . ltrim($raw_path, '/'),
-                        'uploads/' . ltrim($raw_path, '/'),
-                        'uploads/project_docs/' . ltrim($raw_path, '/')
-                    ];
+                        'uploads/project_documents/' . $file_basename,
+                        'uploads/project_docs/' . $file_basename,
+                        'project_documents/' . $file_basename,
+                        'project_docs/' . $file_basename,
+                        'uploads/' . $file_basename
+                    ]);
 
                     $found_rel_path = null;
                     foreach ($possible_paths as $p) {
@@ -54,7 +74,7 @@ if (isset($_GET['project_id'])) {
                         $target_attr = 'target="_blank"';
                     } else {
                         $file_url = 'javascript:void(0);';
-                        $onclick_attr = 'onclick="Swal.fire(\'File Not Found\', \'The file (' . htmlspecialchars(basename($raw_path)) . ') is not stored on the server.\', \'warning\'); return false;"';
+                        $onclick_attr = 'onclick="Swal.fire(\'File Not Found\', \'The file (' . htmlspecialchars($file_basename) . ') is not stored on the server.\', \'warning\'); return false;"';
                     }
                 }
             } else {
@@ -82,7 +102,7 @@ if (isset($_GET['project_id'])) {
 
             $badge_html = '';
             if ($is_proposal) {
-                $badge_html = '<span style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa fa-lock"></i> PROPOSAL (SUPER ADMIN ONLY)</span>';
+                $badge_html = '<span style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa fa-lock"></i> PROPOSAL (SUPER ADMIN & ASSIGNED ADMIN)</span>';
             }
 
             echo '

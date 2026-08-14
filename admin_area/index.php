@@ -622,7 +622,7 @@ if (!isset($_SESSION['admin_email'])) {
             // Automatically convert all input[type="date"] & input[type="datetime-local"] to display dd-mm-yyyy format
             function initGlobalFlatpickr() {
                 if (typeof flatpickr !== 'function') return;
-                $('input[type="date"], input[type="datetime-local"]').each(function() {
+                $('input[type="date"], input[type="datetime-local"]').not('.no-global-flatpickr').each(function() {
                     if (this._flatpickr || $(this).hasClass('flatpickr-input')) return;
                     var $input = $(this);
                     var isReadonly = $input.is('[readonly]');

@@ -1,7 +1,11 @@
 <?php
+ob_start();
 session_start();
 if (!isset($con)) {
     include(__DIR__ . '/../../includes/db.php');
+}
+if (!function_exists('canAdminAccess')) {
+    require_once __DIR__ . '/../../includes/admin_permissions.php';
 }
 
 header('Content-Type: application/json');
@@ -19,22 +23,24 @@ if ($emp_id == 0) {
     exit();
 }
 
-$query = "";
 if ($project_id == 0) {
-    // Global view
-    $query = "SELECT t.*, p.project_name FROM project_team_todos t LEFT JOIN client_projects p ON t.project_id = p.id WHERE t.emp_id = $emp_id AND t.deleted_at IS NULL ORDER BY t.status ASC, CASE WHEN t.priority = 'High' THEN 1 WHEN t.priority = 'Medium' THEN 2 ELSE 3 END ASC, t.due_date ASC, t.id DESC";
+    $query = "SELECT t.id, t.project_id, t.emp_id, t.task_name, t.description, t.due_date, t.priority, t.status, t.completed_at, t.created_at FROM project_team_todos t WHERE t.emp_id = $emp_id AND t.deleted_at IS NULL ORDER BY t.status ASC, CASE WHEN t.priority = 'High' THEN 1 WHEN t.priority = 'Medium' THEN 2 ELSE 3 END ASC, t.id DESC";
 } else {
-    // Project specific view
-    $query = "SELECT t.*, p.project_name FROM project_team_todos t JOIN client_projects p ON t.project_id = p.id WHERE t.project_id = $project_id AND t.emp_id = $emp_id AND t.deleted_at IS NULL ORDER BY t.status ASC, CASE WHEN t.priority = 'High' THEN 1 WHEN t.priority = 'Medium' THEN 2 ELSE 3 END ASC, t.due_date ASC, t.id DESC";
+    $query = "SELECT t.id, t.project_id, t.emp_id, t.task_name, t.description, t.due_date, t.priority, t.status, t.completed_at, t.created_at FROM project_team_todos t WHERE t.project_id = $project_id AND t.emp_id = $emp_id AND t.deleted_at IS NULL ORDER BY t.status ASC, CASE WHEN t.priority = 'High' THEN 1 WHEN t.priority = 'Medium' THEN 2 ELSE 3 END ASC, t.id DESC";
 }
 
 $result = mysqli_query($con, $query);
 
-$tasks = [];
-if ($result) {
-    while ($row = mysqli_fetch_assoc($result)) {
-        $tasks[] = $row;
-    }
+if (!$result) {
+    ob_end_clean();
+    echo json_encode(['success' => false, 'message' => 'Query error: ' . mysqli_error($con)]);
+    exit();
 }
 
+$tasks = [];
+while ($row = mysqli_fetch_assoc($result)) {
+    $tasks[] = $row;
+}
+
+ob_end_clean();
 echo json_encode(['success' => true, 'tasks' => $tasks]);

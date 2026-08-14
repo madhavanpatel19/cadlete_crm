@@ -224,8 +224,8 @@ if (isset($_POST['submit_project'])) {
             }
         }
 
-        // Insert Proposal Documents (Super Admin Only)
-        if (isSuperAdmin() && isset($_FILES['proposal_file']) && is_array($_FILES['proposal_file']['name'])) {
+        // Insert Proposal Documents (Super Admin & Admin)
+        if ((isSuperAdmin() || isset($_SESSION['admin_email'])) && isset($_FILES['proposal_file']) && is_array($_FILES['proposal_file']['name'])) {
             $docDir = __DIR__ . "/../../uploads/project_documents/";
             if (!is_dir($docDir)) mkdir($docDir, 0777, true);
             foreach ($_FILES['proposal_file']['name'] as $key => $fileName) {
@@ -688,13 +688,13 @@ $run_admins = mysqli_query($con, $get_admins);
                         </button>
                     </div>
 
-                    <?php if (isSuperAdmin()): ?>
-                        <!-- Project Proposal Section (Super Admin Only) -->
+                    <?php if (isSuperAdmin() || isset($_SESSION['admin_email'])): ?>
+                        <!-- Project Proposal Section (Super Admin & Assigned Admin) -->
                         <div style="margin-top: 40px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                                 <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #991b1b; display: flex; align-items: center; gap: 8px;">
                                     <i class="fa fa-lock" style="color: #dc2626;"></i> Project Proposal
-                                    <span style="font-size: 10px; font-weight: 800; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 6px; text-transform: uppercase;">Super Admin Only</span>
+                                    <span style="font-size: 10px; font-weight: 800; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 6px; text-transform: uppercase;">Super Admin & Assigned Admin</span>
                                 </h4>
                             </div>
 

@@ -110,10 +110,29 @@ if ($res && mysqli_num_rows($res) > 0) {
     </div> -->
     <?php
     // ---- Fetch Stats for Dashboard Cards ----
+    $dash_admin_id = 0;
+    $dash_is_super = false;
+    if (isset($_SESSION['admin_email'])) {
+        $dash_email_esc = mysqli_real_escape_string($con, $_SESSION['admin_email']);
+        $r_dash = mysqli_query($con, "SELECT admin_id, is_super_admin FROM admins WHERE admin_email='$dash_email_esc' LIMIT 1");
+        if ($r_dash && $row_dash = mysqli_fetch_assoc($r_dash)) {
+            $dash_admin_id = (int)$row_dash['admin_id'];
+            $dash_is_super = !empty($row_dash['is_super_admin']);
+        }
+    }
+
+    $dash_proj_filter = '';
+    $dash_cp_filter = '';
+    if (!$dash_is_super && $dash_admin_id > 0) {
+        if (canAdminAccess('project_assigned_only') || canAdminAccess('subadmin_assigned_project_only')) {
+            $dash_proj_filter = " AND (FIND_IN_SET('$dash_admin_id', REPLACE(assigned_admins, ' ', '')) > 0) ";
+            $dash_cp_filter   = " AND (FIND_IN_SET('$dash_admin_id', REPLACE(cp.assigned_admins, ' ', '')) > 0) ";
+        }
+    }
 
     // Total Projects
     $total_projects = 0;
-    $q_tp = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL";
+    $q_tp = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL $dash_proj_filter";
     $r_tp = mysqli_query($con, $q_tp);
     if ($r_tp && $row_tp = mysqli_fetch_assoc($r_tp)) {
         $total_projects = (int)$row_tp['total'];
@@ -121,7 +140,7 @@ if ($res && mysqli_num_rows($res) > 0) {
 
     // Active Projects
     $active_projects = 0;
-    $q_ap = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL AND (LOWER(status) LIKE '%active%' OR LOWER(status) LIKE '%progress%')";
+    $q_ap = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL AND (LOWER(status) LIKE '%active%' OR LOWER(status) LIKE '%progress%') $dash_proj_filter";
     $r_ap = mysqli_query($con, $q_ap);
     if ($r_ap && $row_ap = mysqli_fetch_assoc($r_ap)) {
         $active_projects = (int)$row_ap['total'];
@@ -150,14 +169,14 @@ if ($res && mysqli_num_rows($res) > 0) {
 
     // Projects this month vs last month
     $proj_this_month = 0;
-    $q_ptm = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL AND created_at >= '$this_month_start'";
+    $q_ptm = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL AND created_at >= '$this_month_start' $dash_proj_filter";
     $r_ptm = mysqli_query($con, $q_ptm);
     if ($r_ptm && $row_ptm = mysqli_fetch_assoc($r_ptm)) {
         $proj_this_month = (int)$row_ptm['total'];
     }
 
     $proj_last_month = 0;
-    $q_plm = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL AND created_at >= '$last_month_start' AND created_at <= '$last_month_end'";
+    $q_plm = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL AND created_at >= '$last_month_start' AND created_at <= '$last_month_end' $dash_proj_filter";
     $r_plm = mysqli_query($con, $q_plm);
     if ($r_plm && $row_plm = mysqli_fetch_assoc($r_plm)) {
         $proj_last_month = (int)$row_plm['total'];
@@ -182,14 +201,14 @@ if ($res && mysqli_num_rows($res) > 0) {
 
     // Active projects change
     $active_this_month = 0;
-    $q_atm = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL AND (LOWER(status) LIKE '%active%' OR LOWER(status) LIKE '%progress%') AND created_at >= '$this_month_start'";
+    $q_atm = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL AND (LOWER(status) LIKE '%active%' OR LOWER(status) LIKE '%progress%') AND created_at >= '$this_month_start' $dash_proj_filter";
     $r_atm = mysqli_query($con, $q_atm);
     if ($r_atm && $row_atm = mysqli_fetch_assoc($r_atm)) {
         $active_this_month = (int)$row_atm['total'];
     }
 
     $active_last_month = 0;
-    $q_alm = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL AND (LOWER(status) LIKE '%active%' OR LOWER(status) LIKE '%progress%') AND created_at >= '$last_month_start' AND created_at <= '$last_month_end'";
+    $q_alm = "SELECT COUNT(*) AS total FROM client_projects WHERE deleted_at IS NULL AND (LOWER(status) LIKE '%active%' OR LOWER(status) LIKE '%progress%') AND created_at >= '$last_month_start' AND created_at <= '$last_month_end' $dash_proj_filter";
     $r_alm = mysqli_query($con, $q_alm);
     if ($r_alm && $row_alm = mysqli_fetch_assoc($r_alm)) {
         $active_last_month = (int)$row_alm['total'];
@@ -266,7 +285,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                 </thead>
                 <tbody>
                     <?php
-                    $q_recent_proj = "SELECT cp.*, c.name as client_name FROM client_projects cp JOIN clients c ON cp.client_id = c.id WHERE cp.deleted_at IS NULL AND c.deleted_at IS NULL ORDER BY cp.id DESC LIMIT 4";
+                    $q_recent_proj = "SELECT cp.*, c.name as client_name FROM client_projects cp JOIN clients c ON cp.client_id = c.id WHERE cp.deleted_at IS NULL AND c.deleted_at IS NULL $dash_cp_filter ORDER BY cp.id DESC LIMIT 4";
                     $run_recent_proj = mysqli_query($con, $q_recent_proj);
 
                     if ($run_recent_proj && mysqli_num_rows($run_recent_proj) > 0) {

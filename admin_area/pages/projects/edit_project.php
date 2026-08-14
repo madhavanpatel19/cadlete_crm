@@ -261,8 +261,22 @@ if (isset($_POST['submit_project'])) {
             }
         }
 
-        // Insert Proposal Documents (Super Admin Only)
-        if (isSuperAdmin() && isset($_FILES['proposal_file']) && is_array($_FILES['proposal_file']['name'])) {
+        // Insert Proposal Documents (Super Admin & Assigned Admin)
+        $current_admin_id = 0;
+        if (isset($_SESSION['admin_email'])) {
+            $email_esc = mysqli_real_escape_string($con, $_SESSION['admin_email']);
+            $r_curr = mysqli_query($con, "SELECT admin_id FROM admins WHERE admin_email = '$email_esc' LIMIT 1");
+            if ($r_curr && $row_c = mysqli_fetch_assoc($r_curr)) {
+                $current_admin_id = (int)$row_c['admin_id'];
+            }
+        }
+        $assigned_admins_post = isset($_POST['assigned_admins']) ? $_POST['assigned_admins'] : [];
+        if (!is_array($assigned_admins_post)) {
+            $assigned_admins_post = explode(',', $assigned_admins_post);
+        }
+        $can_upload_proposal = isSuperAdmin() || ($current_admin_id > 0 && (in_array((string)$current_admin_id, array_map('trim', $existing_admins), true) || in_array((string)$current_admin_id, array_map('trim', $assigned_admins_post), true)));
+
+        if ($can_upload_proposal && isset($_FILES['proposal_file']) && is_array($_FILES['proposal_file']['name'])) {
             $docDir = __DIR__ . "/../../uploads/project_documents/";
             if (!is_dir($docDir)) mkdir($docDir, 0777, true);
             foreach ($_FILES['proposal_file']['name'] as $key => $fileName) {
@@ -825,13 +839,16 @@ $run_admins = mysqli_query($con, $get_admins);
                         </button>
                     </div>
 
-                    <?php if (isSuperAdmin()): ?>
-                        <!-- Dedicated Project Proposal Section (Super Admin Only) -->
+                    <?php 
+                    $can_show_proposal = isSuperAdmin() || ($current_admin_id > 0 && in_array((string)$current_admin_id, array_map('trim', $existing_admins), true));
+                    if ($can_show_proposal): 
+                    ?>
+                        <!-- Dedicated Project Proposal Section (Super Admin & Assigned Admin) -->
                         <div style="margin-top: 40px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                                 <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #991b1b; display: flex; align-items: center; gap: 8px;">
                                     <i class="fa fa-lock" style="color: #dc2626;"></i> Project Proposal
-                                    <span style="font-size: 10px; font-weight: 800; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 6px; text-transform: uppercase;">Super Admin Only</span>
+                                    <span style="font-size: 10px; font-weight: 800; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 6px; text-transform: uppercase;">Super Admin & Assigned Admin</span>
                                 </h4>
                             </div>
 
@@ -856,8 +873,16 @@ $run_admins = mysqli_query($con, $get_admins);
                                                         <input type="text" class="p-input-premium" style="height: 42px; border-radius: 6px; width: 100%; background:#fff5f5; color:#991b1b; font-weight:600;" value="<?php echo htmlspecialchars($prop['document_name']); ?>" readonly>
                                                     </td>
                                                     <td style="padding: 15px 20px;">
-                                                        <a href="uploads/project_documents/<?php echo htmlspecialchars($prop['file_path']); ?>" target="_blank" style="font-size: 13px; color: #dc2626; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
-                                                            <i class="fa fa-file-text-o"></i> View Proposal File (<?php echo htmlspecialchars(basename($prop['file_path'])); ?>)
+                                                        <?php
+                                                        $p_file_raw = $prop['file_path'];
+                                                        $p_basename = basename($p_file_raw);
+                                                        $p_url = 'uploads/project_documents/' . $p_basename;
+                                                        if (!file_exists(__DIR__ . '/../../' . $p_url) && file_exists(__DIR__ . '/../../project_docs/' . $p_basename)) {
+                                                            $p_url = 'project_docs/' . $p_basename;
+                                                        }
+                                                        ?>
+                                                        <a href="<?php echo htmlspecialchars($p_url); ?>" target="_blank" style="font-size: 13px; color: #dc2626; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                                                            <i class="fa fa-file-text-o"></i> View Proposal File (<?php echo htmlspecialchars($p_basename); ?>)
                                                         </a>
                                                     </td>
                                                     <td style="padding: 15px 20px; text-align: center;">

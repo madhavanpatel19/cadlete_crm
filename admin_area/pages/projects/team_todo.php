@@ -25,102 +25,17 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
 
 ?>
 
-<div class="page-wrapper premium-ui-enabled" style="background: #f8fafc; min-height: calc(100vh - 60px);">
-    <div class="page-header-premium" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
-        <div style="display: flex; align-items: center; gap: 20px;">
-            <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 10px;">
-                <i class="fa fa-list-alt" style="color: #dc2626;"></i> Team To-Do
-            </h1>
-            <div style="padding: 8px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-weight: 700; color: #334155; display: flex; align-items: center; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                <i class="fa fa-building-o" style="color: #64748b;"></i> <?php echo htmlspecialchars($project['project_name']); ?>
-            </div>
-        </div>
-        <div class="header-actions-premium" style="display: flex; gap: 16px; align-items: center;">
-            <div style="position: relative;">
-                <input type="date" id="task-date-filter" style="padding: 10px 15px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 500; outline: none; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" title="Filter by Due Date">
-            </div>
-            <div style="position: relative;">
-                <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px;"></i>
-                <input type="text" id="task-search" placeholder="Search tasks..." style="width: 250px; padding: 10px 15px 10px 38px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 500; outline: none; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            </div>
-            <a href="index.php?view_projects&id=<?php echo $project['client_id']; ?>" class="btn-premium-cancel">
-                <i class="fa fa-arrow-left"></i> Back to Project
-            </a>
-        </div>
-    </div>
-
-    <div class="todo-board">
-        <?php
-        if (empty($assigned_employees)) {
-            echo '<div style="text-align: center; width: 100%; padding: 50px; color: #64748b; font-weight: 600;">No employees assigned to this project.</div>';
-        } else {
-            foreach ($assigned_employees as $emp_id) {
-                $emp_id = intval($emp_id);
-                $get_emp = mysqli_query($con, "SELECT * FROM emp_list WHERE id = $emp_id");
-                $emp = mysqli_fetch_assoc($get_emp);
-                if (!$emp) continue;
-
-                $emp_name = htmlspecialchars($emp['name']);
-                $emp_job = htmlspecialchars($emp['job_title'] ?? 'Employee');
-                $emp_img = !empty($emp['employee_image']) ? 'uploads/' . htmlspecialchars($emp['employee_image']) : null;
-        ?>
-                <div class="todo-column" data-emp-id="<?php echo $emp_id; ?>">
-                    <div class="todo-col-header">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <?php if ($emp_img && file_exists('../../' . $emp_img)) { ?>
-                                <img src="<?php echo $emp_img; ?>" class="emp-avatar">
-                            <?php } else { ?>
-                                <div class="emp-avatar-fallback"><?php echo strtoupper(substr($emp_name, 0, 1)); ?></div>
-                            <?php } ?>
-                            <div>
-                                <div class="emp-name"><?php echo $emp_name; ?></div>
-                                <div class="emp-role"><?php echo $emp_job; ?></div>
-                            </div>
-                        </div>
-                        <button class="icon-btn"><i class="fa fa-ellipsis-v"></i></button>
-                    </div>
-
-                    <?php if (function_exists('canAdminAccess') && (canAdminAccess('todo_insert') || canAdminAccess('project_assign_task'))): ?>
-                        <div class="add-task-trigger" onclick="showAddTask(<?php echo $emp_id; ?>)">
-                            <i class="fa fa-plus-circle" style="font-size: 16px; color: #94a3b8;"></i>
-                            <span>Add a task</span>
-                        </div>
-                    <?php endif; ?>
-
-                    <div class="add-task-form" id="add-form-<?php echo $emp_id; ?>" style="display: none;">
-                        <input type="text" class="task-input" id="task-input-<?php echo $emp_id; ?>" placeholder="What needs to be done?">
-                        <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
-                            <input type="date" class="task-date-input" id="task-date-<?php echo $emp_id; ?>">
-                            <select class="task-priority-input" id="task-priority-<?php echo $emp_id; ?>">
-                                <option value="Low">Low Priority</option>
-                                <option value="Medium" selected>Medium Priority</option>
-                                <option value="High">High Priority</option>
-                            </select>
-                            <button class="btn-premium-add" onclick="saveTask(<?php echo $emp_id; ?>)">Add</button>
-                            <button class="btn-premium-cancel" onclick="hideAddTask(<?php echo $emp_id; ?>)">Cancel</button>
-                        </div>
-                    </div>
-
-                    <div class="task-list" id="task-list-<?php echo $emp_id; ?>">
-                        <div style="text-align: center; padding: 20px;"><i class="fa fa-spinner fa-spin" style="color: #cbd5e1;"></i></div>
-                    </div>
-                </div>
-        <?php
-            }
-        }
-        ?>
-    </div>
-</div>
-
 <style>
+    /* Board & Layout Styling */
     .todo-board {
-        display: flex;
-        gap: 20px;
-        overflow-x: auto;
-        padding-bottom: 20px;
-        align-items: flex-start;
-        scrollbar-width: thin;
-        scrollbar-color: #cbd5e1 #f1f5f9;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 24px !important;
+        overflow-x: auto !important;
+        padding-bottom: 24px !important;
+        align-items: flex-start !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 
     .todo-board::-webkit-scrollbar {
@@ -142,347 +57,996 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
     }
 
     .todo-column {
-        min-width: 360px;
-        max-width: 360px;
-        flex: 0 0 360px;
-        background: #ffffff;
-        border: 1px solid #e8edf3;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-        transition: box-shadow 0.2s ease, transform 0.2s ease;
-    }
-
-    .todo-column:hover {
-        box-shadow: 0 4px 16px rgba(220, 38, 38, 0.1);
-        transform: translateY(-2px);
+        min-width: 360px !important;
+        max-width: 360px !important;
+        flex: 0 0 360px !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 16px !important;
+        padding: 22px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02) !important;
+        box-sizing: border-box !important;
     }
 
     .todo-col-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 16px 20px;
-        border-left: 4px solid #dc2626;
-        background: #fff;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        margin-bottom: 18px !important;
+        padding-bottom: 12px !important;
+        border-bottom: 1px solid #f1f5f9 !important;
     }
 
     .emp-avatar {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid #fff;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        flex-shrink: 0 !important;
     }
 
     .emp-avatar-fallback {
-        width: 44px;
-        height: 44px;
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 50% !important;
+        background: #ffeaeb !important;
+        color: #dd2127 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-weight: 800 !important;
+        font-size: 15px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .emp-name {
+        font-weight: 800 !important;
+        font-size: 15px !important;
+        color: #0f172a !important;
+    }
+
+    .emp-role {
+        font-weight: 600 !important;
+        font-size: 12px !important;
+        color: #64748b !important;
+        margin-top: 2px !important;
+    }
+
+    .icon-btn {
+        background: transparent !important;
+        border: none !important;
+        color: #94a3b8 !important;
+        cursor: pointer !important;
+        font-size: 16px !important;
+        padding: 5px !important;
+        transition: 0.2s !important;
+    }
+
+    .icon-btn:hover {
+        color: #dd2127 !important;
+    }
+
+    .add-task-trigger {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        color: #64748b !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        cursor: pointer !important;
+        padding: 10px 14px !important;
+        background: #f8fafc !important;
+        border: 1px dashed #cbd5e1 !important;
+        border-radius: 10px !important;
+        margin-bottom: 14px !important;
+        transition: 0.2s !important;
+    }
+
+    .add-task-trigger:hover {
+        color: #dd2127 !important;
+        border-color: #fca5a5 !important;
+        background: #ffeaeb !important;
+    }
+
+    .add-task-form {
+        background: #fafafa !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        padding: 14px !important;
+        margin-bottom: 14px !important;
+    }
+
+    .task-input {
+        width: 100% !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        padding: 9px 12px !important;
+        font-size: 13.5px !important;
+        font-weight: 500 !important;
+        outline: none !important;
+        transition: 0.2s !important;
+        box-sizing: border-box !important;
+    }
+
+    .task-input:focus {
+        border-color: #dd2127 !important;
+        box-shadow: 0 0 0 3px #ffeaeb !important;
+    }
+
+    .task-date-input,
+    .task-priority-input {
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        padding: 6px 10px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #475569 !important;
+        outline: none !important;
+    }
+
+    .save-task-btn {
+        background: #dd2127 !important;
+        color: #fff !important;
+        border: none !important;
+        border-radius: 6px !important;
+        padding: 6px 16px !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        cursor: pointer !important;
+        transition: 0.15s !important;
+    }
+
+    .save-task-btn:hover {
+        background: #b91c1c !important;
+    }
+
+    .cancel-task-btn {
+        background: #fff !important;
+        color: #64748b !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        padding: 6px 14px !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        cursor: pointer !important;
+    }
+
+    .task-item {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 12px 0 !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        transition: 0.2s !important;
+    }
+
+    .task-item:last-child {
+        border-bottom: none !important;
+    }
+
+    .task-checkbox {
+        width: 20px !important;
+        height: 20px !important;
+        border-radius: 50% !important;
+        border: 2px solid #cbd5e1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: 0.2s !important;
+        flex-shrink: 0 !important;
+    }
+
+    .task-checkbox:hover {
+        border-color: #dd2127 !important;
+        background: #ffeaeb !important;
+    }
+
+    .task-checkbox i {
+        display: none !important;
+        color: #fff !important;
+        font-size: 10px !important;
+    }
+
+    .task-item.completed .task-checkbox {
+        background: #dd2127 !important;
+        border-color: #dd2127 !important;
+    }
+
+    .task-item.completed .task-checkbox i {
+        display: block !important;
+    }
+
+    .task-name {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        color: #334155 !important;
+        flex: 1 !important;
+        transition: 0.2s !important;
+    }
+
+    .task-name-clickable {
+        cursor: pointer !important;
+    }
+
+    .task-name-clickable:hover {
+        color: #dd2127 !important;
+        text-decoration: underline !important;
+    }
+
+    .task-item.completed .task-name {
+        text-decoration: line-through !important;
+        color: #94a3b8 !important;
+    }
+
+    .task-meta {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+    }
+
+    .date-badge {
+        background: #ffeaeb !important;
+        color: #dd2127 !important;
+        padding: 3px 8px !important;
+        border-radius: 6px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+    }
+
+    .priority-flag {
+        font-size: 11px !important;
+    }
+
+    .priority-High {
+        color: #ef4444 !important;
+    }
+
+    .priority-Medium {
+        color: #f59e0b !important;
+    }
+
+    .priority-Low {
+        color: #22c55e !important;
+    }
+
+    /* Modal Overlay & Trello Container */
+    #taskDetailOverlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(4px);
+        overflow-y: auto;
+        padding: 40px 16px;
+        font-family: inherit;
+    }
+
+    #taskDetailModal {
+        background: #ffffff;
+        border-radius: 16px;
+        max-width: 900px;
+        width: 100%;
+        height: 580px;
+        max-height: 88vh;
+        margin: 0 auto;
+        padding: 24px 28px 26px;
+        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        animation: tdSlideIn .2s ease;
+    }
+
+    .tdm-top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+        flex-shrink: 0;
+    }
+
+    .tdm-list-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
+        background: #f1f5f9;
+        border-radius: 6px;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #334155;
+        cursor: pointer;
+        transition: 0.15s;
+    }
+
+    .tdm-list-tag:hover {
+        background: #ffeaeb;
+        color: #dd2127;
+    }
+
+    .tdm-top-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .tdm-icon-btn {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 5px 12px;
+        color: #64748b;
+        font-size: 13px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: 0.15s;
+    }
+
+    .tdm-icon-btn:hover {
+        background: #ffeaeb;
+        color: #dd2127;
+        border-color: #fca5a5;
+    }
+
+    .tdm-close {
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #fef2f2, #fee2e2);
-        color: #dc2626;
+        border: none;
+        background: #f1f5f9;
+        color: #64748b;
+        font-size: 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.15s;
+        line-height: 1;
+    }
+
+    .tdm-close:hover {
+        background: #ffeaeb;
+        color: #dd2127;
+    }
+
+    .tdm-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-shrink: 0;
+    }
+
+    .tdm-check {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-top: 4px;
+        transition: 0.2s;
+        color: transparent;
+        font-size: 12px;
+    }
+
+    .tdm-check:hover {
+        border-color: #dd2127;
+        background: #ffeaeb;
+    }
+
+    .tdm-check.td-completed {
+        background: #dd2127;
+        border-color: #dd2127;
+        color: #fff;
+    }
+
+    .tdm-title-input {
+        width: 100%;
+        border: none;
+        border-bottom: 2px solid transparent;
+        outline: none;
+        font-size: 22px;
+        font-weight: 800;
+        color: #0f172a;
+        resize: none;
+        font-family: inherit;
+        line-height: 1.35;
+        padding: 2px 0;
+        background: transparent;
+        transition: border-bottom-color 0.2s;
+    }
+
+    .tdm-body {
+        display: flex;
+        gap: 24px;
+        align-items: stretch;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 18px;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .tdm-left {
+        flex: 1.1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        padding-right: 6px;
+    }
+
+    .tdm-right {
+        flex: 0.9;
+        min-width: 0;
+        background: #fafafa;
+        border: 1px solid #f1f5f9;
+        border-radius: 12px;
+        padding: 16px 14px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .tdm-meta-row {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+        flex-shrink: 0;
+    }
+
+    .tdm-meta-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .tdm-meta-label {
+        font-size: 10px;
+        font-weight: 800;
+        color: #94a3b8;
+        letter-spacing: 0.8px;
+    }
+
+    .tdm-date-input,
+    .tdm-select {
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 7px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+        outline: none;
+        cursor: pointer;
+        background: #fff;
+        transition: 0.15s;
+    }
+
+    .tdm-date-input:focus,
+    .tdm-select:focus {
+        border-color: #dd2127;
+        box-shadow: 0 0 0 3px #ffeaeb;
+    }
+
+    .tdm-section {
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .tdm-section-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .tdm-section-title i {
+        color: #dd2127;
+        font-size: 15px;
+    }
+
+    .tdm-desc {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 14px 16px;
+        font-size: 13.5px;
+        font-family: inherit;
+        color: #334155;
+        resize: none;
+        outline: none;
+        transition: 0.15s;
+        line-height: 1.6;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        background: #fff;
+    }
+
+    .tdm-desc:focus,
+    .tdm-desc.focused {
+        border-color: #dd2127;
+        box-shadow: 0 0 0 3px #ffeaeb;
+    }
+
+    .tdm-comment-add {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin-bottom: 16px;
+        flex-shrink: 0;
+    }
+
+    .tdm-comment-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #dd2127;
+        color: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 800;
-        font-size: 16px;
-        border: 2px solid #fecaca;
-        flex-shrink: 0;
-    }
-
-    .completed-section-header {
-        margin: 4px 16px 4px;
-        padding: 10px 12px;
-        border-top: 1px solid #f1f5f9;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #94a3b8;
-        font-weight: 600;
-        font-size: 11px;
-        border-radius: 8px;
-        transition: background 0.15s;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        user-select: none;
-    }
-
-    .completed-section-header:hover {
-        background: #f8fafc;
-        color: #64748b;
-    }
-
-    .emp-name {
-        font-weight: 700;
-        font-size: 15px;
-        color: #0f172a;
-        line-height: 1.3;
-    }
-
-    .emp-role {
-        font-weight: 500;
-        font-size: 11px;
-        color: #94a3b8;
-        margin-top: 2px;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-    }
-
-    .icon-btn {
-        background: transparent;
-        border: none;
-        color: #cbd5e1;
-        cursor: pointer;
-        font-size: 15px;
-        padding: 6px 8px;
-        border-radius: 6px;
-        transition: all 0.15s ease;
-        line-height: 1;
-    }
-
-    .icon-btn:hover {
-        color: #64748b;
-        background: #f1f5f9;
-    }
-
-    .add-task-trigger {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: #64748b;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        padding: 10px 16px;
-        margin-bottom: 5px;
-        transition: 0.2s;
-    }
-
-    .add-task-trigger:hover {
-        color: #dc2626;
-    }
-
-    .add-task-trigger:hover i {
-        color: #dc2626 !important;
-    }
-
-    .add-task-form {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 15px;
-        margin: 0 16px 15px 16px;
-    }
-
-    .task-input {
-        width: 100%;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 10px 14px;
-        font-size: 14px;
-        font-weight: 500;
-        outline: none;
-        transition: 0.2s;
-    }
-
-    .task-input:focus {
-        border-color: #dc2626;
-        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-    }
-
-    .task-date-input,
-    .task-priority-input,
-    .task-project-input {
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 6px 10px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #475569;
-        outline: none;
-    }
-
-    .task-project-input {
         font-size: 13px;
+        flex-shrink: 0;
+        margin-top: 2px;
     }
 
-    .save-task-btn {
-        background: #dc2626;
+    .tdm-comment-textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-size: 13px;
+        font-family: inherit;
+        color: #334155;
+        resize: vertical;
+        outline: none;
+        transition: 0.15s;
+        background: #fff;
+    }
+
+    .tdm-comment-textarea:focus,
+    .tdm-comment-textarea.focused {
+        border-color: #dd2127;
+        box-shadow: 0 0 0 3px #ffeaeb;
+    }
+
+    .tdm-save-btn {
+        background: #dd2127;
         color: #fff;
         border: none;
         border-radius: 6px;
         padding: 6px 16px;
-        font-size: 13px;
+        font-size: 12.5px;
         font-weight: 700;
         cursor: pointer;
+        transition: 0.15s;
     }
 
-    .cancel-task-btn {
-        background: #fff;
-        color: #64748b;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 6px 16px;
-        font-size: 13px;
-        font-weight: 700;
-        cursor: pointer;
+    .tdm-save-btn:hover {
+        background: #b91c1c;
     }
 
-    .task-list {
-        max-height: 400px;
-        overflow-y: auto;
-        padding: 0 16px 12px;
-    }
-
-    .task-list::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    .task-list::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .task-list::-webkit-scrollbar-thumb {
-        background: #e2e8f0;
-        border-radius: 4px;
-    }
-
-    .task-list::-webkit-scrollbar-thumb:hover {
-        background: #cbd5e1;
-    }
-
-    .task-item {
+    .tdm-activity {
         display: flex;
         flex-direction: column;
-        padding: 12px 0;
-        border-bottom: 1px solid #f8fafc;
-        transition: background 0.15s ease;
-        width: 100%;
+        gap: 14px;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: 4px;
     }
 
-    .task-item:last-child {
-        border-bottom: none;
+    .td-act-system {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: #64748b;
     }
 
-    .task-checkbox {
-        width: 20px;
-        height: 20px;
+    .td-act-dot {
+        width: 26px;
+        height: 26px;
         border-radius: 50%;
-        border: 2px solid #d1d5db;
+        background: #ffeaeb;
         display: flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
+        font-size: 11px;
+        color: #dd2127;
         flex-shrink: 0;
-        margin-top: 1px;
     }
 
-    .task-checkbox:hover {
-        border-color: #dc2626;
-        background: #fef2f2;
+    .td-act-item {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
     }
 
-    .task-checkbox i {
-        display: none;
+    .td-act-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #dd2127;
         color: #fff;
-        font-size: 10px;
-    }
-
-    .task-item.completed .task-checkbox {
-        background: #dc2626;
-        border-color: #dc2626;
-    }
-
-    .task-item.completed .task-checkbox i {
-        display: block;
-    }
-
-    .task-proj-name {
-        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-weight: 700;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        white-space: nowrap;
+        font-size: 11px;
         flex-shrink: 0;
+        margin-top: 2px;
     }
 
-    .task-name {
-        font-size: 14px;
-        font-weight: 600;
-        color: #1e293b;
-        line-height: 1.45;
-        word-break: break-word;
+    .td-act-body {
         flex: 1;
         min-width: 0;
     }
 
-    .task-item.completed .task-name {
-        text-decoration: line-through;
-        color: #94a3b8;
-    }
-
-    .task-meta {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        box-sizing: border-box;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 6px;
-        padding-left: 30px;
-    }
-
-    .date-badge {
-        background: #fef2f2;
-        color: #dc2626;
-        padding: 2px 8px;
-        border-radius: 20px;
-        font-size: 11px;
+    .td-act-header {
+        font-size: 12.5px;
         font-weight: 700;
-        border: 1px solid #fecaca;
-        white-space: nowrap;
-        flex-shrink: 0;
-        display: inline-block;
-        line-height: 1.3;
+        color: #0f172a;
+        margin-bottom: 4px;
     }
 
-    .priority-flag {
+    .td-act-header small {
+        font-weight: 400;
+        color: #94a3b8;
+        margin-left: 6px;
+    }
+
+    .td-act-comment {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-size: 13px;
+        color: #334155;
+        line-height: 1.5;
+    }
+
+    .td-act-actions {
+        margin-top: 4px;
+        display: flex;
+        gap: 8px;
+    }
+
+    .td-act-link {
         font-size: 11px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        padding: 2px 8px;
-        border-radius: 20px;
-        white-space: nowrap;
-        flex-shrink: 0;
-        line-height: 1.3;
+        color: #94a3b8;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
     }
 
-    .priority-High {
-        color: #dc2626;
-        background: #fef2f2;
+    .td-act-link:hover {
+        color: #dd2127;
+        text-decoration: underline;
     }
 
-    .priority-Medium {
-        color: #d97706;
-        background: #fffbeb;
+    @keyframes tdSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-12px) scale(0.97);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
     }
 
-    .priority-Low {
-        color: #16a34a;
-        background: #f0fdf4;
+    @media (max-width: 768px) {
+        .tdm-body {
+            flex-direction: column;
+        }
+
+        .tdm-right {
+            width: 100%;
+        }
+
+        #taskDetailModal {
+            padding: 20px 16px 24px;
+        }
     }
 </style>
 
-<script>
-    const canTodoDelete = <?php echo (function_exists('canAdminAccess') && (canAdminAccess('todo_delete') || canAdminAccess('project_assign_task'))) ? 'true' : 'false'; ?>;
-    const canTodoUpdate = <?php echo (function_exists('canAdminAccess') && (canAdminAccess('todo_update') || canAdminAccess('project_assign_task'))) ? 'true' : 'false'; ?>;
-</script>
+<div class="page-wrapper premium-ui-enabled" style="background: #f8fafc; min-height: calc(100vh - 60px); padding: 20px;">
+    <!-- Page Header -->
+    <div class="page-header-premium" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 10px;">
+                <i class="fa fa-list-alt" style="color: #dd2127;"></i> Team To-Do
+            </h1>
+            <div style="padding: 6px 14px; background: #ffeaeb; border: 1px solid #fca5a5; border-radius: 8px; font-size: 13px; font-weight: 700; color: #dd2127; display: flex; align-items: center; gap: 8px;">
+                <i class="fa fa-building-o" style="color: #dd2127;"></i> <?php echo htmlspecialchars($project['project_name']); ?>
+            </div>
+        </div>
+        <div class="header-actions-premium" style="display: flex; gap: 14px; align-items: center;">
+            <div style="position: relative;">
+                <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px;"></i>
+                <input type="text" id="task-search" placeholder="Search tasks..." style="width: 240px; padding: 9px 15px 9px 38px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 500; outline: none; transition: 0.3s; background: #fff;">
+            </div>
+            <button type="button" class="btn-premium-add" onclick="openCommonTaskModal()" style="background: linear-gradient(135deg, #dd2127, #b91c1c) !important; color: #fff !important; border: none !important; border-radius: 8px; padding: 8px 18px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(221, 33, 39, 0.25); transition: 0.2s;">
+                <i class="fa fa-users"></i> Add Common Task
+            </button>
+            <a href="index.php?view_projects&id=<?php echo $project['client_id']; ?>" class="btn-premium-add" style="background: #fff !important; color: #475569 !important; border: 1.5px solid #e2e8f0 !important; border-radius: 8px; padding: 8px 16px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fa fa-arrow-left"></i> Back to Project
+            </a>
+        </div>
+    </div>
+
+    <!-- Kanban Board Columns -->
+    <div class="todo-board">
+        <?php
+        if (empty($assigned_employees)) {
+            echo '<div style="text-align: center; width: 100%; padding: 50px; color: #64748b; font-weight: 600;">No employees assigned to this project.</div>';
+        } else {
+            foreach ($assigned_employees as $emp_id) {
+                $emp_id = intval($emp_id);
+                $get_emp = mysqli_query($con, "SELECT * FROM emp_list WHERE id = $emp_id");
+                $emp = mysqli_fetch_assoc($get_emp);
+                if (!$emp) continue;
+
+                $emp_name = htmlspecialchars($emp['name']);
+                $emp_job = htmlspecialchars($emp['designation'] ?? $emp['department'] ?? 'Employee');
+                $emp_img = !empty($emp['employee_image']) ? 'uploads/' . htmlspecialchars($emp['employee_image']) : null;
+        ?>
+                <div class="todo-column" data-emp-id="<?php echo $emp_id; ?>">
+                    <div class="todo-col-header">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <?php if ($emp_img && file_exists('../../' . $emp_img)) { ?>
+                                <img src="<?php echo $emp_img; ?>" class="emp-avatar">
+                            <?php } else { ?>
+                                <div class="emp-avatar-fallback"><?php echo strtoupper(substr($emp_name, 0, 1)); ?></div>
+                            <?php } ?>
+                            <div>
+                                <div class="emp-name"><?php echo $emp_name; ?></div>
+                                <div class="emp-role"><?php echo $emp_job; ?></div>
+                            </div>
+                        </div>
+                        <button class="icon-btn"><i class="fa fa-ellipsis-v"></i></button>
+                    </div>
+
+                    <div class="add-task-trigger" onclick="showAddTask(<?php echo $emp_id; ?>)">
+                        <i class="fa fa-plus-circle" style="font-size: 16px; color: #dd2127;"></i>
+                        <span>Add a task</span>
+                    </div>
+
+                    <div class="add-task-form" id="add-form-<?php echo $emp_id; ?>" style="display: none;">
+                        <input type="text" class="task-input" id="task-input-<?php echo $emp_id; ?>" placeholder="What needs to be done?">
+                        <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                            <input type="date" class="task-date-input" id="task-date-<?php echo $emp_id; ?>">
+                            <select class="task-priority-input" id="task-priority-<?php echo $emp_id; ?>">
+                                <option value="Low">Low Priority</option>
+                                <option value="Medium" selected>Medium Priority</option>
+                                <option value="High">High Priority</option>
+                            </select>
+                            <button class="save-task-btn" onclick="saveTask(<?php echo $emp_id; ?>)">Add</button>
+                            <button class="cancel-task-btn" onclick="hideAddTask(<?php echo $emp_id; ?>)">Cancel</button>
+                        </div>
+                    </div>
+
+                    <div class="task-list" id="task-list-<?php echo $emp_id; ?>">
+                        <div style="text-align: center; padding: 20px;"><i class="fa fa-spinner fa-spin" style="color: #cbd5e1;"></i></div>
+                    </div>
+                </div>
+        <?php
+            }
+        }
+        ?>
+    </div>
+</div>
+
+<!-- ===== SAME-TO-SAME TRELLO CARD POPUP MODAL ===== -->
+<div id="taskDetailOverlay">
+    <div id="taskDetailModal">
+
+        <!-- Top Navigation Bar: List Selector Tag (Left) & Actions/Close (Right) -->
+        <div class="tdm-top-bar">
+            <div class="tdm-list-tag">
+                <span id="td-in-list">List Name</span> <i class="fa fa-angle-down" style="font-size: 11px; margin-left: 4px;"></i>
+            </div>
+            <div class="tdm-top-actions">
+                <button class="tdm-icon-btn" title="Project"><i class="fa fa-briefcase"></i> <span id="td-project-name" style="font-size:12px; font-weight:600;">Project</span></button>
+                <button class="tdm-close" onclick="closeTaskDetail()" title="Close (Esc)"><i class="fa fa-times"></i></button>
+            </div>
+        </div>
+
+        <!-- 2-Column Split Layout (Matching Reference Photo EXACTLY) -->
+        <div class="tdm-body">
+
+            <!-- LEFT COLUMN (54% Width): Title, Pills & Description -->
+            <div class="tdm-left">
+                <!-- Title Row: Check Circle + Large Bold Title Input -->
+                <div class="tdm-header">
+                    <div id="td-check-circle" class="tdm-check" onclick="tdToggleStatus()" title="Toggle mark complete">
+                        <i class="fa fa-check"></i>
+                    </div>
+                    <textarea id="td-title" class="tdm-title-input" rows="1" placeholder="Task title..."
+                        onfocus="this.style.borderBottomColor='#dd2127'"
+                        onblur="this.style.borderBottomColor='transparent'; saveTdField('task_name', this.value)"></textarea>
+                </div>
+
+
+                <!-- Meta Controls (Due Date & Priority Inputs) -->
+                <div class="tdm-meta-row">
+                    <div class="tdm-meta-group">
+                        <div class="tdm-meta-label">DUE DATE</div>
+                        <input type="date" id="td-due-date" class="tdm-date-input no-global-flatpickr"
+                            onchange="saveTdField('due_date', this.value)">
+                    </div>
+                    <div class="tdm-meta-group">
+                        <div class="tdm-meta-label">PRIORITY</div>
+                        <select id="td-priority" class="tdm-select" onchange="saveTdField('priority', this.value)">
+                            <option value="">— None</option>
+                            <option value="Low">🟢 Low</option>
+                            <option value="Medium">🟡 Medium</option>
+                            <option value="High">🔴 High</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Description Section -->
+                <div class="tdm-section">
+                    <div class="tdm-section-title">
+                        <i class="fa fa-align-left"></i> Description
+                    </div>
+                    <textarea id="td-description" class="tdm-desc" rows="4"
+                        placeholder="Add a more detailed description..."
+                        onfocus="this.classList.add('focused')"
+                        onblur="this.classList.remove('focused'); saveTdField('description', this.value)"></textarea>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN (46% Width): Comments and Activity Stream -->
+            <div class="tdm-right">
+                <div class="tdm-section-title" style="justify-content: space-between; margin-bottom: 16px;">
+                    <span><i class="fa fa-comments-o"></i> Comments and activity</span>
+                    <span style="font-size: 11px; font-weight: 600; color: #94a3b8; cursor: pointer;">Show details</span>
+                </div>
+
+                <!-- Add Comment Box -->
+                <div class="tdm-comment-add">
+                    <div class="tdm-comment-avatar">A</div>
+                    <div style="flex:1;">
+                        <textarea id="td-comment-input" class="tdm-comment-textarea" rows="2"
+                            placeholder="Write a comment..."
+                            onfocus="document.getElementById('td-comment-actions').style.display='flex'; this.classList.add('focused')"
+                            onblur="if(!this.value.trim()){document.getElementById('td-comment-actions').style.display='none';} this.classList.remove('focused')"
+                            onkeydown="if(event.ctrlKey && event.key==='Enter'){tdSubmitComment();}"></textarea>
+                        <div id="td-comment-actions" style="display:none; margin-top:8px; justify-content:space-between; align-items:center;">
+                            <span style="font-size:11px; color:#94a3b8;">Press Ctrl + Enter to post</span>
+                            <button id="td-comment-save" class="tdm-save-btn" onclick="tdSubmitComment()">Save</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Log & Comments Stream -->
+                <div id="td-activity" class="tdm-activity"></div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ===== ADD COMMON TASK MODAL ===== -->
+<div id="commonTaskOverlay" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); overflow-y: auto; padding: 40px 16px; font-family: inherit;">
+    <div id="commonTaskModal" style="background: #ffffff; border-radius: 16px; max-width: 650px; width: 100%; margin: 0 auto; padding: 24px 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25); position: relative; box-sizing: border-box; animation: tdSlideIn .2s ease;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 10px; background: #ffeaeb; color: #dd2127; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    <i class="fa fa-users"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #0f172a;">Add Common Task for All Employees</h3>
+                    <div style="font-size: 12.5px; color: #64748b; margin-top: 2px;">Assign task, description, due date & initial comments across team members</div>
+                </div>
+            </div>
+            <button type="button" onclick="closeCommonTaskModal()" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #f1f5f9; color: #64748b; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.15s;" title="Close"><i class="fa fa-times"></i></button>
+        </div>
+
+        <form id="commonTaskForm" onsubmit="submitCommonTask(event)">
+            <!-- Task Name -->
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 6px; letter-spacing: 0.5px;">TASK NAME / ACTIVITY TITLE <span style="color: #ef4444;">*</span></label>
+                <input type="text" id="ct-task-name" placeholder="What needs to be done across team?" required style="width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: #0f172a; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#dd2127'; this.style.boxShadow='0 0 0 3px #ffeaeb';" onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';">
+            </div>
+
+            <!-- Description -->
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 6px; letter-spacing: 0.5px;">ACTIVITY DESCRIPTION / INSTRUCTIONS</label>
+                <textarea id="ct-description" rows="3" placeholder="Add detailed instructions or task description for all assigned employees..." style="width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 13.5px; color: #334155; outline: none; transition: 0.2s; resize: vertical;" onfocus="this.style.borderColor='#dd2127'; this.style.boxShadow='0 0 0 3px #ffeaeb';" onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';"></textarea>
+            </div>
+
+            <!-- Due Date & Priority -->
+            <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 6px; letter-spacing: 0.5px;">DUE DATE</label>
+                    <input type="date" id="ct-due-date" style="width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; color: #334155; outline: none; background: #fff;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 6px; letter-spacing: 0.5px;">PRIORITY</label>
+                    <select id="ct-priority" style="width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; color: #334155; outline: none; background: #fff;">
+                        <option value="Low">🟢 Low Priority</option>
+                        <option value="Medium" selected>🟡 Medium Priority</option>
+                        <option value="High">🔴 High Priority</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Assign Employees Selection -->
+            <div style="margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <label style="font-size: 12px; font-weight: 800; color: #334155; letter-spacing: 0.5px; margin: 0;">ASSIGN TO EMPLOYEES</label>
+                    <label style="font-size: 12px; font-weight: 700; color: #dd2127; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none;">
+                        <input type="checkbox" id="ct-select-all" checked onchange="toggleSelectAllEmployees(this.checked)" style="accent-color: #dd2127; width: 15px; height: 15px; cursor: pointer;"> Select All
+                    </label>
+                </div>
+                <div id="ct-employee-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; max-height: 160px; overflow-y: auto; padding-right: 4px;">
+                    <?php
+                    if (!empty($assigned_employees)) {
+                        foreach ($assigned_employees as $emp_id) {
+                            $emp_id = intval($emp_id);
+                            $get_e = mysqli_query($con, "SELECT id, name, designation FROM emp_list WHERE id = $emp_id");
+                            if ($e_row = mysqli_fetch_assoc($get_e)) {
+                                echo '<label style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: 0.15s; user-select: none;">';
+                                echo '<input type="checkbox" class="ct-emp-checkbox" value="' . $e_row['id'] . '" checked style="accent-color: #dd2127; width: 16px; height: 16px; cursor: pointer;">';
+                                echo '<div>';
+                                echo '<div style="font-size: 13px; font-weight: 700; color: #0f172a;">' . htmlspecialchars($e_row['name']) . '</div>';
+                                echo '<div style="font-size: 11px; color: #64748b;">' . htmlspecialchars($e_row['designation'] ?? 'Employee') . '</div>';
+                                echo '</div>';
+                                echo '</label>';
+                            }
+                        }
+                    } else {
+                        echo '<div style="font-size: 12px; color: #94a3b8;">No assigned employees found in project.</div>';
+                    }
+                    ?>
+                </div>
+            </div>
+
+            <!-- Initial Comment / Activity Stream Note -->
+            <div style="margin-bottom: 22px;">
+                <label style="display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 6px; letter-spacing: 0.5px;">INITIAL COMMENT / ACTIVITY NOTE</label>
+                <textarea id="ct-comment" rows="2" placeholder="Add an initial comment to all created tasks (e.g. Please update status before EOD)..." style="width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #334155; outline: none; transition: 0.2s; resize: vertical;" onfocus="this.style.borderColor='#dd2127'; this.style.boxShadow='0 0 0 3px #ffeaeb';" onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';"></textarea>
+            </div>
+
+            <!-- Footer Actions -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+                <button type="button" onclick="closeCommonTaskModal()" style="background: #f1f5f9; color: #475569; border: none; border-radius: 8px; padding: 9px 20px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.15s;">Cancel</button>
+                <button type="submit" id="ct-submit-btn" style="background: linear-gradient(135deg, #dd2127, #b91c1c); color: #fff; border: none; border-radius: 8px; padding: 9px 24px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(221, 33, 39, 0.25); transition: 0.15s; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-plus-circle"></i> Create Common Task
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
 <script>
     const projectId = <?php echo $project_id; ?>;
 
@@ -493,245 +1057,140 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
             loadTasks(empId);
         });
 
-        function applyFilters() {
-            const searchVal = $('#task-search').val();
-            const term = searchVal ? searchVal.toLowerCase() : '';
-            const filterDate = $('#task-date-filter').val();
-
-            const empCompletedCounts = {};
-            const empPendingCounts = {};
-
+        // Search functionality
+        $('#task-search').on('keyup', function() {
+            const term = $(this).val().toLowerCase();
             $('.task-item').each(function() {
                 const name = $(this).find('.task-name').text().toLowerCase();
-                const proj = $(this).find('.task-proj-name').text().toLowerCase();
-                const taskDate = $(this).attr('data-date');
-                const isCompleted = $(this).hasClass('completed');
-
-                const parentListId = $(this).closest('[id^="task-list-"]').attr('id');
-                const empId = parentListId ? parentListId.replace('task-list-', '') : null;
-
-                if (empId && empCompletedCounts[empId] === undefined) {
-                    empCompletedCounts[empId] = 0;
-                    empPendingCounts[empId] = 0;
-                }
-
-                let matchText = true;
-                if (term) {
-                    matchText = name.includes(term) || proj.includes(term);
-                }
-
-                let showTask = true;
-                if (filterDate) {
-                    if (isCompleted) {
-                        showTask = (taskDate === filterDate);
-                    } else {
-                        showTask = true;
-                    }
-                }
-
-                if (matchText && showTask) {
+                if (name.includes(term)) {
                     $(this).show();
-                    if (empId) {
-                        if (isCompleted) {
-                            empCompletedCounts[empId]++;
-                        } else {
-                            empPendingCounts[empId]++;
-                        }
-                    }
                 } else {
                     $(this).hide();
                 }
             });
+        });
 
-            $('.todo-column').each(function() {
-                const empId = $(this).data('emp-id');
-                const compCount = empCompletedCounts[empId] || 0;
-                const pendCount = empPendingCounts[empId] || 0;
-                const header = $(this).find('.completed-section-header');
-
-                if (compCount > 0) {
-                    header.show();
-                    $(`#completed-text-${empId}`).text(`Completed (${compCount})`);
-                } else {
-                    header.hide();
-                    $(`#completed-tasks-${empId}`).hide();
-                    $(`#completed-icon-${empId}`).removeClass('fa-chevron-right').addClass('fa-chevron-down');
-                }
-
-                const totalVisible = compCount + pendCount;
-                const hasServerMsg = $(this).find('.empty-server-msg').length > 0;
-
-                $(this).find('.filter-empty-msg').remove();
-
-                if (totalVisible === 0 && !hasServerMsg) {
-                    $(this).find('.task-list').append('<div class="filter-empty-msg" style="color: #94a3b8; font-size: 13px; text-align: center; padding: 20px;">No tasks match filters</div>');
-                }
-            });
-        }
-
-        $('#task-search').on('keyup', applyFilters);
-        $('#task-date-filter').on('change', applyFilters);
+        // Close modal when clicking outside overlay
+        $(document).on('click', '#taskDetailOverlay', function(e) {
+            if (e.target === this) closeTaskDetail();
+        });
+        $(document).on('click', '#commonTaskOverlay', function(e) {
+            if (e.target === this) closeCommonTaskModal();
+        });
     });
 
     function showAddTask(empId) {
         $(`#add-form-${empId}`).slideDown(200);
         $(`#task-input-${empId}`).focus();
-
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        $(`#task-date-${empId}`).val(`${yyyy}-${mm}-${dd}`);
     }
 
     function hideAddTask(empId) {
         $(`#add-form-${empId}`).slideUp(200);
         $(`#task-input-${empId}`).val('');
         $(`#task-date-${empId}`).val('');
-        $(`#task-priority-${empId}`).val('Medium');
     }
 
     function loadTasks(empId) {
+        const list = $('#task-list-' + empId);
+        list.html('<div style="text-align:center;padding:20px;"><i class="fa fa-spinner fa-spin" style="color:#dd2127;font-size:18px;"></i></div>');
         $.ajax({
             url: 'ajax/projects/ajax_get_team_todos.php',
             method: 'POST',
+            dataType: 'json',
             data: {
                 project_id: projectId,
                 emp_id: empId
             },
             success: function(res) {
+                console.log('loadTasks response for emp ' + empId + ':', res);
+                if (typeof res === 'string') {
+                    try {
+                        res = JSON.parse(res);
+                    } catch (e) {}
+                }
                 if (res && res.success) {
-                    renderTasks(empId, res.tasks || []);
+                    renderTasks(empId, res.tasks);
                 } else {
-                    $(`#task-list-${empId}`).html('<div class="empty-server-msg" style="color: #94a3b8; font-size: 13px; text-align: center; padding: 20px;">' + (res && res.message ? escapeHtml(res.message) : 'No tasks assigned yet') + '</div>');
+                    console.warn('loadTasks error:', res ? res.message : 'unknown');
+                    renderTasks(empId, []);
                 }
             },
-            error: function() {
-                $(`#task-list-${empId}`).html('<div class="empty-server-msg" style="color: #ef4444; font-size: 13px; text-align: center; padding: 20px;">Error loading tasks</div>');
+            error: function(xhr, status, err) {
+                console.error('loadTasks AJAX error:', status, err, xhr.responseText);
+                renderTasks(empId, []);
             }
         });
     }
 
     function renderTasks(empId, tasks) {
-        const list = $(`#task-list-${empId}`);
-        list.empty();
+        try {
+            const list = $(`#task-list-${empId}`);
+            list.empty();
 
-        if (!tasks || tasks.length === 0) {
-            list.html('<div class="empty-server-msg" style="color: #94a3b8; font-size: 13px; text-align: center; padding: 20px;">No tasks assigned yet</div>');
-            return;
-        }
+            if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+                list.html('<div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 15px 0;">No tasks yet</div>');
+                return;
+            }
 
-        let pendingTasksHtml = '';
-        let completedTasksHtml = '';
-        let completedCount = 0;
-
-        tasks.forEach(task => {
-            try {
-                const isCompleted = parseInt(task.status) === 1;
+            tasks.forEach(task => {
+                if (!task) return;
+                const isCompleted = task.status == 1;
                 const itemClass = isCompleted ? 'task-item completed' : 'task-item';
 
                 let dateBadge = '';
-                if (task.due_date) {
-                    const due = new Date(task.due_date);
-                    const today = new Date();
-                    const tomorrow = new Date();
-                    tomorrow.setDate(tomorrow.getDate() + 1);
+                if (task.due_date && task.due_date !== '0000-00-00' && task.due_date !== '0000-00-00 00:00:00') {
+                    try {
+                        const due = new Date(task.due_date.replace(/-/g, '/'));
+                        if (!isNaN(due.getTime())) {
+                            const today = new Date();
+                            const tomorrow = new Date();
+                            tomorrow.setDate(tomorrow.getDate() + 1);
 
-                    let dateStr = due.toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short'
-                    });
-                    if (due.toDateString() === today.toDateString()) {
-                        dateStr = 'Today';
-                    } else if (due.toDateString() === tomorrow.toDateString()) {
-                        dateStr = 'Tomorrow';
-                    }
-                    dateBadge = `<div class="date-badge">${dateStr}</div>`;
+                            let dateStr = due.toLocaleDateString('en-GB', {
+                                day: 'numeric',
+                                month: 'short'
+                            });
+                            if (due.toDateString() === today.toDateString()) {
+                                dateStr = 'Today';
+                            } else if (due.toDateString() === tomorrow.toDateString()) {
+                                dateStr = 'Tomorrow';
+                            }
+                            dateBadge = `<div class="date-badge">${dateStr}</div>`;
+                        }
+                    } catch (de) {}
                 }
 
                 let priorityHtml = '';
                 if (task.priority) {
-                    priorityHtml = `<div class="priority-flag priority-${task.priority}"><i class="fa fa-flag"></i> ${task.priority}</div>`;
+                    priorityHtml = `<div class="priority-flag priority-${escapeHtml(task.priority)}"><i class="fa fa-flag"></i> ${escapeHtml(task.priority)}</div>`;
                 }
 
-                let addedBadge = '';
-                if (task.created_at) {
-                    const createdAt = new Date(task.created_at.replace(/-/g, '/'));
-                    const addedStr = createdAt.toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short'
-                    }) + ', ' + createdAt.toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit'
-                    });
-                    addedBadge = `<div style="font-size: 11px; color: #94a3b8; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; margin-left: auto; white-space: nowrap;"><i class="fa fa-clock-o"></i> ${addedStr}</div>`;
-                }
-
-                const projName = task.project_name ? escapeHtml(task.project_name) : 'Project Task';
-                const safeDate = task.due_date ? task.due_date : '';
-                const taskNameStyle = isCompleted ? 'text-decoration: line-through; color: #94a3b8;' : '';
-
-                const checkboxHtml = canTodoUpdate ?
-                    `<div class="task-checkbox" onclick="toggleTask(${task.id}, ${empId}, ${isCompleted ? 0 : 1})"><i class="fa fa-check"></i></div>` :
-                    `<div class="task-checkbox" style="cursor: default; opacity: 0.5;"><i class="fa fa-check"></i></div>`;
-
-                let dropdownHtml = '';
-                if (canTodoDelete) {
-                    dropdownHtml = `
-                        <div class="dropdown" style="flex-shrink: 0; margin-left: 8px;">
-                            <div class="task-menu-btn" data-toggle="dropdown" style="cursor: pointer; padding: 2px 4px; color: #64748b;">
-                                <i class="fa fa-ellipsis-v"></i>
-                            </div>
-                            <ul class="dropdown-menu dropdown-menu-right" style="border-radius: 8px; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); padding: 5px 0; min-width: 120px;">
-                                <li><a href="#" onclick="deleteTask(${task.id}, ${empId}); return false;" style="color: #ef4444; font-weight: 600; padding: 10px 20px;"><i class="fa fa-trash-o" style="margin-right: 8px;"></i> Delete</a></li>
-                            </ul>
-                        </div>
-                    `;
-                }
+                const safeName = escapeHtml(task.task_name || 'Untitled Task');
 
                 const html = `
-                    <div class="${itemClass}" data-task-id="${task.id}" data-date="${safeDate}">
-                        <div style="display: flex; align-items: flex-start; gap: 10px; width: 100%;">
-                            ${checkboxHtml}
-                            <div class="task-name" style="${taskNameStyle}">${escapeHtml(task.task_name)}</div>
-                            ${dropdownHtml}
+                    <div class="${itemClass}" data-task-id="${task.id}">
+                        <div class="task-checkbox" onclick="toggleTask(${task.id}, ${empId}, ${isCompleted ? 0 : 1})">
+                            <i class="fa fa-check"></i>
                         </div>
+                        <div class="task-name task-name-clickable" onclick="openTaskDetail(${task.id}, ${empId})" title="Click to view details">${safeName}</div>
                         <div class="task-meta">
                             ${priorityHtml}
                             ${dateBadge}
-                            <div class="task-proj-name"><i class="fa fa-building-o"></i> ${projName}</div>
-                            ${addedBadge}
+                            <div class="dropdown">
+                                <button class="icon-btn" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-right" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+                                    <li><a href="#" onclick="deleteTask(${task.id}, ${empId}); return false;" style="color: #ef4444; font-weight: 600; padding: 10px 20px;"><i class="fa fa-trash-o" style="margin-right: 8px;"></i> Delete</a></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 `;
-
-                if (isCompleted) {
-                    completedTasksHtml += html;
-                    completedCount++;
-                } else {
-                    pendingTasksHtml += html;
-                }
-            } catch (err) {
-                console.error("Error rendering task item:", err);
-            }
-        });
-
-        list.append(pendingTasksHtml);
-
-        if (completedCount > 0) {
-            const completedSection = `
-                <div class="completed-section-header" onclick="toggleCompletedSection(${empId})">
-                    <i class="fa fa-chevron-down" id="completed-icon-${empId}" style="transition: transform 0.3s; font-size: 11px;"></i>
-                    <span id="completed-text-${empId}">Completed (${completedCount})</span>
-                </div>
-                <div id="completed-tasks-${empId}" style="display: none;">
-                    ${completedTasksHtml}
-                </div>
-            `;
-            list.append(completedSection);
+                list.append(html);
+            });
+        } catch (e) {
+            console.error("renderTasks error:", e);
+            $(`#task-list-${empId}`).html('<div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 15px 0;">No tasks yet</div>');
         }
-
-        $('#task-search').trigger('keyup');
     }
 
     function saveTask(empId) {
@@ -739,10 +1198,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         const date = $(`#task-date-${empId}`).val();
         const priority = $(`#task-priority-${empId}`).val();
 
-        if (!name) {
-            Swal.fire("Required", "Please enter task name", "warning");
-            return;
-        }
+        if (!name) return;
 
         $.ajax({
             url: 'ajax/projects/ajax_add_team_todo.php',
@@ -755,11 +1211,11 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                 priority: priority
             },
             success: function(res) {
-                if (res.success) {
+                if (res && res.success) {
                     hideAddTask(empId);
                     loadTasks(empId);
                 } else {
-                    Swal.fire("Error", "Could not add task.", "error");
+                    Swal.fire("Error", res ? res.message : "Could not add task.", "error");
                 }
             }
         });
@@ -776,12 +1232,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
             success: function(res) {
                 if (res && res.success) {
                     loadTasks(empId);
-                } else {
-                    Swal.fire("Error", (res && res.message) ? res.message : "Could not update task.", "error");
                 }
-            },
-            error: function() {
-                Swal.fire("Error", "Network error updating task.", "error");
             }
         });
     }
@@ -789,12 +1240,11 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
     function deleteTask(taskId, empId) {
         Swal.fire({
             title: 'Delete Task?',
-            text: "This action cannot be undone.",
+            text: "This cannot be undone.",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonColor: '#dd2127',
+            confirmButtonText: 'Yes, delete it'
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
@@ -804,10 +1254,8 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                         task_id: taskId
                     },
                     success: function(res) {
-                        if (res.success) {
+                        if (res && res.success) {
                             loadTasks(empId);
-                        } else {
-                            Swal.fire("Error", res.message || "Failed to delete task", "error");
                         }
                     }
                 });
@@ -815,23 +1263,367 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         });
     }
 
-    function toggleCompletedSection(empId) {
-        $(`#completed-tasks-${empId}`).slideToggle(200);
-        const icon = $(`#completed-icon-${empId}`);
-        if (icon.hasClass('fa-chevron-down')) {
-            icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
-        } else {
-            icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+    /* ===== TASK DETAIL MODAL FUNCTIONS ===== */
+    let _modalTaskId = null;
+    let _modalEmpId = null;
+    let _modalStatus = 0;
+
+    function openTaskDetail(taskId, empId) {
+        _modalTaskId = taskId;
+        _modalEmpId = empId;
+
+        // Reset fields
+        $('#td-title').val('');
+        $('#td-description').val('');
+        $('#td-due-date').val('');
+        $('#td-priority').val('');
+        $('#td-activity').html('<div style="text-align:center;padding:20px;color:#94a3b8;"><i class="fa fa-circle-o-notch fa-spin"></i></div>');
+        $('#td-check-circle').removeClass('td-completed');
+        $('#td-status-label').text('Mark Complete');
+        $('#td-in-list').text('');
+
+        $('#taskDetailOverlay').fadeIn(200);
+        $('body').css('overflow', 'hidden');
+
+        $.ajax({
+            url: 'ajax/projects/ajax_get_todo_detail.php',
+            method: 'POST',
+            data: {
+                task_id: taskId
+            },
+            success: function(res) {
+                if (!res || !res.success) return;
+                const t = res.task;
+                _modalStatus = parseInt(t.status);
+
+                const isAdmin = (res.is_admin === true || res.is_admin === 1);
+
+                // Read-Only Enforcement for Non-Admins / Employees
+                if (isAdmin) {
+                    $('#td-title').prop('readonly', false).css({
+                        'pointer-events': 'auto',
+                        'border-bottom-color': 'transparent'
+                    });
+                    $('#td-description').prop('readonly', false).css('background', '#ffffff');
+                    $('#td-due-date').prop('disabled', false).css('background', '#ffffff');
+                    $('#td-priority').prop('disabled', false).css('background', '#ffffff');
+                } else {
+                    $('#td-title').prop('readonly', true).css({
+                        'pointer-events': 'none',
+                        'border-bottom-color': 'transparent'
+                    });
+                    $('#td-description').prop('readonly', true).css('background', '#f8fafc');
+                    $('#td-due-date').prop('disabled', true).css('background', '#f8fafc');
+                    $('#td-priority').prop('disabled', true).css('background', '#f8fafc');
+                }
+
+                $('#td-title').val(t.task_name);
+                $('#td-description').val(t.description || '');
+                $('#td-due-date').val(t.due_date || '');
+                $('#td-priority').val(t.priority || '');
+                $('#td-project-name').text(t.project_name || 'Project');
+                const colName = $(`#task-list-${empId}`).closest('.todo-column').find('.emp-name').text();
+                $('#td-in-list').text(colName || 'Assigned Task');
+                if (_modalStatus === 1) {
+                    $('#td-check-circle').addClass('td-completed');
+                    $('#td-status-label').text('Mark Pending');
+                }
+                renderTdActivity(res.comments || [], t);
+            }
+        });
+    }
+
+    function closeTaskDetail() {
+        $('#taskDetailOverlay').fadeOut(180);
+        $('body').css('overflow', '');
+        if (_modalEmpId) loadTasks(_modalEmpId);
+        _modalTaskId = null;
+        _modalEmpId = null;
+    }
+
+    function saveTdField(field, value) {
+        if (!_modalTaskId) return;
+        const el = field === 'task_name' ? $('#td-title') : $(`#td-${field}`);
+        if (el.prop('readonly') || el.prop('disabled')) return;
+        if (field === 'task_name' && !value.trim()) return;
+        $.post('ajax/projects/ajax_update_todo_detail.php', {
+            task_id: _modalTaskId,
+            [field]: value
+        }, function(res) {
+            if (_modalEmpId) loadTasks(_modalEmpId);
+        });
+    }
+
+    function tdToggleStatus() {
+        if (!_modalTaskId) return;
+        const newStatus = _modalStatus === 1 ? 0 : 1;
+        $.ajax({
+            url: 'ajax/projects/ajax_toggle_team_todo.php',
+            method: 'POST',
+            data: {
+                task_id: _modalTaskId,
+                status: newStatus
+            },
+            success: function(res) {
+                if (res && res.success) {
+                    _modalStatus = newStatus;
+                    if (newStatus === 1) {
+                        $('#td-check-circle').addClass('td-completed');
+                        $('#td-status-label').text('Mark Pending');
+                    } else {
+                        $('#td-check-circle').removeClass('td-completed');
+                        $('#td-status-label').text('Mark Complete');
+                    }
+                    if (_modalEmpId) loadTasks(_modalEmpId);
+                }
+            }
+        });
+    }
+
+    function tdDeleteCard() {
+        if (!_modalTaskId) return;
+        Swal.fire({
+            title: 'Delete Task?',
+            text: 'This cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dd2127',
+            confirmButtonText: 'Yes, delete it'
+        }).then(r => {
+            if (r.isConfirmed) {
+                const empId = _modalEmpId;
+                $.ajax({
+                    url: 'ajax/projects/ajax_delete_team_todo.php',
+                    method: 'POST',
+                    data: {
+                        task_id: _modalTaskId
+                    },
+                    success: function(res) {
+                        if (res && res.success) {
+                            closeTaskDetail();
+                            if (empId) loadTasks(empId);
+                        } else {
+                            Swal.fire('Error', res ? res.message : 'Failed', 'error');
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function tdSubmitComment() {
+        const comment = $('#td-comment-input').val().trim();
+        if (!comment || !_modalTaskId) return;
+        const btn = $('#td-comment-save');
+        btn.prop('disabled', true).text('Saving...');
+        $.ajax({
+            url: 'ajax/projects/ajax_add_todo_comment.php',
+            method: 'POST',
+            data: {
+                task_id: _modalTaskId,
+                comment: comment,
+                posted_by: 'admin'
+            },
+            success: function(res) {
+                btn.prop('disabled', false).text('Save');
+                if (res && res.success) {
+                    $('#td-comment-input').val('').attr('rows', 2);
+                    $('#td-comment-actions').hide();
+                    $.ajax({
+                        url: 'ajax/projects/ajax_get_todo_detail.php',
+                        method: 'POST',
+                        data: {
+                            task_id: _modalTaskId
+                        },
+                        success: function(r) {
+                            if (r && r.success) renderTdActivity(r.comments || [], r.task);
+                        }
+                    });
+                } else {
+                    Swal.fire('Error', 'Could not save comment.', 'error');
+                }
+            }
+        });
+    }
+
+    function tdDeleteComment(cid) {
+        if (!confirm('Delete this comment?')) return;
+        $.ajax({
+            url: 'ajax/projects/ajax_delete_todo_comment.php',
+            method: 'POST',
+            data: {
+                comment_id: cid
+            },
+            success: function(res) {
+                if (res && res.success) {
+                    $(`#td-comment-${cid}`).fadeOut(150, function() {
+                        $(this).remove();
+                    });
+                }
+            }
+        });
+    }
+
+    function renderTdActivity(comments, task) {
+        const list = $('#td-activity');
+        list.empty();
+
+        comments.forEach(c => {
+            const authorName = c.author_name || c.admin_name || c.comment_author_emp_name || 'User';
+            const init = authorName.charAt(0).toUpperCase();
+            const empTag = c.emp_name ?
+                `<span style="display:inline-block; background:#ffeaeb; color:#dd2127; font-size:10px; font-weight:700; border-radius:4px; padding:1px 7px; margin-left:8px; vertical-align:middle;">${escapeHtml(c.emp_name)}</span>` :
+                '';
+            list.append(`
+                <div class="td-act-item" id="td-comment-${c.id}">
+                    <div class="td-act-avatar">${escapeHtml(init)}</div>
+                    <div class="td-act-body">
+                        <div class="td-act-header">
+                            <strong>${escapeHtml(authorName)}</strong>${empTag}
+                            <small>${tdTimeAgo(c.created_at)}</small>
+                        </div>
+                        <div class="td-act-comment">${escapeHtml(c.comment)}</div>
+                        <div class="td-act-actions">
+                            <button class="td-act-link" onclick="tdDeleteComment(${c.id})">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+
+        if (task.created_at) {
+            list.append(`
+                <div class="td-act-system">
+                    <span class="td-act-dot"><i class="fa fa-plus"></i></span>
+                    <span>Task created &nbsp;<small style="color:#94a3b8;">${tdTimeAgo(task.created_at)}</small></span>
+                </div>
+            `);
+        }
+
+        if (comments.length === 0 && !task.created_at) {
+            list.html('<div style="color:#94a3b8;font-size:13px;text-align:center;padding:12px;">No activity yet</div>');
         }
     }
 
+    function tdTimeAgo(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr.replace(/-/g, '/'));
+        const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + ' hr ago';
+        return Math.floor(diff / 86400) + 'd ago';
+    }
+
     function escapeHtml(unsafe) {
-        if (!unsafe) return '';
-        return unsafe
+        if (unsafe === null || unsafe === undefined) return '';
+        return String(unsafe)
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
     }
+
+    /* ===== COMMON TASK MODAL FUNCTIONS ===== */
+    function openCommonTaskModal() {
+        $('#ct-task-name').val('');
+        $('#ct-description').val('');
+        $('#ct-due-date').val('');
+        $('#ct-priority').val('Medium');
+        $('#ct-comment').val('');
+        $('#ct-select-all').prop('checked', true);
+        $('.ct-emp-checkbox').prop('checked', true);
+        $('#commonTaskOverlay').fadeIn(200);
+        $('body').css('overflow', 'hidden');
+        setTimeout(() => $('#ct-task-name').focus(), 250);
+    }
+
+    function closeCommonTaskModal() {
+        $('#commonTaskOverlay').fadeOut(180);
+        $('body').css('overflow', '');
+    }
+
+    function toggleSelectAllEmployees(isChecked) {
+        $('.ct-emp-checkbox').prop('checked', isChecked);
+    }
+
+    function submitCommonTask(e) {
+        e.preventDefault();
+        const taskName = $('#ct-task-name').val().trim();
+        const description = $('#ct-description').val().trim();
+        const dueDate = $('#ct-due-date').val();
+        const priority = $('#ct-priority').val();
+        const comment = $('#ct-comment').val().trim();
+
+        const empIds = [];
+        $('.ct-emp-checkbox:checked').each(function() {
+            empIds.push($(this).val());
+        });
+
+        if (!taskName) {
+            Swal.fire('Required', 'Please enter task name.', 'warning');
+            return;
+        }
+
+        if (empIds.length === 0) {
+            Swal.fire('Required', 'Please select at least one employee to assign task.', 'warning');
+            return;
+        }
+
+        const btn = $('#ct-submit-btn');
+        btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Creating...');
+        console.log('Submitting common task, projectId:', projectId, 'empIds:', empIds);
+
+        $.ajax({
+            url: 'ajax/projects/ajax_add_common_team_todo.php',
+            method: 'POST',
+            dataType: 'json',
+            data: {
+                project_id: projectId,
+                emp_ids: empIds,
+                task_name: taskName,
+                description: description,
+                due_date: dueDate,
+                priority: priority,
+                comment: comment
+            },
+            success: function(res) {
+                btn.prop('disabled', false).html('<i class="fa fa-plus-circle"></i> Create Common Task');
+                if (typeof res === 'string') {
+                    try {
+                        res = JSON.parse(res);
+                    } catch (e) {}
+                }
+                if (res && res.success) {
+                    closeCommonTaskModal();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Common Task Created!',
+                        text: res.message || `Task assigned to ${empIds.length} employee(s).`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    // Reload tasks for all employee columns
+                    $('.todo-column').each(function() {
+                        const empId = $(this).data('emp-id');
+                        loadTasks(empId);
+                    });
+                } else {
+                    Swal.fire('Error', res ? res.message : 'Could not add common task.', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                btn.prop('disabled', false).html('<i class="fa fa-plus-circle"></i> Create Common Task');
+                Swal.fire('Error', 'Server error occurred while adding common task.', 'error');
+            }
+        });
+    }
+
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape') {
+            if ($('#taskDetailOverlay').is(':visible')) closeTaskDetail();
+            if ($('#commonTaskOverlay').is(':visible')) closeCommonTaskModal();
+        }
+    });
 </script>
