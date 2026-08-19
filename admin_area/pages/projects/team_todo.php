@@ -3,6 +3,16 @@ if (!isset($con)) {
     include(__DIR__ . '/../../includes/db.php');
 }
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$is_employee_portal = (strpos($_SERVER['REQUEST_URI'] ?? '', 'emp_area') !== false) || (isset($_SESSION['emp_id']) && !isset($_SESSION['admin_email']));
+if (strpos($_SERVER['REQUEST_URI'] ?? '', 'emp_area') !== false) {
+    $is_employee_portal = true;
+}
+$is_admin_mode = isset($_SESSION['admin_email']) && !$is_employee_portal;
+
 $project_id = isset($_GET['project_id']) ? intval($_GET['project_id']) : 0;
 
 if ($project_id == 0) {
@@ -182,33 +192,6 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         font-weight: 600 !important;
         color: #475569 !important;
         outline: none !important;
-    }
-
-    .save-task-btn {
-        background: #dd2127 !important;
-        color: #fff !important;
-        border: none !important;
-        border-radius: 6px !important;
-        padding: 6px 16px !important;
-        font-size: 13px !important;
-        font-weight: 700 !important;
-        cursor: pointer !important;
-        transition: 0.15s !important;
-    }
-
-    .save-task-btn:hover {
-        background: #b91c1c !important;
-    }
-
-    .cancel-task-btn {
-        background: #fff !important;
-        color: #64748b !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 6px !important;
-        padding: 6px 14px !important;
-        font-size: 13px !important;
-        font-weight: 700 !important;
-        cursor: pointer !important;
     }
 
     .task-item {
@@ -392,25 +375,20 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         border-color: #fca5a5;
     }
 
-    .tdm-close {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        border: none;
-        background: #f1f5f9;
-        color: #64748b;
-        font-size: 15px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: 0.15s;
-        line-height: 1;
+    #taskDetailModal .btn-modal-close,
+    #commonTaskModal .btn-modal-close {
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        transform: none !important;
+        flex-shrink: 0 !important;
     }
 
-    .tdm-close:hover {
-        background: #ffeaeb;
-        color: #dd2127;
+    #taskDetailModal .btn-modal-close:hover,
+    #commonTaskModal .btn-modal-close:hover {
+        background: #ffeaeb !important;
+        color: #dd2127 !important;
+        transform: rotate(90deg) !important;
     }
 
     .tdm-header {
@@ -724,6 +702,39 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         font-size: 13px;
         color: #334155;
         line-height: 1.5;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .td-comment-attachment-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 6px 10px;
+        margin-top: 6px;
+        max-width: 100%;
+        box-sizing: border-box;
+        transition: 0.15s;
+    }
+
+    .td-comment-attachment-pill:hover {
+        background: #ffeaeb;
+        border-color: #fca5a5;
+    }
+
+    .td-comment-attachment-link {
+        color: #0f172a;
+        font-weight: 600;
+        font-size: 12px;
+        text-decoration: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: calc(100% - 36px);
+        display: inline-block;
     }
 
     .td-act-actions {
@@ -785,14 +796,15 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
             </div>
         </div>
         <div class="header-actions-premium" style="display: flex; gap: 14px; align-items: center;">
-            <div style="position: relative;">
-                <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px;"></i>
-                <input type="text" id="task-search" placeholder="Search tasks..." style="width: 240px; padding: 9px 15px 9px 38px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 500; outline: none; transition: 0.3s; background: #fff;">
-            </div>
-            <button type="button" class="btn-premium-add" onclick="openCommonTaskModal()" style="background: linear-gradient(135deg, #dd2127, #b91c1c) !important; color: #fff !important; border: none !important; border-radius: 8px; padding: 8px 18px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(221, 33, 39, 0.25); transition: 0.2s;">
-                <i class="fa fa-users"></i> Add Common Task
-            </button>
-            <a href="index.php?view_projects&id=<?php echo $project['client_id']; ?>" class="btn-premium-add" style="background: #fff !important; color: #475569 !important; border: 1.5px solid #e2e8f0 !important; border-radius: 8px; padding: 8px 16px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+            <?php if ($is_admin_mode) : ?>
+                <button type="button" class="btn-premium-add" onclick="openCommonTaskModal()">
+                    <i class="fa fa-users"></i> Add Common Task
+                </button>
+            <?php endif; ?>
+            <?php
+            $back_url = $is_admin_mode ? "index.php?view_projects&id=" . $project['client_id'] : "index.php?projects";
+            ?>
+            <a href="<?php echo $back_url; ?>" class="btn-premium-cancel">
                 <i class="fa fa-arrow-left"></i> Back to Project
             </a>
         </div>
@@ -811,7 +823,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                 if (!$emp) continue;
 
                 $emp_name = htmlspecialchars($emp['name']);
-                $emp_job = htmlspecialchars($emp['designation'] ?? $emp['department'] ?? 'Employee');
+                $emp_job = htmlspecialchars(!empty($emp['department']) ? $emp['department'] : (!empty($emp['designation']) ? $emp['designation'] : 'Employee'));
                 $emp_img = !empty($emp['employee_image']) ? 'uploads/' . htmlspecialchars($emp['employee_image']) : null;
         ?>
                 <div class="todo-column" data-emp-id="<?php echo $emp_id; ?>">
@@ -830,24 +842,30 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                         <button class="icon-btn"><i class="fa fa-ellipsis-v"></i></button>
                     </div>
 
-                    <div class="add-task-trigger" onclick="showAddTask(<?php echo $emp_id; ?>)">
-                        <i class="fa fa-plus-circle" style="font-size: 16px; color: #dd2127;"></i>
-                        <span>Add a task</span>
-                    </div>
-
-                    <div class="add-task-form" id="add-form-<?php echo $emp_id; ?>" style="display: none;">
-                        <input type="text" class="task-input" id="task-input-<?php echo $emp_id; ?>" placeholder="What needs to be done?">
-                        <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
-                            <input type="date" class="task-date-input" id="task-date-<?php echo $emp_id; ?>">
-                            <select class="task-priority-input" id="task-priority-<?php echo $emp_id; ?>">
-                                <option value="Low">Low Priority</option>
-                                <option value="Medium" selected>Medium Priority</option>
-                                <option value="High">High Priority</option>
-                            </select>
-                            <button class="save-task-btn" onclick="saveTask(<?php echo $emp_id; ?>)">Add</button>
-                            <button class="cancel-task-btn" onclick="hideAddTask(<?php echo $emp_id; ?>)">Cancel</button>
+                    <?php
+                    $current_logged_emp_id = intval($_SESSION['emp_id'] ?? 0);
+                    $can_add_task_here = $is_admin_mode || ($is_employee_portal && $emp_id == $current_logged_emp_id);
+                    ?>
+                    <?php if ($can_add_task_here) : ?>
+                        <div class="add-task-trigger" onclick="showAddTask(<?php echo $emp_id; ?>)">
+                            <i class="fa fa-plus-circle" style="font-size: 16px; color: #dd2127;"></i>
+                            <span>Add a task</span>
                         </div>
-                    </div>
+
+                        <div class="add-task-form" id="add-form-<?php echo $emp_id; ?>" style="display: none;">
+                            <input type="text" class="task-input" id="task-input-<?php echo $emp_id; ?>" placeholder="What needs to be done?">
+                            <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                                <input type="date" class="task-date-input" id="task-date-<?php echo $emp_id; ?>">
+                                <select class="task-priority-input" id="task-priority-<?php echo $emp_id; ?>">
+                                    <option value="Low">Low Priority</option>
+                                    <option value="Medium" selected>Medium Priority</option>
+                                    <option value="High">High Priority</option>
+                                </select>
+                                <button class="btn-premium-add" onclick="saveTask(<?php echo $emp_id; ?>)">Add</button>
+                                <button class="btn-premium-cancel" onclick="hideAddTask(<?php echo $emp_id; ?>)">Cancel</button>
+                            </div>
+                        </div>
+                    <?php endif; ?>
 
                     <div class="task-list" id="task-list-<?php echo $emp_id; ?>">
                         <div style="text-align: center; padding: 20px;"><i class="fa fa-spinner fa-spin" style="color: #cbd5e1;"></i></div>
@@ -871,7 +889,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
             </div>
             <div class="tdm-top-actions">
                 <button class="tdm-icon-btn" title="Project"><i class="fa fa-briefcase"></i> <span id="td-project-name" style="font-size:12px; font-weight:600;">Project</span></button>
-                <button class="tdm-close" onclick="closeTaskDetail()" title="Close (Esc)"><i class="fa fa-times"></i></button>
+                <button class="btn-modal-close" onclick="closeTaskDetail()" title="Close (Esc)"><i class="fa fa-times"></i></button>
             </div>
         </div>
 
@@ -911,13 +929,25 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
 
                 <!-- Description Section -->
                 <div class="tdm-section">
-                    <div class="tdm-section-title">
-                        <i class="fa fa-align-left"></i> Description
+                    <div class="tdm-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fa fa-align-left"></i> Description</span>
+                        <div id="td-desc-upload-btn-wrap" style="display: none;">
+                            <label style="margin: 0; padding: 4px 10px; background: #ffeaeb; color: #dd2127; border-radius: 6px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.15s;" title="Upload Document for Description">
+                                <i class="fa fa-paperclip"></i> Attach Document
+                                <input type="file" id="td-desc-file-input" style="display: none;" onchange="uploadTdDescAttachment(this)">
+                            </label>
+                        </div>
                     </div>
-                    <textarea id="td-description" class="tdm-desc" rows="4"
+                    <textarea id="td-description" class="tdm-desc" rows="3"
                         placeholder="Add a more detailed description..."
                         onfocus="this.classList.add('focused')"
                         onblur="this.classList.remove('focused'); saveTdField('description', this.value)"></textarea>
+
+                    <!-- Description Attachments List -->
+                    <div id="td-desc-attachments-container" style="margin-top: 10px; display: none;">
+                        <div style="font-size: 11px; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 6px;">ATTACHED DOCUMENTS</div>
+                        <div id="td-desc-attachments-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+                    </div>
                 </div>
             </div>
 
@@ -935,11 +965,22 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                         <textarea id="td-comment-input" class="tdm-comment-textarea" rows="2"
                             placeholder="Write a comment..."
                             onfocus="document.getElementById('td-comment-actions').style.display='flex'; this.classList.add('focused')"
-                            onblur="if(!this.value.trim()){document.getElementById('td-comment-actions').style.display='none';} this.classList.remove('focused')"
                             onkeydown="if(event.ctrlKey && event.key==='Enter'){tdSubmitComment();}"></textarea>
+
+                        <div id="td-comment-file-preview" style="display:none; font-size:11.5px; color:#dd2127; font-weight:600; margin-top:6px; background:#ffeaeb; padding:4px 8px; border-radius:6px; width:fit-content; align-items:center; gap:6px;">
+                            <i class="fa fa-paperclip"></i> <span id="td-comment-file-name">file.pdf</span>
+                            <i class="fa fa-times" onclick="clearTdCommentFile()" style="cursor:pointer; margin-left:4px;"></i>
+                        </div>
+
                         <div id="td-comment-actions" style="display:none; margin-top:8px; justify-content:space-between; align-items:center;">
-                            <span style="font-size:11px; color:#94a3b8;">Press Ctrl + Enter to post</span>
-                            <button id="td-comment-save" class="tdm-save-btn" onclick="tdSubmitComment()">Save</button>
+                            <label style="margin:0; font-size:12px; color:#64748b; cursor:pointer; display:inline-flex; align-items:center; gap:5px; font-weight:600;" title="Attach Document to Comment">
+                                <i class="fa fa-paperclip" style="color:#dd2127; font-size:14px;"></i> Attach File
+                                <input type="file" id="td-comment-file" style="display:none;" onchange="handleTdCommentFileSelect(this)">
+                            </label>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:11px; color:#94a3b8;">Ctrl + Enter</span>
+                                <button id="td-comment-save" class="tdm-save-btn" onclick="tdSubmitComment()">Save</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -965,7 +1006,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                     <div style="font-size: 12.5px; color: #64748b; margin-top: 2px;">Assign task, description, due date & initial comments across team members</div>
                 </div>
             </div>
-            <button type="button" onclick="closeCommonTaskModal()" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #f1f5f9; color: #64748b; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.15s;" title="Close"><i class="fa fa-times"></i></button>
+            <button type="button" class="btn-modal-close" onclick="closeCommonTaskModal()" title="Close"><i class="fa fa-times"></i></button>
         </div>
 
         <form id="commonTaskForm" onsubmit="submitCommonTask(event)">
@@ -1036,10 +1077,8 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
 
             <!-- Footer Actions -->
             <div style="display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
-                <button type="button" onclick="closeCommonTaskModal()" style="background: #f1f5f9; color: #475569; border: none; border-radius: 8px; padding: 9px 20px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.15s;">Cancel</button>
-                <button type="submit" id="ct-submit-btn" style="background: linear-gradient(135deg, #dd2127, #b91c1c); color: #fff; border: none; border-radius: 8px; padding: 9px 24px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(221, 33, 39, 0.25); transition: 0.15s; display: inline-flex; align-items: center; gap: 8px;">
-                    <i class="fa fa-plus-circle"></i> Create Common Task
-                </button>
+                <button type="button" onclick="closeCommonTaskModal()" class="btn-premium-cancel">Cancel</button>
+                <button type="submit" id="ct-submit-btn" class="btn-premium-add"><i class="fa fa-plus-circle"></i> Create Common Task</button>
             </div>
         </form>
     </div>
@@ -1049,25 +1088,14 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
 
 <script>
     const projectId = <?php echo $project_id; ?>;
+    const _isEmpPortal = <?php echo $is_employee_portal ? 'true' : 'false'; ?>;
+    const _ajaxBaseUrl = _isEmpPortal ? '../admin_area/ajax/projects/' : 'ajax/projects/';
 
     $(document).ready(function() {
         // Load tasks for all columns
         $('.todo-column').each(function() {
             const empId = $(this).data('emp-id');
             loadTasks(empId);
-        });
-
-        // Search functionality
-        $('#task-search').on('keyup', function() {
-            const term = $(this).val().toLowerCase();
-            $('.task-item').each(function() {
-                const name = $(this).find('.task-name').text().toLowerCase();
-                if (name.includes(term)) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
         });
 
         // Close modal when clicking outside overlay
@@ -1094,7 +1122,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         const list = $('#task-list-' + empId);
         list.html('<div style="text-align:center;padding:20px;"><i class="fa fa-spinner fa-spin" style="color:#dd2127;font-size:18px;"></i></div>');
         $.ajax({
-            url: 'ajax/projects/ajax_get_team_todos.php',
+            url: _ajaxBaseUrl + 'ajax_get_team_todos.php',
             method: 'POST',
             dataType: 'json',
             data: {
@@ -1201,7 +1229,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         if (!name) return;
 
         $.ajax({
-            url: 'ajax/projects/ajax_add_team_todo.php',
+            url: _ajaxBaseUrl + 'ajax_add_team_todo.php',
             method: 'POST',
             data: {
                 project_id: projectId,
@@ -1214,6 +1242,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                 if (res && res.success) {
                     hideAddTask(empId);
                     loadTasks(empId);
+                    if (typeof fetchLiveNotifications === 'function') fetchLiveNotifications();
                 } else {
                     Swal.fire("Error", res ? res.message : "Could not add task.", "error");
                 }
@@ -1223,7 +1252,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
 
     function toggleTask(taskId, empId, newStatus) {
         $.ajax({
-            url: 'ajax/projects/ajax_toggle_team_todo.php',
+            url: _ajaxBaseUrl + 'ajax_toggle_team_todo.php',
             method: 'POST',
             data: {
                 task_id: taskId,
@@ -1248,7 +1277,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: 'ajax/projects/ajax_delete_team_todo.php',
+                    url: _ajaxBaseUrl + 'ajax_delete_team_todo.php',
                     method: 'POST',
                     data: {
                         task_id: taskId
@@ -1281,12 +1310,16 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         $('#td-check-circle').removeClass('td-completed');
         $('#td-status-label').text('Mark Complete');
         $('#td-in-list').text('');
+        $('#td-desc-attachments-container').hide();
+        $('#td-desc-attachments-list').empty();
+        $('#td-desc-upload-btn-wrap').hide();
+        clearTdCommentFile();
 
         $('#taskDetailOverlay').fadeIn(200);
         $('body').css('overflow', 'hidden');
 
         $.ajax({
-            url: 'ajax/projects/ajax_get_todo_detail.php',
+            url: _ajaxBaseUrl + 'ajax_get_todo_detail.php',
             method: 'POST',
             data: {
                 task_id: taskId
@@ -1296,9 +1329,10 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                 const t = res.task;
                 _modalStatus = parseInt(t.status);
 
-                const isAdmin = (res.is_admin === true || res.is_admin === 1);
+                const isAdmin = !_isEmpPortal && (res.is_admin === true || res.is_admin === 1);
 
                 // Read-Only Enforcement for Non-Admins / Employees
+                const dueDateEl = document.getElementById('td-due-date');
                 if (isAdmin) {
                     $('#td-title').prop('readonly', false).css({
                         'pointer-events': 'auto',
@@ -1306,7 +1340,12 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                     });
                     $('#td-description').prop('readonly', false).css('background', '#ffffff');
                     $('#td-due-date').prop('disabled', false).css('background', '#ffffff');
+                    if (dueDateEl && dueDateEl._flatpickr && dueDateEl._flatpickr.altInput) {
+                        dueDateEl._flatpickr.altInput.disabled = false;
+                        $(dueDateEl._flatpickr.altInput).css('background', '#ffffff');
+                    }
                     $('#td-priority').prop('disabled', false).css('background', '#ffffff');
+                    $('#td-desc-upload-btn-wrap').show();
                 } else {
                     $('#td-title').prop('readonly', true).css({
                         'pointer-events': 'none',
@@ -1314,12 +1353,20 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                     });
                     $('#td-description').prop('readonly', true).css('background', '#f8fafc');
                     $('#td-due-date').prop('disabled', true).css('background', '#f8fafc');
+                    if (dueDateEl && dueDateEl._flatpickr && dueDateEl._flatpickr.altInput) {
+                        dueDateEl._flatpickr.altInput.disabled = true;
+                        $(dueDateEl._flatpickr.altInput).css('background', '#f8fafc');
+                    }
                     $('#td-priority').prop('disabled', true).css('background', '#f8fafc');
+                    $('#td-desc-upload-btn-wrap').hide();
                 }
 
                 $('#td-title').val(t.task_name);
                 $('#td-description').val(t.description || '');
                 $('#td-due-date').val(t.due_date || '');
+                if (dueDateEl && dueDateEl._flatpickr) {
+                    dueDateEl._flatpickr.setDate(t.due_date || '', false);
+                }
                 $('#td-priority').val(t.priority || '');
                 $('#td-project-name').text(t.project_name || 'Project');
                 const colName = $(`#task-list-${empId}`).closest('.todo-column').find('.emp-name').text();
@@ -1328,9 +1375,109 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                     $('#td-check-circle').addClass('td-completed');
                     $('#td-status-label').text('Mark Pending');
                 }
-                renderTdActivity(res.comments || [], t);
+
+                renderTdDescAttachments(res.attachments || [], isAdmin);
+                renderTdActivity(res.comments || [], t, isAdmin);
             }
         });
+    }
+
+    function renderTdDescAttachments(attachments, isAdmin) {
+        const list = $('#td-desc-attachments-list');
+        list.empty();
+        if (!attachments || attachments.length === 0) {
+            $('#td-desc-attachments-container').hide();
+            return;
+        }
+
+        $('#td-desc-attachments-container').show();
+        attachments.forEach(att => {
+            const fileName = escapeHtml(att.file_name || 'Document');
+            const rawPath = att.file_path || '';
+            const filePath = _isEmpPortal && rawPath && !rawPath.startsWith('../') ? '../admin_area/' + escapeHtml(rawPath) : escapeHtml(rawPath);
+            const fileSize = escapeHtml(att.file_size || '');
+            const sizeHtml = fileSize ? `<small style="color:#94a3b8; font-weight:normal; flex-shrink:0; margin-left:4px;">(${fileSize})</small>` : '';
+            const delBtn = isAdmin ? `<i class="fa fa-trash-o" style="color:#ef4444; cursor:pointer; font-size:13px;" title="Delete Attachment" onclick="deleteTdDescAttachment(${att.id})"></i>` : '';
+
+            list.append(`
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; font-size:12.5px; width:100%; box-sizing:border-box;">
+                    <a href="${filePath}" target="_blank" style="color:#0f172a; font-weight:600; text-decoration:none; display:flex; align-items:center; gap:8px; flex:1; min-width:0; overflow:hidden;" title="${fileName}">
+                        <i class="fa fa-file-text-o" style="color:#dd2127; flex-shrink:0;"></i>
+                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;">${fileName}</span>
+                        ${sizeHtml}
+                    </a>
+                    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+                        <a href="${filePath}" download style="color:#64748b; font-size:12px; text-decoration:none;" title="Download"><i class="fa fa-download"></i></a>
+                        ${delBtn}
+                    </div>
+                </div>
+            `);
+        });
+    }
+
+    function uploadTdDescAttachment(input) {
+        if (!input.files || !input.files[0] || !_modalTaskId) return;
+        const formData = new FormData();
+        formData.append('task_id', _modalTaskId);
+        formData.append('attachment_file', input.files[0]);
+
+        const label = $(input).closest('label');
+        const origHtml = label.html();
+        label.html('<i class="fa fa-spinner fa-spin"></i> Uploading...');
+
+        $.ajax({
+            url: _ajaxBaseUrl + 'ajax_add_todo_attachment.php',
+            method: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(res) {
+                label.html(origHtml);
+                $(input).val('');
+                if (res && res.success) {
+                    $.post(_ajaxBaseUrl + 'ajax_get_todo_detail.php', {
+                        task_id: _modalTaskId
+                    }, function(r) {
+                        if (r && r.success) renderTdDescAttachments(r.attachments || [], (r.is_admin === true || r.is_admin === 1));
+                    });
+                } else {
+                    Swal.fire('Error', res ? res.message : 'Could not upload attachment.', 'error');
+                }
+            },
+            error: function() {
+                label.html(origHtml);
+                Swal.fire('Error', 'Upload failed.', 'error');
+            }
+        });
+    }
+
+    function deleteTdDescAttachment(attId) {
+        if (!confirm('Delete this document attachment?')) return;
+        $.post(_ajaxBaseUrl + 'ajax_delete_todo_attachment.php', {
+            attachment_id: attId
+        }, function(res) {
+            if (res && res.success) {
+                $.post(_ajaxBaseUrl + 'ajax_get_todo_detail.php', {
+                    task_id: _modalTaskId
+                }, function(r) {
+                    if (r && r.success) renderTdDescAttachments(r.attachments || [], (r.is_admin === true || r.is_admin === 1));
+                });
+            }
+        });
+    }
+
+    function handleTdCommentFileSelect(input) {
+        if (input.files && input.files[0]) {
+            $('#td-comment-file-name').text(input.files[0].name);
+            $('#td-comment-file-preview').css('display', 'inline-flex');
+            $('#td-comment-actions').css('display', 'flex');
+        }
+    }
+
+    function clearTdCommentFile() {
+        $('#td-comment-file').val('');
+        $('#td-comment-file-name').text('');
+        $('#td-comment-file-preview').hide();
     }
 
     function closeTaskDetail() {
@@ -1342,11 +1489,11 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
     }
 
     function saveTdField(field, value) {
-        if (!_modalTaskId) return;
+        if (!_modalTaskId || _isEmpPortal) return;
         const el = field === 'task_name' ? $('#td-title') : $(`#td-${field}`);
         if (el.prop('readonly') || el.prop('disabled')) return;
         if (field === 'task_name' && !value.trim()) return;
-        $.post('ajax/projects/ajax_update_todo_detail.php', {
+        $.post(_ajaxBaseUrl + 'ajax_update_todo_detail.php', {
             task_id: _modalTaskId,
             [field]: value
         }, function(res) {
@@ -1358,7 +1505,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         if (!_modalTaskId) return;
         const newStatus = _modalStatus === 1 ? 0 : 1;
         $.ajax({
-            url: 'ajax/projects/ajax_toggle_team_todo.php',
+            url: _ajaxBaseUrl + 'ajax_toggle_team_todo.php',
             method: 'POST',
             data: {
                 task_id: _modalTaskId,
@@ -1381,7 +1528,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
     }
 
     function tdDeleteCard() {
-        if (!_modalTaskId) return;
+        if (!_modalTaskId || _isEmpPortal) return;
         Swal.fire({
             title: 'Delete Task?',
             text: 'This cannot be undone.',
@@ -1393,7 +1540,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
             if (r.isConfirmed) {
                 const empId = _modalEmpId;
                 $.ajax({
-                    url: 'ajax/projects/ajax_delete_team_todo.php',
+                    url: _ajaxBaseUrl + 'ajax_delete_team_todo.php',
                     method: 'POST',
                     data: {
                         task_id: _modalTaskId
@@ -1413,35 +1560,53 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
 
     function tdSubmitComment() {
         const comment = $('#td-comment-input').val().trim();
-        if (!comment || !_modalTaskId) return;
+        const fileInput = $('#td-comment-file')[0];
+        const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+
+        if (!comment && !hasFile) return;
+        if (!_modalTaskId) return;
+
         const btn = $('#td-comment-save');
         btn.prop('disabled', true).text('Saving...');
+
+        const formData = new FormData();
+        formData.append('task_id', _modalTaskId);
+        formData.append('comment', comment || 'Attached document');
+        formData.append('posted_by', _isEmpPortal ? 'employee' : 'admin');
+        if (hasFile) {
+            formData.append('comment_file', fileInput.files[0]);
+        }
+
         $.ajax({
-            url: 'ajax/projects/ajax_add_todo_comment.php',
+            url: _ajaxBaseUrl + 'ajax_add_todo_comment.php',
             method: 'POST',
-            data: {
-                task_id: _modalTaskId,
-                comment: comment,
-                posted_by: 'admin'
-            },
+            data: formData,
+            contentType: false,
+            processData: false,
             success: function(res) {
                 btn.prop('disabled', false).text('Save');
                 if (res && res.success) {
                     $('#td-comment-input').val('').attr('rows', 2);
+                    clearTdCommentFile();
                     $('#td-comment-actions').hide();
+                    if (typeof fetchLiveNotifications === 'function') fetchLiveNotifications();
                     $.ajax({
-                        url: 'ajax/projects/ajax_get_todo_detail.php',
+                        url: _ajaxBaseUrl + 'ajax_get_todo_detail.php',
                         method: 'POST',
                         data: {
                             task_id: _modalTaskId
                         },
                         success: function(r) {
-                            if (r && r.success) renderTdActivity(r.comments || [], r.task);
+                            if (r && r.success) renderTdActivity(r.comments || [], r.task, !_isEmpPortal && (r.is_admin === true || r.is_admin === 1));
                         }
                     });
                 } else {
                     Swal.fire('Error', 'Could not save comment.', 'error');
                 }
+            },
+            error: function() {
+                btn.prop('disabled', false).text('Save');
+                Swal.fire('Error', 'Network error saving comment.', 'error');
             }
         });
     }
@@ -1449,7 +1614,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
     function tdDeleteComment(cid) {
         if (!confirm('Delete this comment?')) return;
         $.ajax({
-            url: 'ajax/projects/ajax_delete_todo_comment.php',
+            url: _ajaxBaseUrl + 'ajax_delete_todo_comment.php',
             method: 'POST',
             data: {
                 comment_id: cid
@@ -1464,7 +1629,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         });
     }
 
-    function renderTdActivity(comments, task) {
+    function renderTdActivity(comments, task, isAdmin) {
         const list = $('#td-activity');
         list.empty();
 
@@ -1474,6 +1639,33 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
             const empTag = c.emp_name ?
                 `<span style="display:inline-block; background:#ffeaeb; color:#dd2127; font-size:10px; font-weight:700; border-radius:4px; padding:1px 7px; margin-left:8px; vertical-align:middle;">${escapeHtml(c.emp_name)}</span>` :
                 '';
+
+            let commentTextHtml = '';
+            const commentText = (c.comment || '').trim();
+            if (commentText && commentText !== 'Attached document') {
+                commentTextHtml = `<div style="word-break:break-word; overflow-wrap:anywhere;">${escapeHtml(commentText)}</div>`;
+            }
+
+            let attachmentHtml = '';
+            if (c.attachment) {
+                const attName = escapeHtml(c.attachment_name || 'Attachment');
+                const rawAtt = c.attachment || '';
+                const attPath = _isEmpPortal && rawAtt && !rawAtt.startsWith('../') ? '../admin_area/' + escapeHtml(rawAtt) : escapeHtml(rawAtt);
+                attachmentHtml = `
+                    <div class="td-comment-attachment-pill">
+                        <i class="fa fa-paperclip" style="color:#dd2127; flex-shrink:0;"></i>
+                        <a href="${attPath}" target="_blank" class="td-comment-attachment-link" title="${attName}">${attName}</a>
+                        <a href="${attPath}" download style="color:#64748b; font-size:11px; flex-shrink:0; margin-left:auto;" title="Download"><i class="fa fa-download"></i></a>
+                    </div>
+                `;
+            }
+
+            const deleteBtnHtml = isAdmin ? `
+                <div class="td-act-actions">
+                    <button class="td-act-link" onclick="tdDeleteComment(${c.id})">Delete</button>
+                </div>
+            ` : '';
+
             list.append(`
                 <div class="td-act-item" id="td-comment-${c.id}">
                     <div class="td-act-avatar">${escapeHtml(init)}</div>
@@ -1482,10 +1674,11 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                             <strong>${escapeHtml(authorName)}</strong>${empTag}
                             <small>${tdTimeAgo(c.created_at)}</small>
                         </div>
-                        <div class="td-act-comment">${escapeHtml(c.comment)}</div>
-                        <div class="td-act-actions">
-                            <button class="td-act-link" onclick="tdDeleteComment(${c.id})">Delete</button>
+                        <div class="td-act-comment">
+                            ${commentTextHtml}
+                            ${attachmentHtml}
                         </div>
+                        ${deleteBtnHtml}
                     </div>
                 </div>
             `);
@@ -1576,7 +1769,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         console.log('Submitting common task, projectId:', projectId, 'empIds:', empIds);
 
         $.ajax({
-            url: 'ajax/projects/ajax_add_common_team_todo.php',
+            url: _ajaxBaseUrl + 'ajax_add_common_team_todo.php',
             method: 'POST',
             dataType: 'json',
             data: {
@@ -1597,6 +1790,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                 }
                 if (res && res.success) {
                     closeCommonTaskModal();
+                    if (typeof fetchLiveNotifications === 'function') fetchLiveNotifications();
                     Swal.fire({
                         icon: 'success',
                         title: 'Common Task Created!',
@@ -1619,6 +1813,20 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
             }
         });
     }
+
+    $(document).ready(function() {
+        <?php if (isset($_GET['open_task_id']) && intval($_GET['open_task_id']) > 0): ?>
+            const autoTaskId = <?php echo intval($_GET['open_task_id']); ?>;
+            const autoEmpId = <?php echo isset($_GET['emp_id']) ? intval($_GET['emp_id']) : 0; ?>;
+            setTimeout(function() {
+                openTaskDetail(autoTaskId, autoEmpId);
+                if (window.history && window.history.replaceState) {
+                    const cleanUrl = window.location.href.replace(/([&?])open_task_id=\d+(&|$)/, '$1').replace(/([&?])emp_id=\d+(&|$)/, '$1').replace(/[\?&]$/, '');
+                    window.history.replaceState(null, '', cleanUrl);
+                }
+            }, 400);
+        <?php endif; ?>
+    });
 
     $(document).on('keydown', function(e) {
         if (e.key === 'Escape') {

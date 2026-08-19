@@ -199,8 +199,12 @@ if (mysqli_num_rows($run_projects) > 0) {
                     <span style="font-size: 12px; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; width: 90px; display: inline-block; white-space: normal; word-wrap: break-word;"><?php echo htmlspecialchars($source ?: '-'); ?></span>
                 </td>
             <?php endif; ?>
-            <td style="color: #64748b; font-size: 13px; font-weight: 700; text-align: center;">
-                <i class="fa fa-calendar-o" style="margin-right: 5px;"></i> <?php echo $project_date; ?>
+            <td style="text-align: center;">
+                <button type="button" onclick="openExpenseModal(<?php echo $project_id; ?>, '<?php echo addslashes($p['project_name']); ?>')"
+                    style="font-weight: 800; color: #dd2127; font-size: 12px; cursor: pointer; background: #fff1f2; padding: 6px 14px; border-radius: 10px; border: 1px solid #fecdd3; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; box-shadow: 0 1px 3px rgba(221, 33, 39, 0.06);" title="View Project Expenses">
+                    <i class="fa fa-receipt" style="color: #dd2127;"></i>
+                    <span id="proj_exp_badge_<?php echo $project_id; ?>">Expenses</span>
+                </button>
             </td>
             <td style="text-align: center;">
                 <?php if (canAdminAccess('budget_view')): ?>

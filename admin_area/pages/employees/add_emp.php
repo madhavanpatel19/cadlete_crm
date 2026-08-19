@@ -26,8 +26,13 @@ if (!isset($con)) {
 // Handles single file upload, unlocks PDFs via qpdf if available.
 // Returns uploaded filename or empty string on failure.
 // =============================================================
+/**
+ * @param array $fileArray
+ * @param string $targetDir
+ * @return string
+ */
 if (!function_exists('handleFileUpload')) {
-    function handleFileUpload($fileArray, $targetDir = __DIR__ . "/../../uploads/")
+    function handleFileUpload(array $fileArray, string $targetDir = __DIR__ . "/../../uploads/"): string
     {
         if (isset($fileArray) && $fileArray['error'] == 0) {
             $file_name = $fileArray['name'];
@@ -65,6 +70,9 @@ if (!function_exists('handleFileUpload')) {
 //   - [OPTIONAL] Sends login credentials via PHPMailer (commented)
 // Called when: $_POST['submit'] is set
 // =============================================================
+/**
+ * @param mysqli|mixed $con
+ */
 function add_user($con)
 {
     global $name; // Make $name accessible for success message after function
@@ -315,6 +323,49 @@ function add_user($con)
 if (isset($_POST['submit'])) {
     add_user($con);
 }
+
+// Fetch distinct departments & designations for dropdowns (only assigned & user added)
+$existing_depts = [];
+$dept_q = mysqli_query($con, "SELECT DISTINCT department FROM emp_list WHERE department IS NOT NULL AND TRIM(department) != '' AND LOWER(TRIM(department)) != 'not assigned'");
+if ($dept_q) {
+    while ($dr = mysqli_fetch_assoc($dept_q)) {
+        $dv = trim($dr['department']);
+        if ($dv && !in_array($dv, $existing_depts)) {
+            $existing_depts[] = $dv;
+        }
+    }
+}
+$admin_dept_q = mysqli_query($con, "SELECT DISTINCT department FROM admins WHERE department IS NOT NULL AND TRIM(department) != '' AND LOWER(TRIM(department)) != 'not assigned'");
+if ($admin_dept_q) {
+    while ($adr = mysqli_fetch_assoc($admin_dept_q)) {
+        $adv = trim($adr['department']);
+        if ($adv && !in_array($adv, $existing_depts)) {
+            $existing_depts[] = $adv;
+        }
+    }
+}
+sort($existing_depts);
+
+$existing_desigs = [];
+$desig_q = mysqli_query($con, "SELECT DISTINCT designation FROM emp_list WHERE designation IS NOT NULL AND TRIM(designation) != '' AND LOWER(TRIM(designation)) != 'not assigned'");
+if ($desig_q) {
+    while ($dsr = mysqli_fetch_assoc($desig_q)) {
+        $dsv = trim($dsr['designation']);
+        if ($dsv && !in_array($dsv, $existing_desigs)) {
+            $existing_desigs[] = $dsv;
+        }
+    }
+}
+$admin_job_q = mysqli_query($con, "SELECT DISTINCT admin_job FROM admins WHERE admin_job IS NOT NULL AND TRIM(admin_job) != '' AND LOWER(TRIM(admin_job)) != 'not assigned'");
+if ($admin_job_q) {
+    while ($ajr = mysqli_fetch_assoc($admin_job_q)) {
+        $ajv = trim($ajr['admin_job']);
+        if ($ajv && !in_array($ajv, $existing_desigs)) {
+            $existing_desigs[] = $ajv;
+        }
+    }
+}
+sort($existing_desigs);
 ?>
 
 <div class="page-wrapper premium-ui-enabled">
@@ -759,14 +810,30 @@ if (isset($_POST['submit'])) {
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Department *</label>
-                            <input type="text" name="department" class="p-input-premium" placeholder="e.g. Development" required>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <label style="font-weight: 600; color: #475569; margin: 0;">Designation *</label>
+                                <button type="button" class="btn btn-sm btn-success" style="padding: 2px 10px; font-size: 11px; border-radius: 6px; font-weight: 700; background: #059669; border: none; cursor: pointer;" onclick="addNewDesignation()"><i class="fa fa-plus"></i> New</button>
+                            </div>
+                            <select name="designation" id="emp_designation" class="p-input-premium" required>
+                                <option value="">-- Select Designation --</option>
+                                <?php foreach ($existing_desigs as $desig): ?>
+                                    <option value="<?php echo htmlspecialchars($desig); ?>"><?php echo htmlspecialchars($desig); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Designation *</label>
-                            <input type="text" name="designation" class="p-input-premium" placeholder="e.g. Software Engineer" required>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <label style="font-weight: 600; color: #475569; margin: 0;">Department *</label>
+                                <button type="button" class="btn btn-sm btn-success" style="padding: 2px 10px; font-size: 11px; border-radius: 6px; font-weight: 700; background: #059669; border: none; cursor: pointer;" onclick="addNewDepartment()"><i class="fa fa-plus"></i> New</button>
+                            </div>
+                            <select name="department" id="emp_department" class="p-input-premium" required>
+                                <option value="">-- Select Department --</option>
+                                <?php foreach ($existing_depts as $dept): ?>
+                                    <option value="<?php echo htmlspecialchars($dept); ?>"><?php echo htmlspecialchars($dept); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -828,6 +895,74 @@ if (isset($_POST['submit'])) {
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    function addNewDepartment() {
+        Swal.fire({
+            title: 'Add New Department',
+            input: 'text',
+            inputPlaceholder: 'e.g. Quality Assurance',
+            showCancelButton: true,
+            confirmButtonColor: '#059669',
+            confirmButtonText: '<i class="fa fa-plus"></i> Add Department',
+            cancelButtonText: 'Cancel',
+            inputValidator: (value) => {
+                if (!value || !value.trim()) {
+                    return 'Please enter a department name!';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                const newDept = result.value.trim();
+                const select = document.getElementById('emp_department');
+                let exists = false;
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value.toLowerCase() === newDept.toLowerCase()) {
+                        select.selectedIndex = i;
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    const opt = new Option(newDept, newDept, true, true);
+                    select.add(opt);
+                }
+            }
+        });
+    }
+
+    function addNewDesignation() {
+        Swal.fire({
+            title: 'Add New Designation',
+            input: 'text',
+            inputPlaceholder: 'e.g. Senior Tech Lead',
+            showCancelButton: true,
+            confirmButtonColor: '#059669',
+            confirmButtonText: '<i class="fa fa-plus"></i> Add Designation',
+            cancelButtonText: 'Cancel',
+            inputValidator: (value) => {
+                if (!value || !value.trim()) {
+                    return 'Please enter a designation name!';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                const newDesig = result.value.trim();
+                const select = document.getElementById('emp_designation');
+                let exists = false;
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value.toLowerCase() === newDesig.toLowerCase()) {
+                        select.selectedIndex = i;
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    const opt = new Option(newDesig, newDesig, true, true);
+                    select.add(opt);
+                }
+            }
+        });
+    }
+
     function handleImagePreview(input, previewId) {
         if (input.files && input.files[0]) {
             var reader = new FileReader();
@@ -984,6 +1119,145 @@ if (isset($_POST['submit'])) {
             if (icon) {
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
+            }
+        }
+    }
+
+    /**
+     * Dynamic Department & Designation / Function Creation
+     */
+    function addNewDepartment(selectId = 'emp_department') {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Add New Department',
+                input: 'text',
+                inputLabel: 'Enter Department Name',
+                inputPlaceholder: 'e.g. Quality Assurance',
+                showCancelButton: true,
+                confirmButtonText: 'Add Department',
+                confirmButtonColor: '#dd2127',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'Please enter a department name!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    const newDept = result.value.trim();
+                    let exists = false;
+                    for (let i = 0; i < select.options.length; i++) {
+                        if (select.options[i].value.toLowerCase() === newDept.toLowerCase()) {
+                            select.selectedIndex = i;
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        const opt = document.createElement('option');
+                        opt.value = newDept;
+                        opt.textContent = newDept;
+                        opt.selected = true;
+                        select.appendChild(opt);
+                    }
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Department Added',
+                        text: `"${newDept}" has been added and selected.`,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        } else {
+            const newDept = prompt('Enter New Department Name:');
+            if (newDept && newDept.trim()) {
+                const val = newDept.trim();
+                let exists = false;
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value.toLowerCase() === val.toLowerCase()) {
+                        select.selectedIndex = i;
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = val;
+                    opt.selected = true;
+                    select.appendChild(opt);
+                }
+            }
+        }
+    }
+
+    function addNewDesignation(selectId = 'emp_designation') {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Add New Function / Designation',
+                input: 'text',
+                inputLabel: 'Enter Function / Designation Name',
+                inputPlaceholder: 'e.g. Lead Architect',
+                showCancelButton: true,
+                confirmButtonText: 'Add Designation',
+                confirmButtonColor: '#dd2127',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'Please enter a designation / function name!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    const newDesig = result.value.trim();
+                    let exists = false;
+                    for (let i = 0; i < select.options.length; i++) {
+                        if (select.options[i].value.toLowerCase() === newDesig.toLowerCase()) {
+                            select.selectedIndex = i;
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        const opt = document.createElement('option');
+                        opt.value = newDesig;
+                        opt.textContent = newDesig;
+                        opt.selected = true;
+                        select.appendChild(opt);
+                    }
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Function / Designation Added',
+                        text: `"${newDesig}" has been added and selected.`,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        } else {
+            const newDesig = prompt('Enter New Function / Designation Name:');
+            if (newDesig && newDesig.trim()) {
+                const val = newDesig.trim();
+                let exists = false;
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value.toLowerCase() === val.toLowerCase()) {
+                        select.selectedIndex = i;
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = val;
+                    opt.selected = true;
+                    select.appendChild(opt);
+                }
             }
         }
     }

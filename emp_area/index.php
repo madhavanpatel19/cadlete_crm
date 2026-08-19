@@ -102,51 +102,13 @@ if (!isset($_SESSION['emp_id'])) {
                         <input type="text" placeholder="Search projects, employees...">
                     </div> -->
                     <div class="topbar-right">
-                        <div class="notification-bell dropdown">
-                            <div data-toggle="dropdown" style="cursor: pointer; position: relative;">
+                        <div class="notification-bell dropdown" id="emp-system-notif-dropdown">
+                            <div data-toggle="dropdown" style="cursor: pointer; position: relative;" onclick="fetchLiveNotifications()">
                                 <i class="fa fa-bell-o"></i>
-                                <?php
-                                $get_unread_count = "SELECT COUNT(*) AS total FROM announcements WHERE is_active = 1 AND (publish_date IS NULL OR publish_date <= NOW()) AND (end_date IS NULL OR end_date >= NOW()) AND id NOT IN (SELECT announcement_id FROM announcement_read WHERE emp_id='$emp_id')";
-                                $run_unread_count = mysqli_query($con, $get_unread_count);
-                                $unread_count = 0;
-                                if ($run_unread_count) {
-                                    $row_unread_count = mysqli_fetch_array($run_unread_count);
-                                    $unread_count = $row_unread_count['total'];
-                                }
-                                ?>
-                                <?php if ($unread_count > 0): ?>
-                                    <span class="notification-badge"><?php echo $unread_count; ?></span>
-                                <?php endif; ?>
+                                <span class="notification-badge emp-sys-notif-badge" style="display: none;">0</span>
                             </div>
-                            <ul class="dropdown-menu" style="right: -10px; left: auto; top: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid var(--border-light); margin-top: 15px; min-width: 250px;">
-                                <?php
-                                $get_recent_announcements = "SELECT * FROM announcements WHERE is_active = 1 AND (publish_date IS NULL OR publish_date <= NOW()) AND (end_date IS NULL OR end_date >= NOW()) ORDER BY publish_date DESC LIMIT 5";
-                                $run_recent = mysqli_query($con, $get_recent_announcements);
-                                if ($run_recent && mysqli_num_rows($run_recent) > 0) {
-                                    while ($row_recent = mysqli_fetch_array($run_recent)) {
-                                        $ann_id = $row_recent['id'];
-                                        $ann_title = $row_recent['title'];
-                                        $ann_date = date('M d, H:i', strtotime(!empty($row_recent['publish_date']) ? $row_recent['publish_date'] : $row_recent['created_at']));
-                                        $check_read = "SELECT * FROM announcement_read WHERE announcement_id='$ann_id' AND emp_id='$emp_id'";
-                                        $run_check = mysqli_query($con, $check_read);
-                                        $is_unread = mysqli_num_rows($run_check) == 0;
-                                        $bg_style = $is_unread ? "background-color: #f5f3ff;" : "";
-                                ?>
-                                        <li style="<?php echo $bg_style; ?> border-bottom: 1px solid var(--border-light);">
-                                            <a href="index.php?view_announcement=<?php echo $ann_id; ?>" style="white-space: normal; padding: 12px 20px; display: block; color: var(--text-main); text-decoration: none;">
-                                                <strong style="color: var(--text-main); font-size: 14px;"><?php echo htmlspecialchars($ann_title); ?></strong><br>
-                                                <small style="color: var(--text-muted); font-size: 12px;"><?php echo $ann_date; ?></small>
-                                                <?php if ($is_unread) : ?>
-                                                    <span class="label label-danger pull-right" style="background-color: #ef4444; margin-top: 2px;">New</span>
-                                                <?php endif; ?>
-                                            </a>
-                                        </li>
-                                <?php
-                                    }
-                                } else {
-                                    echo "<li><a href='#' style='padding: 15px 20px; color: var(--text-muted); text-align: center; display: block; pointer-events: none;'>No announcements found.</a></li>";
-                                }
-                                ?>
+                            <ul class="dropdown-menu emp-sys-notif-list" style="right: -10px; left: auto; top: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid var(--border-light); margin-top: 15px; min-width: 320px; max-height: 400px; overflow-y: auto; padding: 0;">
+                                <li style="padding: 15px; text-align: center; color: #94a3b8;"><i class="fa fa-spinner fa-spin"></i> Loading...</li>
                             </ul>
                         </div>
                         <?php
@@ -196,6 +158,8 @@ if (!isset($_SESSION['emp_id'])) {
                         include("pages/dashboard/emp_dashboard.php");
                     } elseif (isset($_GET['projects'])) {
                         include("pages/projects/projects.php");
+                    } elseif (isset($_GET['team_todo'])) {
+                        include("../admin_area/pages/projects/team_todo.php");
                     } elseif (isset($_GET['worksheet'])) {
                         $_GET['partial'] = true;
                         include("pages/worksheets/worksheet.php");
@@ -241,8 +205,10 @@ if (!isset($_SESSION['emp_id'])) {
                     });
                 }
 
-                /* check announcement every 5 seconds */
-                setInterval(checkAnnouncement, 5000);
+                /* check announcement every 1.5 seconds */
+                setInterval(checkAnnouncement, 1500);
+                setInterval(fetchLiveNotifications, 1500);
+                fetchLiveNotifications();
             });
 
             /* notification popup */
@@ -296,6 +262,229 @@ if (!isset($_SESSION['emp_id'])) {
                         toast.remove();
                     }, 500);
                 }, 7000);
+            }
+
+            let _lastEmpUnreadCount = 0;
+            let _lastEmpSeenNotifId = 0;
+
+            function fetchLiveNotifications() {
+                const endpoint = '../admin_area/ajax/notifications/ajax_get_user_notifications.php?portal=employee';
+                const markReadEndpoint = '../admin_area/ajax/notifications/ajax_mark_notification_read.php?portal=employee';
+
+                $.ajax({
+                    url: endpoint,
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function(res) {
+                        if (!res || !res.success) return;
+
+                        const unread = res.unread_count || 0;
+
+                        if (unread > 0) {
+                            $('.emp-sys-notif-badge').text(unread).show();
+                        } else {
+                            $('.emp-sys-notif-badge').hide();
+                        }
+
+                        if (res.notifications && res.notifications.length > 0) {
+                            const latest = res.notifications[0];
+                            const latestId = parseInt(latest.id);
+                            if (_lastEmpSeenNotifId !== 0 && latestId > _lastEmpSeenNotifId && parseInt(latest.is_read) === 0) {
+                                playNotificationChime();
+                                showFloatingToastNotification(latest.title, latest.message, latest.url, latest.id);
+                            }
+                            _lastEmpSeenNotifId = latestId;
+                        }
+                        _lastEmpUnreadCount = unread;
+
+                        const list = $('.emp-sys-notif-list');
+                        list.empty();
+
+                        if (!res.notifications || res.notifications.length === 0) {
+                            list.append('<li style="padding:15px; text-align:center; color:#94a3b8; font-size:13px;">No new notifications</li>');
+                            return;
+                        }
+
+                        list.append(`
+                            <li style="padding: 10px 15px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: #0f172a;">
+                                <span>Notifications</span>
+                                <a href="#" onclick="markAllNotificationsRead(event, '${markReadEndpoint}')" style="color: #dd2127; text-decoration: none; font-size: 11px;">Mark all read</a>
+                            </li>
+                        `);
+
+                        res.notifications.forEach(n => {
+                            const isUnread = parseInt(n.is_read) === 0;
+                            const bg = isUnread ? '#fff5f5' : '#ffffff';
+                            const targetUrl = n.url || '#';
+
+                            let icon = 'fa-info-circle';
+                            if (n.type === 'task_assigned') icon = 'fa-tasks';
+                            else if (n.type === 'comment_added') icon = 'fa-commenting';
+                            else if (n.type === 'project_assigned') icon = 'fa-briefcase';
+
+                            list.append(`
+                                <li style="background:${bg}; border-bottom:1px solid #f1f5f9; transition:0.15s;">
+                                    <a href="${targetUrl}" onclick="handleNotifClick(event, ${n.id}, '${targetUrl}', '${markReadEndpoint}')" style="display:flex; gap:10px; padding:10px 14px; text-decoration:none; color:#334155; font-size:12.5px;">
+                                        <div style="width:28px; height:28px; border-radius:50%; background:#ffeaeb; color:#dd2127; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:12px;">
+                                            <i class="fa ${icon}"></i>
+                                        </div>
+                                        <div style="flex:1; min-width:0;">
+                                            <div style="font-weight:700; color:#0f172a; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlNotif(n.title)}</div>
+                                            <div style="font-size:11.5px; color:#64748b; margin-top:2px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtmlNotif(n.message)}</div>
+                                            <small style="color:#94a3b8; font-size:10px; margin-top:4px; display:block;">${n.time_ago}</small>
+                                        </div>
+                                    </a>
+                                </li>
+                            `);
+                        });
+                    }
+                });
+            }
+
+            function handleNotifClick(e, id, url, markEndpoint) {
+                if (e) e.preventDefault();
+
+                const $badge = $('.sys-notif-badge, .emp-sys-notif-badge');
+                let count = parseInt($badge.text()) || 0;
+                if (count > 0) {
+                    count--;
+                    if (count > 0) $badge.text(count);
+                    else $badge.hide().text('0');
+                }
+
+                $.ajax({
+                    url: markEndpoint,
+                    type: 'POST',
+                    data: {
+                        id: id
+                    },
+                    dataType: 'json'
+                }).always(function() {
+                    fetchLiveNotifications();
+                    if (url && url !== '#' && url !== 'javascript:void(0);') {
+                        var matchTask = url.match(/open_task_id=(\d+)/);
+                        var matchEmp = url.match(/emp_id=(\d+)/);
+
+                        var targetTaskId = matchTask ? parseInt(matchTask[1]) : 0;
+                        var targetEmpId = matchEmp ? parseInt(matchEmp[1]) : 0;
+
+                        if (targetTaskId > 0 && typeof openTaskDetail === 'function' && $('#taskDetailOverlay').length > 0) {
+                            openTaskDetail(targetTaskId, targetEmpId);
+                        } else {
+                            window.location.href = url;
+                        }
+                    }
+                });
+            }
+
+            function markAllNotificationsRead(e, markEndpoint) {
+                if (e) e.preventDefault();
+                $('.sys-notif-badge, .emp-sys-notif-badge').hide().text('0');
+                $.ajax({
+                    url: markEndpoint,
+                    type: 'POST',
+                    data: {
+                        mark_all: 'true'
+                    },
+                    dataType: 'json'
+                }).always(function() {
+                    fetchLiveNotifications();
+                });
+            }
+
+            function playNotificationChime() {
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioCtx) return;
+                    const ctx = new AudioCtx();
+
+                    const osc1 = ctx.createOscillator();
+                    const gain1 = ctx.createGain();
+                    osc1.type = 'sine';
+                    osc1.frequency.value = 659.25;
+                    osc1.connect(gain1);
+                    gain1.connect(ctx.destination);
+                    gain1.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                    osc1.start(ctx.currentTime);
+                    osc1.stop(ctx.currentTime + 0.3);
+
+                    const osc2 = ctx.createOscillator();
+                    const gain2 = ctx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.value = 880.00;
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    gain2.gain.setValueAtTime(0.4, ctx.currentTime + 0.12);
+                    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
+                    osc2.start(ctx.currentTime + 0.12);
+                    osc2.stop(ctx.currentTime + 0.55);
+                } catch (e) {}
+            }
+
+            function showFloatingToastNotification(title, message, url, notifId) {
+                const existing = document.getElementById('sys-floating-toast');
+                if (existing) existing.remove();
+
+                const toast = document.createElement('div');
+                toast.id = 'sys-floating-toast';
+                toast.style.cssText = `
+                    position: fixed;
+                    top: 24px;
+                    right: 24px;
+                    z-index: 999999;
+                    background: #ffffff;
+                    border-left: 4px solid #dd2127;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.18), 0 4px 12px rgba(221, 33, 39, 0.12);
+                    border-radius: 12px;
+                    padding: 14px 18px;
+                    width: 320px;
+                    max-width: calc(100vw - 32px);
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    display: flex;
+                    gap: 12px;
+                    align-items: flex-start;
+                    cursor: pointer;
+                    transition: transform 0.25s ease, opacity 0.25s ease;
+                `;
+
+                toast.innerHTML = `
+                    <div style="width:34px; height:34px; border-radius:50%; background:#ffeaeb; color:#dd2127; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:15px; margin-top:2px;">
+                        <i class="fa fa-bell"></i>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:700; color:#0f172a; font-size:13.5px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlNotif(title)}</div>
+                        <div style="font-size:12px; color:#475569; margin-top:3px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtmlNotif(message)}</div>
+                        <div style="font-size:11px; color:#dd2127; font-weight:700; margin-top:6px; display:inline-flex; align-items:center; gap:4px;">
+                            View Details <i class="fa fa-arrow-right" style="font-size:9px;"></i>
+                        </div>
+                    </div>
+                    <button type="button" onclick="event.stopPropagation(); document.getElementById('sys-floating-toast')?.remove();" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer; padding:0 2px; margin-left:4px; line-height:1;" title="Dismiss">&times;</button>
+                `;
+
+                toast.onclick = function(e) {
+                    toast.remove();
+                    const isEmp = (window.location.pathname.indexOf('emp_area') !== -1);
+                    const markEndpoint = isEmp ? '../admin_area/ajax/notifications/ajax_mark_notification_read.php?portal=employee' : 'ajax/notifications/ajax_mark_notification_read.php?portal=admin';
+                    handleNotifClick(e, notifId, url, markEndpoint);
+                };
+
+                document.body.appendChild(toast);
+
+                setTimeout(function() {
+                    if (toast && toast.parentNode) {
+                        toast.style.opacity = '0';
+                        toast.style.transform = 'translateY(-10px)';
+                        setTimeout(function() {
+                            if (toast && toast.parentNode) toast.remove();
+                        }, 300);
+                    }
+                }, 7000);
+            }
+
+            function escapeHtmlNotif(str) {
+                if (!str) return '';
+                return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
             }
 
             /* ajax check announcements */

@@ -25,8 +25,9 @@ if (!isset($_SESSION['admin_email'])) {
                     <tr>
                         <th>Name</th>
                         <th style="text-align: center;">Email</th>
+                        <th style="text-align: center;">Department</th>
+                        <th style="text-align: center;">Function / Role</th>
                         <th style="text-align: center;">Country</th>
-                        <th style="text-align: center;">Role</th>
                         <th style="text-align: center;">Manage</th>
                     </tr>
                 </thead>
@@ -41,6 +42,7 @@ if (!isset($_SESSION['admin_email'])) {
                         $admin_image = $row_admin['admin_image'];
                         $admin_country = $row_admin['admin_country'];
                         $admin_job = $row_admin['admin_job'];
+                        $admin_dept = isset($row_admin['department']) && trim($row_admin['department']) !== '' ? $row_admin['department'] : 'Management';
                     ?>
                         <tr>
                             <td style="text-align: center;">
@@ -55,10 +57,13 @@ if (!isset($_SESSION['admin_email'])) {
                                 </div>
                             </td>
                             <td style="text-align: center;">
-                                <span style="font-weight: 600; color: #475569;"><i class="fa fa-globe" style="margin-right: 5px; color: #94a3b8;"></i> <?php echo htmlspecialchars($admin_country); ?></span>
+                                <span class="p-badge" style="background: #e0f2fe; color: #0369a1; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 12px; display: inline-block;"><?php echo htmlspecialchars($admin_dept); ?></span>
                             </td>
                             <td style="text-align: center;">
                                 <span class="p-badge p-badge-primary"><?php echo htmlspecialchars($admin_job); ?></span>
+                            </td>
+                            <td style="text-align: center;">
+                                <span style="font-weight: 600; color: #475569;"><i class="fa fa-globe" style="margin-right: 5px; color: #94a3b8;"></i> <?php echo htmlspecialchars($admin_country); ?></span>
                             </td>
                             <td style="text-align: center;">
                                 <div style="display: flex; justify-content: center; gap: 8px;">

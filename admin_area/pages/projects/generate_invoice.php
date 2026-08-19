@@ -69,6 +69,8 @@ $total_cost     = (float)($project['budget'] ?? 0);
 $invoice_no     = 'INV-' . str_pad($project_id, 4, '0', STR_PAD_LEFT);
 $invoice_date   = date("d/m/Y");
 $current_date   = date("d F Y");
+$clean_proj_name = preg_replace('/[^\w\s\-]/', '', $project['project_name'] ?? 'Project');
+$pdf_doc_title = trim($clean_proj_name) . ' - Invoice - ' . $current_date;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -76,10 +78,11 @@ $current_date   = date("d F Y");
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tax Invoice – <?php echo htmlspecialchars($project['project_name'] ?? ''); ?></title>
+    <title><?php echo htmlspecialchars($pdf_doc_title); ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="../../css/style.css" rel="stylesheet">
     <style>
         :root {
@@ -625,8 +628,10 @@ $current_date   = date("d F Y");
 
     <!-- Action Buttons -->
     <div class="actions">
-        <button onclick="window.print()" class="btn-premium-add">🖨️ Print / Save PDF</button>
-        <a href="javascript:window.close();" class="btn-premium-cancel">← Back</a>
+        <button onclick="window.print()" class="btn-premium-add">
+            <i class="fa fa-print"></i> Print / Save PDF
+        </button>
+        <a href="javascript:window.close();" class="btn-premium-cancel">Back</a>
     </div>
 
     <div class="page-wrap">
@@ -751,7 +756,6 @@ $current_date   = date("d F Y");
                                         <?php if ($desc): ?>
                                             <div class="phase-desc"><?php echo $desc; ?></div>
                                         <?php endif; ?>
-                                        <div class="phase-method">Payment via: <?php echo $method; ?></div>
                                     </td>
                                     <td>—</td>
                                     <td style="font-size: 9.5px; font-weight: 600;"><?php echo $date_fmt; ?></td>

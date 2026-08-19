@@ -411,7 +411,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                                             <?php echo strtoupper(substr($client_name, 0, 1)); ?>
                                         </div>
                                         <div>
-                                            <div style="font-weight:600; color:var(--text-main); font-size:13px;"><?php echo !empty($client_name) ? $client_name : 'N/A'; ?></div>
+                                            <div style="font-weight:800; color:var(--text-main); font-size:14px;"><?php echo !empty($client_name) ? $client_name : 'N/A'; ?></div>
                                             <div style="font-size:11px; color:var(--text-muted);"><?php echo !empty($company_name) ? $company_name : ''; ?></div>
                                         </div>
                                     </div>
@@ -538,30 +538,38 @@ if ($res && mysqli_num_rows($res) > 0) {
                             $total_work_txt = sprintf('%02dh %02dm', $h, $m);
                         }
 
-                        $badge_bg = 'var(--border-light)';
-                        $badge_color = 'var(--text-muted)';
-                        $badge_text = ucfirst($status);
+                        $has_checked_in = !empty($att_row['check_in_time']) && $att_row['check_in_time'] !== '00:00:00';
 
-                        if ($status == 'present') {
+                        $badge_bg = '#fee2e2';
+                        $badge_color = '#dc2626';
+                        $badge_text = 'Not Checked In';
+
+                        if ($has_checked_in) {
                             if ($currently_working) {
-                                $badge_bg = 'var(--blue-light)';
-                                $badge_color = 'var(--blue)';
+                                $badge_bg = '#dbeafe';
+                                $badge_color = '#2563eb';
                                 $badge_text = 'Working';
-                            } elseif (!empty($att_row['check_out_time'])) {
-                                $badge_bg = 'var(--green-light)';
-                                $badge_color = 'var(--green)';
+                            } elseif (!empty($att_row['check_out_time']) && $att_row['check_out_time'] !== '00:00:00') {
+                                $badge_bg = '#dcfce7';
+                                $badge_color = '#16a34a';
                                 $badge_text = 'Completed';
+                            } elseif (strtolower($status) === 'late') {
+                                $badge_bg = '#ffeaeb';
+                                $badge_color = '#dd2127';
+                                $badge_text = 'Late';
+                            } elseif (strtolower($status) === 'absent') {
+                                $badge_bg = '#fee2e2';
+                                $badge_color = '#dc2626';
+                                $badge_text = 'Absent';
+                            } elseif (strtolower($status) === 'leave') {
+                                $badge_bg = '#fef3c7';
+                                $badge_color = '#d97706';
+                                $badge_text = 'Leave';
                             } else {
-                                $badge_bg = 'var(--yellow-light)';
-                                $badge_color = 'var(--yellow)';
+                                $badge_bg = '#fef3c7';
+                                $badge_color = '#d97706';
                                 $badge_text = 'Present';
                             }
-                        } elseif ($status == 'absent') {
-                            $badge_bg = 'var(--red-light)';
-                            $badge_color = 'var(--red)';
-                        } elseif ($status == 'leave') {
-                            $badge_bg = 'var(--yellow-light)';
-                            $badge_color = 'var(--yellow)';
                         }
                 ?>
                         <tr>
@@ -587,7 +595,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                                     <span class="total-work duration-text"><?php echo $total_work_txt; ?></span>
                                 </div>
                             </td>
-                            <td style="vertical-align: middle; text-align: center;"><span class="status-badge" style="background: #ffeaeb; color: #dd2127; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:600;"><?php echo $badge_text; ?></span></td>
+                            <td style="vertical-align: middle; text-align: center;"><span class="status-badge" style="background: <?php echo $badge_bg; ?>; color: <?php echo $badge_color; ?>; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:600;"><?php echo $badge_text; ?></span></td>
                         </tr>
                 <?php
                     }

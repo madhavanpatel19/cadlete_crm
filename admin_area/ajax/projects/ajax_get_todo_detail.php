@@ -49,6 +49,32 @@ if ($project_id_esc > 0) {
 
 $ids_in = implode(',', $sibling_ids);
 
+// Auto-migrate tables/columns if not existing
+@mysqli_query($con, "CREATE TABLE IF NOT EXISTS project_todo_attachments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    task_id INT NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    file_size VARCHAR(50) DEFAULT NULL,
+    uploaded_by_admin INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$check_col = @mysqli_query($con, "SHOW COLUMNS FROM project_todo_comments LIKE 'attachment'");
+if ($check_col && mysqli_num_rows($check_col) == 0) {
+    @mysqli_query($con, "ALTER TABLE project_todo_comments ADD COLUMN attachment VARCHAR(255) DEFAULT NULL, ADD COLUMN attachment_name VARCHAR(255) DEFAULT NULL");
+}
+
+// Fetch description attachments
+$ar = mysqli_query($con, "SELECT * FROM project_todo_attachments WHERE task_id IN ($ids_in) AND deleted_at IS NULL ORDER BY id DESC");
+$attachments = [];
+if ($ar) {
+    while ($row = mysqli_fetch_assoc($ar)) {
+        $attachments[] = $row;
+    }
+}
+
 // Fetch combined comments from all related tasks, including author info
 $cr = mysqli_query($con, "
     SELECT c.*, 
@@ -82,4 +108,4 @@ while ($row = mysqli_fetch_assoc($cr)) {
 }
 
 if (ob_get_length()) ob_end_clean();
-echo json_encode(['success' => true, 'task' => $task, 'comments' => $comments, 'is_admin' => $is_admin]);
+echo json_encode(['success' => true, 'task' => $task, 'attachments' => $attachments, 'comments' => $comments, 'is_admin' => $is_admin]);

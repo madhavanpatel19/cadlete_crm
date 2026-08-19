@@ -78,6 +78,19 @@ foreach ($emp_ids as $emp_id) {
 }
 
 if ($created_count > 0) {
+    require_once __DIR__ . '/../../includes/notification_helper.php';
+    $p_res = mysqli_query($con, "SELECT project_name FROM client_projects WHERE id = $project_id LIMIT 1");
+    $p_row = mysqli_fetch_assoc($p_res);
+    $p_name = $p_row['project_name'] ?? 'Project';
+    $url = "index.php?team_todo&project_id=$project_id";
+
+    foreach ($emp_ids as $eid) {
+        $eid = intval($eid);
+        if ($eid > 0) {
+            addSystemNotification('employee', $eid, "New Task Assigned: $task_name", "Admin assigned common task '$task_name' in $p_name.", $url, 'task_assigned');
+        }
+    }
+
     ob_end_clean();
     echo json_encode([
         'success' => true,

@@ -188,6 +188,16 @@ if (isset($_POST['submit_project'])) {
     if (mysqli_query($con, $insert_project)) {
         $project_id = mysqli_insert_id($con);
 
+        // Send notifications to assigned employees
+        require_once __DIR__ . '/../../includes/notification_helper.php';
+        $assigned_ids = array_filter(explode(',', $assigned_employees), function($id) { return !empty(trim($id)); });
+        foreach ($assigned_ids as $eid) {
+            $eid = intval($eid);
+            if ($eid > 0) {
+                addSystemNotification('employee', $eid, "Assigned to Project: $project_name", "You have been assigned to project '$project_name'.", "index.php?team_todo&project_id=$project_id", 'project_assigned');
+            }
+        }
+
         // Insert Phases
         if (isset($_POST['phase_name']) && is_array($_POST['phase_name'])) {
             foreach ($_POST['phase_name'] as $key => $p_name) {

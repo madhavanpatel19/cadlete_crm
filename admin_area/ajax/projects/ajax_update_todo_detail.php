@@ -4,12 +4,15 @@ if (!isset($con)) include(__DIR__ . '/../../includes/db.php');
 if (!function_exists('canAdminAccess')) require_once __DIR__ . '/../../includes/admin_permissions.php';
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['admin_email'])) { 
+$is_admin = isset($_SESSION['admin_email']);
+$is_emp   = isset($_SESSION['emp_id']);
+
+if (!$is_admin && !$is_emp) { 
     echo json_encode(['success' => false, 'message' => 'Unauthorized']); 
     exit(); 
 }
 
-if (!canAdminAccess('project_assign_task') && !canAdminAccess('todo_update') && !canAdminAccess('project_view') && !canAdminAccess('todo_view')) { 
+if ($is_admin && !canAdminAccess('project_assign_task') && !canAdminAccess('todo_update') && !canAdminAccess('project_view') && !canAdminAccess('todo_view')) { 
     echo json_encode(['success' => false, 'message' => 'Permission denied']); 
     exit(); 
 }

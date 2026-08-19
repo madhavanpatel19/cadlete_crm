@@ -1139,6 +1139,33 @@ table.table-premium>tfoot>tr>td,
     box-shadow: 0 0 0 3px #ffeaeb !important;
 }
 
+input[type="file"].p-input-premium {
+    height: auto !important;
+    min-height: 46px;
+    padding: 8px 14px !important;
+    outline: none !important;
+    background: #ffffff !important;
+    box-sizing: border-box;
+}
+
+input[type="file"].p-input-premium::-webkit-file-upload-button {
+    border: none !important;
+    outline: none !important;
+    background: #f1f5f9;
+    padding: 6px 12px;
+    border-radius: 6px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: 0.2s;
+}
+
+input[type="file"].p-input-premium::-webkit-file-upload-button:hover {
+    background: #e2e8f0;
+}
+
 .p-btn-action {
     width: 36px;
     height: 36px;

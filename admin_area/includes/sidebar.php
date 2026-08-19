@@ -58,38 +58,13 @@ if (!isset($_SESSION['admin_email'])) {
             <a class="navbar-brand" href="index.php?dashboard">Cadlete</a>
         </div><!-- navbar-header Ends -->
         <ul class="nav navbar-right top-nav"><!-- nav navbar-right top-nav Starts -->
-            <li class="dropdown"><!-- notification dropdown Starts -->
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+            <li class="dropdown" id="system-notif-dropdown"><!-- notification dropdown Starts -->
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="fetchLiveNotifications()">
                     <i class="fa fa-bell"></i>
-                    <?php if ($total_notifications > 0) : ?>
-                        <span class="label label-danger" style="position: absolute; top: 10px; right: 5px; border-radius: 50%; padding: 2px 5px; font-size: 10px;"><?php echo $total_notifications; ?></span>
-                    <?php endif; ?>
+                    <span class="label label-danger sys-notif-badge" style="position: absolute; top: 10px; right: 5px; border-radius: 50%; padding: 2px 5px; font-size: 10px; display: none;">0</span>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-right">
-                    <?php if ($pending_leave_count > 0) : ?>
-                        <li>
-                            <a href="index.php?view_leave_requests">
-                                <i class="fa fa-file-text"></i> <?php echo $pending_leave_count; ?> New Leave Requests
-                            </a>
-                        </li>
-                    <?php endif; ?>
-                    <?php if ($unread_feedback_count > 0) : ?>
-                        <li>
-                            <a href="index.php?view_client_feedback">
-                                <i class="fa fa-comments"></i> <?php echo $unread_feedback_count; ?> New Client Feedbacks
-                            </a>
-                        </li>
-                    <?php endif; ?>
-                    <?php if ($today_followup_count > 0) : ?>
-                        <li>
-                            <a href="index.php?leads">
-                                <i class="fa fa-bullseye" style="color: #ef4444;"></i> <?php echo $today_followup_count; ?> Follow-ups Today (<?php echo date('d M Y'); ?>)
-                            </a>
-                        </li>
-                    <?php endif; ?>
-                    <?php if ($total_notifications == 0) : ?>
-                        <li><a href="#">No new notifications</a></li>
-                    <?php endif; ?>
+                <ul class="dropdown-menu dropdown-menu-right sys-notif-list" style="min-width: 320px; max-height: 400px; overflow-y: auto; padding: 0;">
+                    <li style="padding: 15px; text-align: center; color: #94a3b8;"><i class="fa fa-spinner fa-spin"></i> Loading...</li>
                 </ul>
             </li><!-- notification dropdown Ends -->
             <li class="dropdown"><!-- dropdown Starts -->
@@ -136,14 +111,14 @@ if (!isset($_SESSION['admin_email'])) {
                     <a href="index.php?dashboard"><i class="fa fa-th-large"></i> Dashboard</a>
                 </li>
                 <?php if (canAdminAccess('project_view')): ?>
-                    <li class="<?php if (isset($_GET['projects'])) {
+                    <li class="<?php if (isset($_GET['projects']) || isset($_GET['add_project']) || isset($_GET['edit_project']) || isset($_GET['view_projects']) || isset($_GET['team_todo'])) {
                                     echo "active";
                                 } ?>">
                         <a href="index.php?projects"><i class="fa fa-briefcase"></i> Projects</a>
                     </li>
                 <?php endif; ?>
                 <?php if (canAdminAccess('todo_view')): ?>
-                    <li class="<?php if (isset($_GET['global_team_todos']) || isset($_GET['team_todo'])) {
+                    <li class="<?php if (isset($_GET['global_team_todos'])) {
                                     echo "active";
                                 } ?>">
                         <a href="index.php?global_team_todos"><i class="fa fa-list-alt"></i> Team To-Do</a>
