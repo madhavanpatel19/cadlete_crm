@@ -674,16 +674,72 @@ endif; ?>
     });
 
     function deleteIndustry(industryId, element) {
-        Swal.fire({
-            title: 'Delete Industry?',
-            text: "Do you really want to delete this industry?",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
+        if (!industryId || industryId <= 0) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Invalid Industry ID.',
+                icon: 'error',
+                confirmButtonColor: '#dd2127'
+            });
+            return;
+        }
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Delete Industry?',
+                html: 'Are you sure you want to delete this industry?<br><span style="font-size: 13px; color: #64748b;">This action cannot be undone.</span>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dd2127',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa fa-trash"></i> Yes, Delete',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: "ajax/misc/ajax_delete_industry.php",
+                        method: "POST",
+                        data: {
+                            industry_id: industryId,
+                            id: industryId
+                        },
+                        dataType: "json",
+                        success: function(data) {
+                            if (data.status === "success") {
+                                $(element).closest('div').remove();
+                                Swal.fire({
+                                    title: 'Industry Deleted Successfully!',
+                                    text: 'The industry has been removed.',
+                                    icon: 'success',
+                                    confirmButtonColor: '#dd2127',
+                                    confirmButtonText: 'OK',
+                                    timer: 1800,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: data.message || 'Could not delete industry.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#dd2127'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            var errMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (xhr.responseText ? xhr.responseText : 'Failed to connect to the server.');
+                            Swal.fire({
+                                title: 'Error',
+                                text: errMsg,
+                                icon: 'error',
+                                confirmButtonColor: '#dd2127'
+                            });
+                        }
+                    });
+                }
+            });
+        } else {
+            if (confirm("Do you really want to delete this industry?")) {
                 $.ajax({
                     url: "ajax/misc/ajax_delete_industry.php",
                     method: "POST",
@@ -694,23 +750,12 @@ endif; ?>
                     success: function(data) {
                         if (data.status === "success") {
                             $(element).closest('div').remove();
-                            Swal.fire({
-                                toast: true,
-                                position: 'top-end',
-                                icon: 'success',
-                                title: 'Industry deleted successfully',
-                                showConfirmButton: false,
-                                timer: 3000
-                            });
                         } else {
-                            Swal.fire('Error', data.message, 'error');
+                            alert('Error: ' + data.message);
                         }
-                    },
-                    error: function() {
-                        Swal.fire('Error', 'Connection Error: Failed to connect to the server.', 'error');
                     }
                 });
             }
-        });
+        }
     }
 </script>

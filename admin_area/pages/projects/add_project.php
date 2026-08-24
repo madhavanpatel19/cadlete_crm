@@ -1159,19 +1159,72 @@ $run_admins = mysqli_query($con, $get_admins);
     });
 
     function deleteSource(sourceId, element) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "Do you really want to delete this source?",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Yes, delete it!',
-            customClass: {
-                popup: 'premium-card swal2-premium'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
+        if (!sourceId || sourceId <= 0) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Invalid Source ID.',
+                icon: 'error',
+                confirmButtonColor: '#dd2127'
+            });
+            return;
+        }
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Delete Source?',
+                html: 'Are you sure you want to delete this source?<br><span style="font-size: 13px; color: #64748b;">This action cannot be undone.</span>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dd2127',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa fa-trash"></i> Yes, Delete',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: "ajax/misc/ajax_delete_source.php",
+                        method: "POST",
+                        data: {
+                            source_id: sourceId,
+                            id: sourceId
+                        },
+                        dataType: "json",
+                        success: function(data) {
+                            if (data.status === "success") {
+                                $(element).closest('div').remove();
+                                Swal.fire({
+                                    title: 'Source Deleted Successfully!',
+                                    text: 'The source has been removed.',
+                                    icon: 'success',
+                                    confirmButtonColor: '#dd2127',
+                                    confirmButtonText: 'OK',
+                                    timer: 1800,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: data.message || 'Could not delete source.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#dd2127'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            var errMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (xhr.responseText ? xhr.responseText : 'Failed to connect to the server.');
+                            Swal.fire({
+                                title: 'Error',
+                                text: errMsg,
+                                icon: 'error',
+                                confirmButtonColor: '#dd2127'
+                            });
+                        }
+                    });
+                }
+            });
+        } else {
+            if (confirm("Do you really want to delete this source?")) {
                 $.ajax({
                     url: "ajax/misc/ajax_delete_source.php",
                     method: "POST",
@@ -1182,21 +1235,13 @@ $run_admins = mysqli_query($con, $get_admins);
                     success: function(data) {
                         if (data.status === "success") {
                             $(element).closest('div').remove();
-                            if (typeof showPremiumAlert === "function") {
-                                showPremiumAlert("Source deleted successfully!");
-                            } else {
-                                Swal.fire('Deleted!', 'Source deleted successfully.', 'success');
-                            }
                         } else {
-                            Swal.fire('Error', data.message, 'error');
+                            alert('Error: ' + data.message);
                         }
-                    },
-                    error: function() {
-                        Swal.fire('Connection Error', 'Failed to connect to the server.', 'error');
                     }
                 });
             }
-        });
+        }
     }
 
     function showPremiumAlert(message) {

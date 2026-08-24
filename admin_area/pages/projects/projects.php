@@ -667,6 +667,17 @@ $run_projects = mysqli_query($con, $get_projects);
 </div>
 
 <style>
+    .id-badge-premium {
+        font-family: 'Monaco', 'Consolas', monospace;
+        font-weight: 800;
+        color: #94a3b8;
+        font-size: 13px;
+        background: #f1f5f9;
+        padding: 4px 10px;
+        border-radius: 8px;
+        display: inline-block;
+    }
+
     @keyframes slideDown {
         from {
             transform: translateY(-20px);
@@ -1435,7 +1446,8 @@ $run_projects = mysqli_query($con, $get_projects);
                 method: 'POST',
                 data: {
                     project_id: projectId,
-                    remark: remarkText
+                    remark: remarkText,
+                    user_type: 'admin'
                 },
                 success: function(response) {
                     btn.prop('disabled', false).html('<i class="fa fa-send"></i> Post Update');
@@ -1443,10 +1455,10 @@ $run_projects = mysqli_query($con, $get_projects);
                         const posterName = response.posted_by || 'You';
                         const newRemark = $(`
                         <div class="timeline-remark-item" style="margin-bottom: 25px; position: relative; padding-left: 32px; display: none; width: 100%;">
-                            <div class="timeline-dot" style="left: 0; background: #dd2127; border-color: #dd2127; box-shadow: 0 0 0 4px rgba(221, 33, 39, 0.1);"></div>
-                            <div class="remark-content-box" style="border-left: 4px solid #dd2127; padding-left: 20px;">
+                            <div class="timeline-dot" style="left: 0;"></div>
+                            <div class="remark-content-box" style="padding-left: 20px;">
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                                    <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: #eff6ff; color: #dd2127; display: inline-flex; align-items: center; gap: 4px;">
+                                    <span style="font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 6px; background: #ffeaeb; color: #dd2127; display: inline-flex; align-items: center; gap: 5px;">
                                         <i class="fa fa-user"></i> ${posterName}
                                     </span>
                                     <div class="remark-time-premium" style="margin: 0; font-size: 11px;">

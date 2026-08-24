@@ -367,6 +367,7 @@ if (!function_exists('_adminPermissionAliases')) {
             'salary_view'     => ['show_salary'],
             'user_insert'     => ['add_permission'],
             'user_update'     => ['edit_user'],
+            'user_delete'     => ['delete_user'],
             'user_view'       => ['show_user'],
             'leave_view'      => ['show_leave'],
             'worksheet_view'  => ['show_worksheet'],

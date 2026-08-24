@@ -96,8 +96,7 @@ if (isset($_POST['update'])) {
     $update_admin = "UPDATE admins SET admin_name='$name_esc', admin_email='$email_esc', admin_pass='$pass_esc', admin_image='$img_esc', admin_contact='$contact_esc', admin_country='$country_esc', admin_job='$job_esc', department='$dept_esc', admin_about='$about_esc', permissions='$perm_esc', is_super_admin='$is_super' WHERE admin_id='$admin_id'";
     $run_admin = mysqli_query($con, $update_admin);
     if ($run_admin) {
-        echo "<script>Swal.fire({title: 'Notification', text: 'User Updated Successfully', icon: 'success'}).then(() => { window.location.href='index.php?view_users'; });</script>";
-        exit;
+        $update_success = true;
     }
 }
 
@@ -174,7 +173,7 @@ sort($user_desigs);
                 <div class="row">
                     <!-- Image Upload -->
                     <div class="col-md-4">
-                        <label class="premium-label" style="font-size: 14px; color: #334155;">User Photo <span style="color: #ef4444;">*</span></label>
+                        <label class="premium-label" style="font-size: 14px; color: #334155;">User Photo <span style="color: #64748b; font-weight: normal; font-size: 12px;">(Optional)</span></label>
                         <div class="upload-area" style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 30px; text-align: center; background: #f8fafc; position: relative; transition: 0.3s;">
                             <div style="width: 100px; height: 100px; background: #eff6ff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #dd2127; font-size: 20px; margin-bottom: 15px; margin-left: auto; margin-right: auto;">
                                 <img id="usr_preview" src="admin_images/<?php echo htmlspecialchars($admin_image); ?>" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
@@ -374,6 +373,12 @@ sort($user_desigs);
 </div>
 
 <style>
+    .swal2-container.swal2-backdrop-show {
+        background: rgba(15, 23, 42, 0.45) !important;
+        backdrop-filter: blur(6px) !important;
+        -webkit-backdrop-filter: blur(6px) !important;
+    }
+
     .premium-label {
         font-weight: 600;
         color: #475569;
@@ -622,3 +627,25 @@ sort($user_desigs);
         }
     }
 </script>
+
+<?php if (isset($update_success) && $update_success): ?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'User Updated Successfully!',
+                    text: 'The admin user details have been saved.',
+                    icon: 'success',
+                    confirmButtonColor: '#dd2127',
+                    confirmButtonText: 'OK',
+                    allowOutsideClick: false
+                }).then(() => {
+                    window.location.href = 'index.php?view_users';
+                });
+            } else {
+                alert('User Updated Successfully!');
+                window.location.href = 'index.php?view_users';
+            }
+        });
+    </script>
+<?php endif; ?>

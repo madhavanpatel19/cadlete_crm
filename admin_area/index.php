@@ -242,7 +242,7 @@ if (!isset($_SESSION['admin_email'])) {
                         include("pages/settings/view_users.php");
                     }
                     if (isset($_GET['user_delete'])) {
-                        requireAdminPermission('user_update');
+                        requireAdminPermission('user_delete');
                         include("pages/settings/user_delete.php");
                     }
                     if (isset($_GET['edit_user'])) {

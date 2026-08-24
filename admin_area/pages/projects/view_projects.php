@@ -508,7 +508,8 @@ if (!$client_data) {
                 method: 'POST',
                 data: {
                     project_id: projectId,
-                    remark: remarkText
+                    remark: remarkText,
+                    user_type: 'admin'
                 },
                 success: function(response) {
                     btn.prop('disabled', false).html('<i class="fa fa-send"></i>');

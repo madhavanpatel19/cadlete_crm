@@ -476,7 +476,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                     <th>Status</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="worklog-table-body">
                 <?php
                 // We already have $today defined in dashboard.php around line 81
                 $q_worklog = "SELECT a.*, e.name, e.employee_image FROM attendance a JOIN emp_list e ON a.emp_id = e.id WHERE a.attendance_date = '$today' ORDER BY a.check_in_time DESC";
@@ -600,7 +600,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                 <?php
                     }
                 } else {
-                    echo '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">
+                    echo '<tr id="no-attendance-row"><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">
                             <div style="width: 60px; height: 60px; background: #f8fafc; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto;">
                                 <i class="fa fa-calendar-check-o" style="font-size:24px; color: #cbd5e1;"></i>
                             </div>
@@ -668,12 +668,38 @@ if ($res && mysqli_num_rows($res) > 0) {
 
                         if (data[empId]) {
                             var info = data[empId];
+                            var $row = $cell.closest('tr');
 
                             // Update data attributes
                             $cell.attr('data-is-working', info.is_working);
                             $cell.attr('data-total-secs', info.total_secs);
                             $cell.attr('data-last-resume', info.last_resume);
                             $cell.attr('data-check-in', info.check_in);
+
+                            // Update Check-In / Check-Out times in table
+                            if (info.check_in_fmt) {
+                                var $ci = $row.find('.check-in');
+                                if ($ci.length && $ci.text() !== info.check_in_fmt) {
+                                    $ci.text(info.check_in_fmt);
+                                }
+                            }
+                            if (info.check_out_fmt) {
+                                var $co = $row.find('.check-out');
+                                if ($co.length && $co.text() !== info.check_out_fmt) {
+                                    $co.text(info.check_out_fmt);
+                                    if (info.check_out_fmt !== '-') {
+                                        $co.css({
+                                            'color': 'var(--red)',
+                                            'font-weight': '600'
+                                        });
+                                    } else {
+                                        $co.css({
+                                            'color': 'var(--text-muted)',
+                                            'font-weight': '400'
+                                        });
+                                    }
+                                }
+                            }
 
                             // Update Live Indicator
                             var hasIndicator = $cell.find('.live-dot').length > 0;
@@ -683,22 +709,30 @@ if ($res && mysqli_num_rows($res) > 0) {
                                 $cell.find('.live-dot').remove();
                             }
 
-                            // Update Status Badge if needed
-                            var $row = $cell.closest('tr');
+                            // Update Status Badge text & colors
                             var $statusBadge = $row.find('.status-badge');
-                            if (info.status) {
+                            if (info.status && $statusBadge.length) {
                                 var statusUpper = info.status.charAt(0).toUpperCase() + info.status.slice(1);
-                                if ($statusBadge.text() != statusUpper) {
+                                if ($statusBadge.text() !== statusUpper) {
                                     $statusBadge.text(statusUpper);
                                 }
-
-                                // If not working, update duration text immediately
-                                if (info.is_working == 0) {
-                                    $cell.find('.duration-text').text(formatDuration(info.total_secs));
+                                if (info.badge_bg && info.badge_color) {
+                                    $statusBadge.css({
+                                        'background': info.badge_bg,
+                                        'color': info.badge_color
+                                    });
                                 }
+                            }
+
+                            // If not working, update duration text immediately
+                            if (info.is_working == 0) {
+                                $cell.find('.duration-text').text(formatDuration(info.total_secs));
                             }
                         }
                     });
+
+                    // Trigger live timer calculation immediately after sync
+                    updateLiveTimers();
                 }
             });
         }
@@ -706,9 +740,10 @@ if ($res && mysqli_num_rows($res) > 0) {
         // Update duration every second
         setInterval(updateLiveTimers, 1000);
 
-        // Sync status from server every 10 seconds
-        setInterval(syncLiveStatus, 10000);
+        // Sync status from server every 3 seconds for instant real-time updates
+        setInterval(syncLiveStatus, 3000);
 
         updateLiveTimers();
+        syncLiveStatus();
     });
 </script>

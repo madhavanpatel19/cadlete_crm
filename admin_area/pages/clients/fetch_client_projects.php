@@ -107,15 +107,15 @@ if (isset($_POST['client_id'])) {
                                                         $poster = (strpos($r['remark'], 'System:') === 0) ? 'System' : 'Team Member';
                                                     }
                                                     $is_sys = (strtolower($poster) === 'system');
-                                                    $poster_badge_bg = $is_sys ? '#f1f5f9' : '#eff6ff';
-                                                    $poster_badge_color = $is_sys ? '#64748b' : '#2563eb';
+                                                    $poster_badge_bg = $is_sys ? '#f1f5f9' : '#ffeaeb';
+                                                    $poster_badge_color = $is_sys ? '#64748b' : '#dd2127';
                                                     $poster_icon = $is_sys ? 'fa-cog' : 'fa-user';
                                             ?>
                                                     <div class="timeline-remark-item" style="margin-bottom: 25px; position: relative; padding-left: 32px; width: 100%;">
                                                         <div class="timeline-dot" style="left: 0;"></div>
                                                         <div class="remark-content-box" style="padding-left: 20px;">
                                                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                                                                <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background:#ffeaeb; color:#dd2127; display: inline-flex; align-items: center; gap: 4px;">
+                                                                <span style="font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 6px; background: <?php echo $poster_badge_bg; ?>; color: <?php echo $poster_badge_color; ?>; display: inline-flex; align-items: center; gap: 5px;">
                                                                     <i class="fa <?php echo $poster_icon; ?>"></i> <?php echo $poster; ?>
                                                                 </span>
                                                                 <div class="remark-time-premium" style="margin: 0; font-size: 11px;">

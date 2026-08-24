@@ -4,6 +4,14 @@ if (!isset($_SESSION['admin_email'])) {
     exit;
 }
 ?>
+<style>
+    .swal2-container.swal2-backdrop-show {
+        background: rgba(15, 23, 42, 0.45) !important;
+        backdrop-filter: blur(6px) !important;
+        -webkit-backdrop-filter: blur(6px) !important;
+    }
+</style>
+
 <div class="page-wrapper premium-ui-enabled">
     <div class="page-header-premium">
         <h1></h1>
@@ -44,7 +52,7 @@ if (!isset($_SESSION['admin_email'])) {
                         $admin_job = $row_admin['admin_job'];
                         $admin_dept = isset($row_admin['department']) && trim($row_admin['department']) !== '' ? $row_admin['department'] : 'Management';
                     ?>
-                        <tr>
+                        <tr id="user_row_<?php echo $admin_id; ?>">
                             <td style="text-align: center;">
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <img src="admin_images/<?php echo !empty($admin_image) ? $admin_image : 'default.png'; ?>" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
@@ -73,17 +81,17 @@ if (!isset($_SESSION['admin_email'])) {
                                         </a>
                                     <?php endif; ?>
                                     <?php if (canAdminAccess('user_delete')): ?>
-                                        <a href="index.php?user_delete=<?php echo $admin_id; ?>" class="btn-icon-premium btn-icon-delete" title="Delete User">
+                                        <button type="button" onclick="confirmDeleteUser(<?php echo $admin_id; ?>, '<?php echo addslashes(htmlspecialchars($admin_name)); ?>')" class="btn-icon-premium btn-icon-delete" title="Delete User">
                                             <i class="fa fa-trash-o"></i>
-                                        </a>
+                                        </button>
                                     <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
                     <?php }
                     if (mysqli_num_rows($run_admin) == 0) {
-                        echo "<tr>
-                                <td colspan='5' style='padding: 0; border-bottom: none;'>
+                        echo "<tr id='no_users_tr'>
+                                <td colspan='6' style='padding: 0; border-bottom: none;'>
                                     <div style='display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; width: 100%;'>
                                         <div style='width: 64px; height: 64px; background: #f8fafc; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;'>
                                             <i class='fa fa-folder-open-o' style='font-size: 28px; color: #cbd5e1;'></i>
@@ -100,3 +108,81 @@ if (!isset($_SESSION['admin_email'])) {
         </div>
     </div>
 </div>
+
+<script>
+    function confirmDeleteUser(id, name) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Delete Admin User?',
+                html: 'Are you sure you want to delete user <strong>' + name + '</strong>?<br><span style="font-size: 13px; color: #64748b;">This action is permanent and cannot be undone.</span>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dd2127',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa fa-trash"></i> Yes, Delete User',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state modal
+                    Swal.fire({
+                        title: 'Deleting User...',
+                        text: 'Please wait while the user account is being removed.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    fetch('pages/settings/user_delete.php?user_delete=' + id + '&ajax=1', {
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => {
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: 'Deleted Successfully!',
+                                    text: data.message || 'User has been removed.',
+                                    icon: 'success',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1500);
+                            } else {
+                                Swal.fire({
+                                    title: 'Cannot Delete User',
+                                    text: data.message || 'Error occurred while deleting user.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#dd2127'
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Delete error:', err);
+                            Swal.fire({
+                                title: 'Error',
+                                text: err.message || 'A network error occurred while communicating with the server.',
+                                icon: 'error',
+                                confirmButtonColor: '#dd2127'
+                            });
+                        });
+                }
+            });
+        } else {
+            if (confirm('Are you sure you want to delete user "' + name + '"?')) {
+                window.location.href = 'index.php?user_delete=' + id;
+            }
+        }
+    }
+</script>

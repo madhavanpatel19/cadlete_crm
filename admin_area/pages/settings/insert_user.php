@@ -36,9 +36,13 @@ if (isset($_POST['submit'])) {
     }
     $admin_contact = $_POST['admin_contact'];
     $admin_about = $_POST['admin_about'];
-    $admin_image = $_FILES['admin_image']['name'];
-    $temp_admin_image = $_FILES['admin_image']['tmp_name'];
-    move_uploaded_file($temp_admin_image, "admin_images/$admin_image");
+    $admin_image = isset($_FILES['admin_image']['name']) ? $_FILES['admin_image']['name'] : '';
+    $temp_admin_image = isset($_FILES['admin_image']['tmp_name']) ? $_FILES['admin_image']['tmp_name'] : '';
+    if (!empty($admin_image)) {
+        move_uploaded_file($temp_admin_image, "admin_images/$admin_image");
+    } else {
+        $admin_image = 'default.png';
+    }
 
     $permissions = '';
     if (!empty($_POST['permissions'])) {
@@ -55,7 +59,7 @@ if (isset($_POST['submit'])) {
 
     $run_admin = mysqli_query($con, $insert_admin);
     if ($run_admin) {
-        echo "<script>Swal.fire({title: 'Notification', text: 'User Created Successfully', icon: 'success'}).then(() => { window.location.href='index.php?view_users'; });</script>";
+        $insert_success = true;
     }
 }
 
@@ -124,7 +128,7 @@ sort($user_desigs);
                 <div class="row">
                     <!-- Image Upload -->
                     <div class="col-md-4">
-                        <label class="premium-label" style="font-size: 14px; color: #334155;">User Photo <span style="color: #ef4444;">*</span></label>
+                        <label class="premium-label" style="font-size: 14px; color: #334155;">User Photo <span style="color: #64748b; font-weight: normal; font-size: 12px;">(Optional)</span></label>
                         <div class="upload-area" style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 30px; text-align: center; background: #f8fafc; position: relative; transition: 0.3s;">
                             <div style="width: 100px; height: 100px; background: #eff6ff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #dd2127; font-size: 20px; margin-bottom: 15px; margin-left: auto; margin-right: auto;">
                                 <img id="usr_preview" src="admin_images/default.png" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
@@ -135,7 +139,7 @@ sort($user_desigs);
                             <label for="admin_image" class="btn btn-outline-primary" style="background: #fff; border: 1px solid #e2e8f0; color: #dd2127; font-weight: 600; padding: 8px 20px; border-radius: 8px; cursor: pointer;">
                                 Choose File
                             </label>
-                            <input type="file" name="admin_image" id="admin_image" style="display: none;" accept="image/*" required onchange="previewImg(this)">
+                            <input type="file" name="admin_image" id="admin_image" style="display: none;" accept="image/*" onchange="previewImg(this)">
                         </div>
                     </div>
 
@@ -176,7 +180,7 @@ sort($user_desigs);
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="premium-label" style="font-size: 14px; color: #334155;">Contact Number <span style="color: #ef4444;">*</span></label>
-                            <input type="text" name="admin_contact" class="p-input-premium" style="height: 48px; width:100%; border-radius: 8px; border: 1px solid #e2e8f0; padding:0 15px;" placeholder="e.g. 9876543210" value="" required>
+                            <input type="tel" name="admin_contact" class="p-input-premium" style="height: 48px; width:100%; border-radius: 8px; border: 1px solid #e2e8f0; padding:0 15px;" maxlength="10" placeholder="10-digit mobile" value="" required>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -316,6 +320,12 @@ sort($user_desigs);
 </div>
 
 <style>
+    .swal2-container.swal2-backdrop-show {
+        background: rgba(15, 23, 42, 0.45) !important;
+        backdrop-filter: blur(6px) !important;
+        -webkit-backdrop-filter: blur(6px) !important;
+    }
+
     .premium-label {
         font-weight: 600;
         color: #475569;
@@ -564,3 +574,25 @@ sort($user_desigs);
         }
     }
 </script>
+
+<?php if (isset($insert_success) && $insert_success): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'User Created Successfully!',
+            text: 'The new admin user has been added to the system.',
+            icon: 'success',
+            confirmButtonColor: '#dd2127',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false
+        }).then(() => {
+            window.location.href = 'index.php?view_users';
+        });
+    } else {
+        alert('User Created Successfully!');
+        window.location.href = 'index.php?view_users';
+    }
+});
+</script>
+<?php endif; ?>

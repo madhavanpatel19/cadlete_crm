@@ -46,6 +46,103 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
 
 ?>
 
+<style>
+    .timeline-visual-wrapper {
+        position: relative;
+        padding-left: 20px;
+    }
+
+    .timeline-vertical-line {
+        position: absolute;
+        left: 4px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e2e8f0;
+        z-index: 1;
+    }
+
+    .timeline-remark-item {
+        position: relative;
+        z-index: 2;
+    }
+
+    .timeline-dot {
+        position: absolute;
+        left: -32px;
+        top: 15px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #fff;
+        border: 3px solid #cbd5e1;
+        z-index: 3;
+    }
+
+    .remark-content-box {
+        background: #fff;
+        padding: 20px 25px;
+        border-radius: 18px;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+        position: relative;
+        transition: 0.3s;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        display: block;
+    }
+
+    .remark-content-box:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        border-color: #eef2f6;
+    }
+
+    /* Speech bubble tail */
+    .remark-content-box::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 15px;
+        width: 15px;
+        height: 15px;
+        background: #fff;
+        border-left: 1px solid #f1f5f9;
+        border-bottom: 1px solid #f1f5f9;
+        transform: rotate(45deg);
+    }
+
+    .remark-time-premium {
+        font-size: 10px;
+        font-weight: 700;
+        color: #94a3b8;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .remark-text-premium {
+        font-size: 14px;
+        color: #334155;
+        line-height: 1.6;
+        word-break: break-word;
+    }
+
+    .id-badge-premium {
+        font-family: 'Monaco', 'Consolas', monospace;
+        font-weight: 800;
+        color: #94a3b8;
+        font-size: 13px;
+        background: #f1f5f9;
+        padding: 4px 10px;
+        border-radius: 8px;
+        display: inline-block;
+    }
+</style>
+
 <div class="premium-ui-enabled">
     <div class="stat-cards-row">
         <!-- Total Projects -->
@@ -187,19 +284,19 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                                                                 $poster = (strpos($r['remark'], 'System:') === 0) ? 'System' : 'Team Member';
                                                                             }
                                                                             $is_sys = (strtolower($poster) === 'system');
-                                                                            $poster_badge_bg = $is_sys ? '#f1f5f9' : '#eff6ff';
-                                                                            $poster_badge_color = $is_sys ? '#64748b' : '#2563eb';
+                                                                            $poster_badge_bg = $is_sys ? '#f1f5f9' : '#ffeaeb';
+                                                                            $poster_badge_color = $is_sys ? '#64748b' : '#dd2127';
                                                                             $poster_icon = $is_sys ? 'fa-cog' : 'fa-user';
                                                                     ?>
                                                                             <div class="timeline-remark-item" style="margin-bottom: 25px; position: relative; padding-left: 32px; width: 100%;">
                                                                                 <div class="timeline-dot" style="left: 0;"></div>
                                                                                 <div class="remark-content-box" style="padding-left: 20px;">
                                                                                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                                                                                        <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: #ffeaeb; color:#dd2127;display: inline-flex; align-items: center; gap: 4px;">
+                                                                                        <span style="font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 6px; background: <?php echo $poster_badge_bg; ?>; color: <?php echo $poster_badge_color; ?>; display: inline-flex; align-items: center; gap: 5px;">
                                                                                             <i class="fa <?php echo $poster_icon; ?>"></i> <?php echo $poster; ?>
                                                                                         </span>
                                                                                         <div class="remark-time-premium" style="margin: 0; font-size: 11px;">
-                                                                                            <i class="fa fa-clock-o"></i> <?php echo date('d-m-Y • h:i A', strtotime($r['created_at'])); ?>
+                                                                                            <i class="fa fa-clock-o"></i> <?php echo date('d M Y • h:i A', strtotime($r['created_at'])); ?>
                                                                                         </div>
                                                                                     </div>
                                                                                     <div class="remark-text-premium" style="font-size: 13px; color: #334155; font-weight: 600;"><?php echo nl2br(htmlspecialchars($r['remark'])); ?></div>
@@ -263,21 +360,18 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                             $baseUrl .= "?";
                         }
                         ?>
-                        <a href="<?php echo $baseUrl; ?>page=<?php echo max(1, $page - 1); ?>" class="page-link <?php echo $page <= 1 ? 'disabled' : ''; ?>"><i class="fa fa-angle-left"></i> Prev</a>
 
-                        <?php
-                        $startPage = max(1, $page - 2);
-                        $endPage = min($totalPages, $startPage + 4);
-                        if ($endPage - $startPage < 4) {
-                            $startPage = max(1, $endPage - 4);
-                        }
+                        <?php if ($page > 1): ?>
+                            <a href="<?php echo $baseUrl; ?>page=<?php echo $page - 1; ?>" class="page-link"><i class="fa fa-chevron-left"></i> Prev</a>
+                        <?php endif; ?>
 
-                        for ($p = $startPage; $p <= $endPage; $p++):
-                        ?>
-                            <a href="<?php echo $baseUrl; ?>page=<?php echo $p; ?>" class="page-link <?php echo $page == $p ? 'active' : ''; ?>"><?php echo $p; ?></a>
+                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                            <a href="<?php echo $baseUrl; ?>page=<?php echo $i; ?>" class="page-link <?php echo $i == $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
                         <?php endfor; ?>
 
-                        <a href="<?php echo $baseUrl; ?>page=<?php echo min($totalPages, $page + 1); ?>" class="page-link <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">Next <i class="fa fa-angle-right"></i></a>
+                        <?php if ($page < $totalPages): ?>
+                            <a href="<?php echo $baseUrl; ?>page=<?php echo $page + 1; ?>" class="page-link">Next <i class="fa fa-chevron-right"></i></a>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
             </div>
@@ -328,7 +422,8 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                 type: 'POST',
                 data: {
                     project_id: projectId,
-                    remark: remarkText
+                    remark: remarkText,
+                    user_type: 'employee'
                 },
                 dataType: 'json',
                 success: function(response) {
@@ -337,10 +432,10 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                         const posterName = response.posted_by || '<?php echo htmlspecialchars($_SESSION['emp_name'] ?? "Employee"); ?>';
                         const newRemark = $(`
                         <div class="timeline-remark-item" style="margin-bottom: 25px; position: relative; padding-left: 32px; display: none; width: 100%;">
-                            <div class="timeline-dot" style="left: 0; background: #dd2127; border-color: #dd2127; box-shadow: 0 0 0 4px rgba(221, 33, 39, 0.1);"></div>
-                            <div class="remark-content-box" style="border-left: 4px solid #dd2127; padding-left: 20px;">
+                            <div class="timeline-dot" style="left: 0;"></div>
+                            <div class="remark-content-box" style="padding-left: 20px;">
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                                    <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: #eff6ff; color: #dd2127; display: inline-flex; align-items: center; gap: 4px;">
+                                    <span style="font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 6px; background: #ffeaeb; color: #dd2127; display: inline-flex; align-items: center; gap: 5px;">
                                         <i class="fa fa-user"></i> ${posterName}
                                     </span>
                                     <div class="remark-time-premium" style="margin: 0; font-size: 11px;">
