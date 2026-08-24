@@ -141,6 +141,42 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
         border-radius: 8px;
         display: inline-block;
     }
+
+    .repo-tab {
+        padding: 16px 0;
+        font-weight: 700;
+        font-size: 13px;
+        color: #64748b;
+        cursor: pointer;
+        position: relative;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .repo-tab:hover {
+        color: #0f172a;
+    }
+
+    .repo-tab.active {
+        color: #dd2127;
+    }
+
+    .repo-tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: #dd2127;
+        border-radius: 3px 3px 0 0;
+    }
+
+    .repo-tab i {
+        font-size: 15px;
+    }
 </style>
 
 <div class="premium-ui-enabled">
@@ -205,6 +241,8 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                 <th style="text-align:left;">Project Name</th>
                                 <th style="text-align:center;">Start Date</th>
                                 <th style="text-align:center;">Deadline</th>
+                                <th style="text-align:center;">Expenses</th>
+                                <th style="text-align:center;">FILES</th>
                                 <th style="text-align:center;">Status</th>
                                 <th style="text-align:center;">ACTION</th>
                             </tr>
@@ -221,7 +259,7 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                 ?>
                                     <tr style="border-bottom: 1px solid #f1f5f9;">
                                         <td style="text-align:center; font-weight: 700; color: #64748b;">
-                                            <span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:12px;">#<?php echo str_pad($row['id'], 3, '0', STR_PAD_LEFT); ?></span>
+                                            <span class="id-badge-premium">#<?php echo str_pad($row['id'], 3, '0', STR_PAD_LEFT); ?></span>
                                         </td>
                                         <td style="text-align:left;">
                                             <div style="font-weight: 700; color: #1e293b; font-size: 14px;">
@@ -234,7 +272,20 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                         <td style="text-align:center;">
                                             <?php echo !empty($row['deadline']) ? date('d-m-Y', strtotime($row['deadline'])) : '--'; ?>
                                         </td>
-                                        <td style="text-align: center; padding: 15px; align-items: center;">
+                                        <td style="text-align: center;">
+                                            <button type="button" onclick="openExpenseModal(<?php echo $row['id']; ?>, '<?php echo addslashes($row['project_name']); ?>')"
+                                                style="font-weight: 800; color: #dd2127; font-size: 12px; cursor: pointer; background: #fff1f2; padding: 6px 14px; border-radius: 10px; border: 1px solid #fecdd3; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; box-shadow: 0 1px 3px rgba(221, 33, 39, 0.06);" title="View Project Expenses">
+                                                <span id="proj_exp_badge_<?php echo $row['id']; ?>">Expenses</span>
+                                            </button>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                                <button type="button" class="btn-icon-premium btn-icon-folder" onclick="viewDocs(<?php echo $row['id']; ?>, 'documents')" title="Artifact Repository" style="background: #ffeaeb; color: #dd2127; border: 1px solid #ffeaeb; border-radius: 8px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">
+                                                    <i class="fa fa-folder-open"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td style="text-align: center; padding: 15px;">
                                             <span style="padding: 6px 14px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: #ffeaeb; color: #dd2127; display: inline-block; min-width: 90px;">
                                                 <?php echo htmlspecialchars($row['status']); ?>
                                             </span>
@@ -244,14 +295,11 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                                 <button type="button" class="btn-icon-premium btn-icon-sm btn-icon-history toggle-detail-btn" title="View Activity Timeline">
                                                     <i class="fa fa-history"></i>
                                                 </button>
-                                                <button type="button" class="btn-icon-premium btn-icon-sm btn-icon-expense" onclick="openExpenseModal(<?php echo $row['id']; ?>, '<?php echo addslashes($row['project_name']); ?>')" title="Project Expenses" style="background: #ffeaeb; color: #dd2127; border: 1px solid #ffeaeb; border-radius: 8px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">
-                                                    <i class="fa fa-calculator"></i>
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>
                                     <tr class="project-detail-row" style="display: none; background: #fff;">
-                                        <td colspan="7" style="padding: 0; border: none;">
+                                        <td colspan="8" style="padding: 0; border: none;">
                                             <div style="padding: 35px 50px; border-top: 1px solid #f1f5f9; background: #fcfdfe;">
                                                 <div class="row">
                                                     <div class="col-md-7">
@@ -461,111 +509,7 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
             });
         });
 
-        let currentExpenseProjectId = null;
-
-        window.openExpenseModal = function(projectId, projectName) {
-            currentExpenseProjectId = projectId;
-            $('#expense_modal_project_name').text('PROJECT: ' + projectName);
-            $('#projectExpensesModal').modal('show');
-            loadProjectExpenses(projectId);
-        };
-
-        window.toggleAddExpenseForm = function() {
-            if (!currentExpenseProjectId) return;
-            $('#popup_exp_project_id').val(currentExpenseProjectId);
-            if ($('#add_expense_form_popup').length && $('#add_expense_form_popup')[0]) {
-                $('#add_expense_form_popup')[0].reset();
-            }
-            $('#popup_att_file_name').text('Upload invoice or receipt');
-            calcPopupExpTotal();
-            $('#addExpenseFormModal').modal('show');
-        };
-
-        window.calcPopupExpTotal = function() {
-            const qty = parseFloat($('#popup_exp_qty').val()) || 1;
-            const cost = parseFloat($('#popup_exp_cost').val()) || 0;
-            const total = qty * cost;
-            $('#popup_exp_total_display').val(total.toFixed(2));
-        };
-
-        window.downloadExpenseStatement = function() {
-            if (!currentExpenseProjectId) return;
-            window.open('../admin_area/pages/projects/generate_expense_statement.php?project_id=' + currentExpenseProjectId, '_blank');
-        };
-
-        function loadProjectExpenses(projectId) {
-            $('#project_expenses_table_body').html('<tr><td colspan="10" style="text-align:center; padding:30px; color:#64748b;"><i class="fa fa-spinner fa-spin"></i> Loading expenses...</td></tr>');
-
-            $.ajax({
-                url: '../admin_area/ajax/projects/ajax_get_project_expenses.php',
-                method: 'GET',
-                data: {
-                    project_id: projectId
-                },
-                dataType: 'json',
-                success: function(res) {
-                    if (res.success) {
-                        const sym = '₹';
-                        $('#project_expenses_grand_total').text(sym + ' ' + res.formatted_total_sum);
-
-                        if (res.expenses.length === 0) {
-                            $('#project_expenses_table_body').html('<tr><td colspan="10" style="text-align:center; padding:45px 20px; color:#94a3b8; font-weight:600; font-size:14px; background:#ffffff;">No expenses recorded for this project yet. Click + Add Expense to create one.</td></tr>');
-                            return;
-                        }
-
-                        let html = '';
-                        res.expenses.forEach(function(exp) {
-                            let ordHtml = exp.ordered_from ? htmlEscapeExp(exp.ordered_from) : '-';
-                            if (exp.ordered_from_url) {
-                                ordHtml += ` <a href="${htmlEscapeExp(exp.ordered_from_url)}" target="_blank" style="color:#6366f1; font-size:11px;" title="Visit Website"><i class="fa fa-external-link"></i></a>`;
-                            }
-
-                            let invHtml = exp.invoice_no ? `Invoice #${htmlEscapeExp(exp.invoice_no)}` : '-';
-                            if (exp.invoice_file) {
-                                let invPath = exp.invoice_file;
-                                if (invPath && !invPath.startsWith('http') && !invPath.startsWith('/')) {
-                                    invPath = '../admin_area/' + invPath.replace(/^(\.\.\/)+/, '');
-                                }
-                                invHtml += ` <a href="${htmlEscapeExp(invPath)}" target="_blank" style="color:#6366f1; font-weight:600; margin-left:5px; font-size:12px;">View</a>`;
-                            }
-
-                            let attHtml = '-';
-                            if (exp.attachment) {
-                                let attPath = exp.attachment;
-                                if (attPath && !attPath.startsWith('http') && !attPath.startsWith('/')) {
-                                    attPath = '../admin_area/' + attPath.replace(/^(\.\.\/)+/, '');
-                                }
-                                attHtml = `<a href="${htmlEscapeExp(attPath)}" target="_blank" style="color:#6366f1; font-weight:600; font-size:12px;">View</a>`;
-                            }
-
-                            html += `
-                            <tr style="border-bottom: 1px solid #f1f5f9;">
-                                <td style="font-weight:700; color:#334155; font-size:13px; padding:12px 14px;">${htmlEscapeExp(exp.item_name)}</td>
-                                <td style="text-align:center; font-weight:600; color:#475569; font-size:13px; padding:12px 14px;">${exp.qty}</td>
-                                <td style="text-align:center; font-weight:700; color:#334155; font-size:13px; padding:12px 14px;">${sym}${parseFloat(exp.cost).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                                <td style="text-align:center; font-weight:800; color:#1e293b; font-size:13px; padding:12px 14px;">${sym}${parseFloat(exp.total_cost).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                                <td style="text-align:center; color:#64748b; font-size:12px; font-weight:600; padding:12px 14px;">${exp.expense_date}</td>
-                                <td style="text-align:center; font-size:12px; color:#334155; font-weight:600; padding:12px 14px;">${ordHtml}</td>
-                                <td style="text-align:center; font-size:12px; color:#334155; font-weight:600; padding:12px 14px;">${exp.paid_by ? htmlEscapeExp(exp.paid_by) : '-'}</td>
-                                <td style="text-align:center; font-size:12px; color:#334155; font-weight:600; padding:12px 14px;">${invHtml}</td>
-                                <td style="text-align:center; font-size:12px; padding:12px 14px;">${attHtml}</td>
-                                <td style="text-align:center; padding:12px 14px;">
-                                    <button type="button" class="btn-delete-expense-item" data-id="${exp.id}" data-project-id="${projectId}" onclick="deleteProjectExpense(${exp.id}, ${projectId})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px; padding:4px 8px;" title="Delete Expense"><i class="fa fa-trash"></i></button>
-                                </td>
-                            </tr>
-                        `;
-                        });
-                        $('#project_expenses_table_body').html(html);
-                    }
-                }
-            });
-        }
-
-        function htmlEscapeExp(str) {
-            if (!str) return '';
-            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-        }
-
+        // Expense Form Submission
         $(document).on('submit', '#add_expense_form_popup', function(e) {
             e.preventDefault();
             const btn = $('#btn_submit_popup_expense');
@@ -612,66 +556,462 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
             });
         });
 
-        window.deleteProjectExpense = function(expId, projectId) {
-            if (!expId) return;
+        // Resource Link Form Submission
+        $('#add-link-form-unified').submit(function(e) {
+            e.preventDefault();
+            const formData = $(this).serialize();
+            const submitBtn = $(this).find('button[type="submit"]');
+            const originalText = submitBtn.html();
 
-            function doDelete() {
-                $.ajax({
-                    url: '../admin_area/ajax/projects/ajax_delete_project_expense.php',
-                    method: 'POST',
-                    data: {
-                        expense_id: expId
-                    },
-                    dataType: 'json',
-                    success: function(res) {
-                        if (res && res.success) {
-                            loadProjectExpenses(projectId || currentExpenseProjectId);
-                            if (typeof Swal !== 'undefined') {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Deleted',
-                                    text: res.message || 'Expense deleted successfully.',
-                                    timer: 1500,
-                                    showConfirmButton: false
-                                });
-                            }
+            submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
+
+            $.ajax({
+                url: '../admin_area/ajax/projects/ajax_add_project_link.php',
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    submitBtn.prop('disabled', false).html(originalText);
+                    if (response.success) {
+                        toggleAddResourceForm('link');
+                        $('#add-link-form-unified')[0].reset();
+                        refreshRepoContent();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Success', 'Link saved to repository', 'success');
                         } else {
-                            const msg = (res && res.message) ? res.message : 'Could not delete expense';
-                            if (typeof Swal !== 'undefined') {
-                                Swal.fire('Error', msg, 'error');
-                            } else {
-                                alert(msg);
-                            }
+                            alert('Link saved to repository');
                         }
-                    },
-                    error: function() {
-                        alert('Could not delete expense due to network error.');
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Error', response.message, 'error');
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
                     }
-                });
-            }
+                }
+            });
+        });
 
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Delete Expense?',
-                    text: 'Are you sure you want to delete this expense entry?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ef4444',
-                    cancelButtonColor: '#64748b',
-                    confirmButtonText: 'Yes, delete it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        doDelete();
+        // Resource Document Form Submission
+        $('#add-document-form-unified').submit(function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const submitBtn = $(this).find('button[type="submit"]');
+            submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Uploading...');
+
+            $.ajax({
+                url: '../admin_area/ajax/projects/ajax_add_project_document.php',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    submitBtn.prop('disabled', false).html('Add Document');
+                    if (response.success) {
+                        toggleAddResourceForm('document');
+                        $('#add-document-form-unified')[0].reset();
+                        $('#file-name-label-unified').text('Choose file...');
+                        refreshRepoContent();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Success', 'Document archived', 'success');
+                        } else {
+                            alert('Document archived');
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Error', response.message, 'error');
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
                     }
-                });
-            } else {
-                if (confirm('Are you sure you want to delete this expense entry?')) {
-                    doDelete();
+                }
+            });
+        });
+
+        $('#project_doc_input_unified').change(function() {
+            const fileName = $(this).val().split('\\').pop();
+            if (fileName) $('#file-name-label-unified').text(fileName).css('color', '#4f46e5');
+        });
+    });
+
+    // Global helper functions attached to window
+    let currentExpenseProjectId = null;
+
+    window.openExpenseModal = function(projectId, projectName) {
+        currentExpenseProjectId = projectId;
+        $('#expense_modal_project_name').text('PROJECT: ' + projectName);
+        $('#projectExpensesModal').modal('show');
+        loadProjectExpenses(projectId);
+    };
+
+    window.toggleAddExpenseForm = function() {
+        if (!currentExpenseProjectId) return;
+        $('#popup_exp_project_id').val(currentExpenseProjectId);
+        if ($('#add_expense_form_popup').length && $('#add_expense_form_popup')[0]) {
+            $('#add_expense_form_popup')[0].reset();
+        }
+        $('#popup_att_file_name').text('Upload invoice or receipt');
+        calcPopupExpTotal();
+        $('#addExpenseFormModal').modal('show');
+    };
+
+    window.calcPopupExpTotal = function() {
+        const qty = parseFloat($('#popup_exp_qty').val()) || 1;
+        const cost = parseFloat($('#popup_exp_cost').val()) || 0;
+        const total = qty * cost;
+        $('#popup_exp_total_display').val(total.toFixed(2));
+    };
+
+    window.downloadExpenseStatement = function() {
+        if (!currentExpenseProjectId) return;
+        window.open('../admin_area/pages/projects/generate_expense_statement.php?project_id=' + currentExpenseProjectId, '_blank');
+    };
+
+    function loadProjectExpenses(projectId) {
+        $('#project_expenses_table_body').html('<tr><td colspan="10" style="text-align:center; padding:30px; color:#64748b;"><i class="fa fa-spinner fa-spin"></i> Loading expenses...</td></tr>');
+
+        $.ajax({
+            url: '../admin_area/ajax/projects/ajax_get_project_expenses.php',
+            method: 'GET',
+            data: {
+                project_id: projectId
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    const sym = '₹';
+                    $('#project_expenses_grand_total').text(sym + ' ' + res.formatted_total_sum);
+
+                    if (res.expenses.length === 0) {
+                        $('#project_expenses_table_body').html('<tr><td colspan="10" style="text-align:center; padding:45px 20px; color:#94a3b8; font-weight:600; font-size:14px; background:#ffffff;">No expenses recorded for this project yet. Click + Add Expense to create one.</td></tr>');
+                        return;
+                    }
+
+                    let html = '';
+                    res.expenses.forEach(function(exp) {
+                        let ordHtml = exp.ordered_from ? htmlEscapeExp(exp.ordered_from) : '-';
+                        if (exp.ordered_from_url) {
+                            ordHtml += ` <a href="${htmlEscapeExp(exp.ordered_from_url)}" target="_blank" style="color:#6366f1; font-size:11px;" title="Visit Website"><i class="fa fa-external-link"></i></a>`;
+                        }
+
+                        let invHtml = exp.invoice_no ? `Invoice #${htmlEscapeExp(exp.invoice_no)}` : '-';
+                        if (exp.invoice_file) {
+                            let invPath = exp.invoice_file;
+                            if (invPath && !invPath.startsWith('http') && !invPath.startsWith('/')) {
+                                invPath = '../admin_area/' + invPath.replace(/^(\.\.\/)+/, '');
+                            }
+                            invHtml += ` <a href="${htmlEscapeExp(invPath)}" target="_blank" style="color:#6366f1; font-weight:600; margin-left:5px; font-size:12px;">View</a>`;
+                        }
+
+                        let attHtml = '-';
+                        if (exp.attachment) {
+                            let attPath = exp.attachment;
+                            if (attPath && !attPath.startsWith('http') && !attPath.startsWith('/')) {
+                                attPath = '../admin_area/' + attPath.replace(/^(\.\.\/)+/, '');
+                            }
+                            attHtml = `<a href="${htmlEscapeExp(attPath)}" target="_blank" style="color:#6366f1; font-weight:600; font-size:12px;">View</a>`;
+                        }
+
+                        html += `
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="font-weight:700; color:#334155; font-size:13px; padding:12px 14px;">${htmlEscapeExp(exp.item_name)}</td>
+                            <td style="text-align:center; font-weight:600; color:#475569; font-size:13px; padding:12px 14px;">${exp.qty}</td>
+                            <td style="text-align:center; font-weight:600; color:#475569; font-size:13px; padding:12px 14px;">${sym} ${exp.formatted_cost}</td>
+                            <td style="text-align:center; font-weight:700; color:#dd2127; font-size:13px; padding:12px 14px;">${sym} ${exp.formatted_total}</td>
+                            <td style="text-align:center; font-size:12px; color:#334155; font-weight:600; padding:12px 14px;">${ordHtml}</td>
+                            <td style="text-align:center; font-size:12px; color:#334155; font-weight:600; padding:12px 14px;">${exp.paid_by ? htmlEscapeExp(exp.paid_by) : '-'}</td>
+                            <td style="text-align:center; font-size:12px; color:#334155; font-weight:600; padding:12px 14px;">${invHtml}</td>
+                            <td style="text-align:center; font-size:12px; padding:12px 14px;">${attHtml}</td>
+                            <td style="text-align:center; padding:12px 14px;">
+                                <button type="button" class="btn-delete-expense-item" data-id="${exp.id}" data-project-id="${projectId}" onclick="deleteProjectExpense(${exp.id}, ${projectId})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px; padding:4px 8px;" title="Delete Expense"><i class="fa fa-trash"></i></button>
+                            </td>
+                        </tr>`;
+                    });
+                    $('#project_expenses_table_body').html(html);
                 }
             }
+        });
+    }
+
+    function htmlEscapeExp(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    window.deleteProjectExpense = function(expId, projectId) {
+        if (!expId) return;
+
+        function doDelete() {
+            $.ajax({
+                url: '../admin_area/ajax/projects/ajax_delete_project_expense.php',
+                method: 'POST',
+                data: {
+                    expense_id: expId
+                },
+                dataType: 'json',
+                success: function(res) {
+                    if (res && res.success) {
+                        loadProjectExpenses(projectId || currentExpenseProjectId);
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted',
+                                text: res.message || 'Expense deleted successfully.',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }
+                    } else {
+                        const msg = (res && res.message) ? res.message : 'Could not delete expense';
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Error', msg, 'error');
+                        } else {
+                            alert(msg);
+                        }
+                    }
+                },
+                error: function() {
+                    alert('Could not delete expense due to network error.');
+                }
+            });
+        }
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Delete Expense?',
+                text: 'Are you sure you want to delete this expense entry?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    doDelete();
+                }
+            });
+        } else {
+            if (confirm('Are you sure you want to delete this expense entry?')) {
+                doDelete();
+            }
+        }
+    };
+
+    let currentProjectIdRepo = 0;
+    let currentRepoTab = 'documents';
+
+    window.switchRepoTab = function(tabName) {
+        currentRepoTab = tabName;
+        $('.repo-tab').removeClass('active');
+        $(`#tab-${tabName}`).addClass('active');
+
+        if (tabName === 'documents') {
+            $('#btn-add-artifact').show();
+            $('#btn-add-link').hide();
+        } else {
+            $('#btn-add-artifact').hide();
+            $('#btn-add-link').show();
+        }
+
+        $('#resource-forms-container').hide();
+        refreshRepoContent();
+    };
+
+    window.toggleAddResourceForm = function(type) {
+        const container = $('#resource-forms-container');
+        const formDoc = $('#add-document-form-unified');
+        const formLink = $('#add-link-form-unified');
+
+        if (container.is(':visible')) {
+            container.slideUp(300);
+        } else {
+            $('.resource-form').hide();
+            if (type === 'link' || currentRepoTab === 'links') {
+                formLink.show();
+            } else {
+                formDoc.show();
+            }
+            container.slideDown(300);
+        }
+    };
+
+    function refreshRepoContent() {
+        $('#docs-list-container').html('<div class="spinner-premium" style="margin: 30px auto;"></div>');
+        const url = currentRepoTab === 'documents' ? '../admin_area/ajax/projects/ajax_view_project_documents.php' : '../admin_area/ajax/projects/ajax_view_project_links.php';
+
+        $.ajax({
+            url: url,
+            method: 'GET',
+            data: {
+                project_id: currentProjectIdRepo
+            },
+            success: function(response) {
+                $('#docs-list-container').html(response);
+            }
+        });
+    }
+
+    window.viewDocs = function(id, initialTab = 'documents') {
+        currentProjectIdRepo = id;
+        $('#doc_project_id_unified').val(id);
+        $('#link_project_id_unified').val(id);
+        switchRepoTab(initialTab);
+        $('#viewDocumentsModal').modal('show');
+    };
+
+    window.deleteDoc = function(docId, projectId) {
+        const doDeleteDoc = function() {
+            const url = currentRepoTab === 'documents' ? '../admin_area/ajax/projects/ajax_delete_project_document.php' : '../admin_area/ajax/projects/ajax_delete_project_link.php';
+            const data = currentRepoTab === 'documents' ? {
+                doc_id: docId
+            } : {
+                link_id: docId
+            };
+
+            $.ajax({
+                url: url,
+                method: 'POST',
+                data: data,
+                success: function(response) {
+                    if (response.success) {
+                        refreshRepoContent();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Deleted', 'Resource removed', 'success');
+                        } else {
+                            alert('Resource removed');
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Error', response.message, 'error');
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    }
+                }
+            });
         };
-    });
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Confirm Removal',
+                text: "This resource will be permanently deleted.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    doDeleteDoc();
+                }
+            });
+        } else {
+            if (confirm('Are you sure you want to delete this resource?')) {
+                doDeleteDoc();
+            }
+        }
+    };
 </script>
+
+<!-- View Documents Modal (Unified Repository) -->
+<div id="viewDocumentsModal" class="modal fade" role="dialog" style="z-index: 1055;">
+    <div class="modal-dialog modal-lg" style="margin-top: 80px; max-width: 700px;">
+        <div class="modal-content premium-modal-content" style="border: none; border-radius: 28px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3); overflow: hidden;">
+            <div class="modal-header" style="background: #FFEAEB; color: #000; padding: 30px; border: none; position: relative;">
+                <button type="button" class="btn-modal-close" data-dismiss="modal">
+                    <i class="fa fa-times"></i>
+                </button>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 50px; height: 50px; background: #dd2127; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff;">
+                            <i class="fa fa-folder-open"></i>
+                        </div>
+                        <div>
+                            <h4 class="modal-title" style="font-weight: 800; font-size: 20px; letter-spacing: -0.5px; margin: 0;">Project Resource Hub</h4>
+                            <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Centralized Project Assets</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-right: 40px;">
+                        <button type="button" id="btn-add-artifact" class="btn-premium-add-inline" onclick="toggleAddResourceForm('document')" style="background: #dd2127; color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 10px rgba(221, 33, 39, 0.2);">
+                            <i class="fa fa-upload"></i>
+                            <span class="btn-text">Add Document</span>
+                        </button>
+                        <button type="button" id="btn-add-link" class="btn-premium-add-inline" onclick="toggleAddResourceForm('link')" style="background: #dd2127; color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-weight: 700; font-size: 13px; display: none; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 10px rgba(221, 33, 39, 0.2);">
+                            <i class="fa fa-globe"></i> <span class="btn-text">Add Link</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body" style="padding: 0; background: #fff;">
+                <!-- Tab Navigation -->
+                <div style="background: #f1f5f9; padding: 0 30px; display: flex; gap: 30px; border-bottom: 1px solid #e2e8f0;">
+                    <div class="repo-tab active" onclick="switchRepoTab('documents')" id="tab-documents">
+                        <i class="fa fa-files-o"></i> Documents
+                    </div>
+                    <div class="repo-tab" onclick="switchRepoTab('links')" id="tab-links">
+                        <i class="fa fa-link"></i> External Links
+                    </div>
+                </div>
+
+                <!-- Inline Resource Forms -->
+                <div id="resource-forms-container" style="display: none; background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 30px; animation: slideDown 0.3s ease-out;">
+                    <!-- Document Form -->
+                    <form id="add-document-form-unified" method="POST" enctype="multipart/form-data" class="resource-form">
+                        <input type="hidden" name="project_id" id="doc_project_id_unified">
+                        <div class="row">
+                            <div class="col-md-7">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-weight: 700; color: #475569; margin-bottom: 8px; display: block; font-size: 11px; text-transform: uppercase;">Artifact Name</label>
+                                    <input type="text" name="document_name" class="p-input-premium" placeholder="e.g. Design Spec" required style="height: 45px;">
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-weight: 700; color: #475569; margin-bottom: 8px; display: block; font-size: 11px; text-transform: uppercase;">Select File</label>
+                                    <div class="file-upload-wrapper-premium-mini" style="position: relative; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 10px; text-align: center; background: #fff; transition: 0.3s;">
+                                        <input type="file" name="project_doc" id="project_doc_input_unified" required style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer;">
+                                        <span id="file-name-label-unified" style="color: #64748b; font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">Choose file...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="is_proposal" value="0">
+                        </div>
+                        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="button" class="btn-premium-cancel" onclick="toggleAddResourceForm()">Discard</button>
+                            <button type="submit" class="btn-premium-add" style="background: #dd2127; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 700;">Add Document</button>
+                        </div>
+                    </form>
+
+                    <!-- Link Form -->
+                    <form id="add-link-form-unified" method="POST" class="resource-form" style="display: none;">
+                        <input type="hidden" name="project_id" id="link_project_id_unified">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-weight: 700; color: #475569; margin-bottom: 8px; display: block; font-size: 11px; text-transform: uppercase;">Link Title</label>
+                                    <input type="text" name="link_name" class="p-input-premium" placeholder="e.g. Figma Design" required style="height: 45px;">
+                                </div>
+                            </div>
+                            <div class="col-md-7">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-weight: 700; color: #475569; margin-bottom: 8px; display: block; font-size: 11px; text-transform: uppercase;">URL (https://...)</label>
+                                    <input type="url" name="link_url" class="p-input-premium" placeholder="https://www.figma.com/file/..." required style="height: 45px;">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="button" class="btn-premium-cancel" onclick="toggleAddResourceForm()">Discard</button>
+                            <button type="submit" class="btn-premium-add" style="background: #dd2127; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 700;">Add Link</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="docs-list-container" style="max-height: 550px; overflow-y: auto; padding: 30px;">
+                    <!-- Documents will be loaded here -->
+                    <div class="spinner-premium" style="margin: 50px auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Project Expenses Modal -->
 <div class="modal fade" id="projectExpensesModal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1055;">
@@ -728,12 +1068,11 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                     <th style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 13px 14px; border: none; text-align: center; position: sticky; top: 0; background: #52525b; color: #ffffff; z-index: 10;">PAID BY</th>
                                     <th style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 13px 14px; border: none; text-align: center; position: sticky; top: 0; background: #52525b; color: #ffffff; z-index: 10;">INVOICE</th>
                                     <th style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 13px 14px; border: none; text-align: center; position: sticky; top: 0; background: #52525b; color: #ffffff; z-index: 10;">ATTACHMENT</th>
-                                    <th style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 13px 14px; border: none; text-align: center; position: sticky; top: 0; background: #52525b; color: #ffffff; z-index: 10;">ACTION</th>
                                 </tr>
                             </thead>
                             <tbody id="project_expenses_table_body">
                                 <tr>
-                                    <td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">Loading expenses...</td>
+                                    <td colspan="9" style="text-align: center; padding: 40px; color: #64748b;">Loading expenses...</td>
                                 </tr>
                             </tbody>
                         </table>

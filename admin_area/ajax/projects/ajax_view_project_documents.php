@@ -70,7 +70,8 @@ if (isset($_GET['project_id'])) {
                     }
 
                     if ($found_rel_path !== null) {
-                        $file_url = htmlspecialchars($found_rel_path);
+                        $admin_area_web_base = str_replace('\\', '/', dirname(dirname(dirname($_SERVER['SCRIPT_NAME']))));
+                        $file_url = rtrim($admin_area_web_base, '/') . '/' . ltrim(htmlspecialchars($found_rel_path), '/');
                         $target_attr = 'target="_blank"';
                     } else {
                         $file_url = 'javascript:void(0);';
