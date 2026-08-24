@@ -11,6 +11,7 @@ if (!function_exists('isSuperAdmin')) {
 
 if (isset($_GET['project_id'])) {
     $project_id = mysqli_real_escape_string($con, $_GET['project_id']);
+    $user_type = isset($_GET['user_type']) ? trim($_GET['user_type']) : '';
 
     $current_admin_id = 0;
     if (isset($_SESSION['admin_email'])) {
@@ -29,7 +30,14 @@ if (isset($_GET['project_id'])) {
         }
     }
 
-    $can_see_proposal = isSuperAdmin() || ($current_admin_id > 0 && in_array((string)$current_admin_id, $assigned_admins_list, true));
+    // Proposals are ONLY visible to Admins (Super Admin or Assigned Admin) in Admin Portal.
+    // If request comes from Employee Portal, proposal documents are strictly hidden.
+    if ($user_type === 'employee') {
+        $can_see_proposal = false;
+    } else {
+        $can_see_proposal = isSuperAdmin() || ($current_admin_id > 0 && (empty($assigned_admins_list) || in_array((string)$current_admin_id, $assigned_admins_list, true)));
+    }
+
     $where_proposal = $can_see_proposal ? "" : " AND (is_proposal = 0 OR is_proposal IS NULL) ";
 
     $get_docs = "SELECT * FROM project_documents WHERE project_id = '$project_id' AND deleted_at IS NULL $where_proposal ORDER BY created_at DESC";

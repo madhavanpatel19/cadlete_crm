@@ -1657,7 +1657,8 @@ $run_projects = mysqli_query($con, $get_projects);
                 url: url,
                 method: 'GET',
                 data: {
-                    project_id: currentProjectIdRepo
+                    project_id: currentProjectIdRepo,
+                    user_type: 'admin'
                 },
                 success: function(response) {
                     $('#docs-list-container').html(response);

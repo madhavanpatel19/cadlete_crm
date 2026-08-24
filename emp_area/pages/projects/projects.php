@@ -842,7 +842,8 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
             url: url,
             method: 'GET',
             data: {
-                project_id: currentProjectIdRepo
+                project_id: currentProjectIdRepo,
+                user_type: 'employee'
             },
             success: function(response) {
                 $('#docs-list-container').html(response);
