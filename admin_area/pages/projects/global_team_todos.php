@@ -127,332 +127,6 @@ if ($run_projs) {
     }
 }
 ?>
-
-<div class="page-wrapper premium-ui-enabled" style="background: #f8fafc; min-height: calc(100vh - 60px);">
-    <div class="page-header-premium" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
-        <div style="display: flex; align-items: center; gap: 20px;">
-            <h1></h1>
-            <div style="padding: 8px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-weight: 700; color: #334155; display: flex; align-items: center; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                All Tasks
-            </div>
-        </div>
-        <div class="header-actions-premium" style="display: flex; gap: 16px; align-items: center;">
-            <?php if (!$is_employee_portal): ?>
-                <div style="position: relative;">
-                    <select id="task-dept-filter" style="padding: 10px 15px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 600; outline: none; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.02); background: #fff;" title="Filter by Department">
-                        <option value="">All Departments</option>
-                        <?php foreach ($departments_list as $dept) { ?>
-                            <option value="<?php echo htmlspecialchars($dept); ?>"><?php echo htmlspecialchars($dept); ?></option>
-                        <?php } ?>
-                    </select>
-                </div>
-                <div style="position: relative;">
-                    <input type="date" id="task-date-filter" style="padding: 10px 15px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 500; outline: none; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" title="Filter by Due Date (Shows only incomplete tasks for date)">
-                </div>
-            <?php endif; ?>
-            <!-- <div style="position: relative;">
-                <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px;"></i>
-                <input type="text" id="task-search" placeholder="Search tasks..." style="width: 250px; padding: 10px 15px 10px 38px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 500; outline: none; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-            </div> -->
-            <?php if (function_exists('canAdminAccess') && canAdminAccess('todo_insert')): ?>
-                <button class="btn-premium-add" onclick="showGlobalAddTask()">
-                    <i class="fa fa-plus"></i> Add Task
-                </button>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <div class="todo-board">
-        <?php
-        if ($is_employee_portal) {
-            foreach ($emp_projects as $proj) {
-                $p_id = intval($proj['id']);
-                $p_name = htmlspecialchars($proj['project_name']);
-                $p_sub = !empty($proj['client_name']) ? htmlspecialchars($proj['client_name']) : 'Project Task';
-                $p_dept = htmlspecialchars($proj['department'] ?? 'General');
-                $col_key = $logged_in_emp_id . '-' . $p_id;
-        ?>
-                <div class="todo-column" data-emp-id="<?php echo $logged_in_emp_id; ?>" data-project-id="<?php echo $p_id; ?>" data-dept="<?php echo $p_dept; ?>">
-                    <div class="todo-col-header">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div class="emp-avatar-fallback" style="background: #fef2f2; color: #dc2626; border-color: #fecaca;">
-                                <i class="fa <?php echo $p_id === 0 ? 'fa-tasks' : 'fa-briefcase'; ?>"></i>
-                            </div>
-                            <div>
-                                <div class="emp-name"><?php echo $p_name; ?></div>
-                                <div class="emp-role"><?php echo $p_sub; ?></div>
-                            </div>
-                        </div>
-                        <button class="icon-btn"><i class="fa fa-ellipsis-v"></i></button>
-                    </div>
-
-                    <div class="add-task-trigger" onclick="showInlineAddTask(<?php echo $logged_in_emp_id; ?>, <?php echo $p_id; ?>)">
-                        <i class="fa fa-plus-circle" style="font-size: 16px; color: #94a3b8;"></i>
-                        <span>Add a task</span>
-                    </div>
-
-                    <div class="add-task-form" id="inline-add-form-<?php echo $col_key; ?>" style="display: none;">
-                        <input type="text" class="task-input" id="inline-task-input-<?php echo $col_key; ?>" placeholder="What needs to be done?">
-                        <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
-                            <input type="date" class="task-date-input" id="inline-task-date-<?php echo $col_key; ?>">
-                            <select class="task-priority-input" id="inline-task-priority-<?php echo $col_key; ?>">
-                                <option value="Low">Low Priority</option>
-                                <option value="Medium" selected>Medium Priority</option>
-                                <option value="High">High Priority</option>
-                            </select>
-                            <button class="btn-premium-add" onclick="saveInlineTask(<?php echo $logged_in_emp_id; ?>, <?php echo $p_id; ?>)">Add</button>
-                            <button class="btn-premium-cancel" onclick="hideInlineAddTask(<?php echo $logged_in_emp_id; ?>, <?php echo $p_id; ?>)">Cancel</button>
-                        </div>
-                    </div>
-
-                    <div class="task-list" id="task-list-<?php echo $col_key; ?>">
-                        <div style="text-align: center; padding: 20px;"><i class="fa fa-spinner fa-spin" style="color: #cbd5e1;"></i></div>
-                    </div>
-                </div>
-                <?php
-            }
-        } else {
-            if (empty($employees)) {
-                echo '<div style="text-align: center; width: 100%; padding: 50px; color: #64748b; font-weight: 600;">No tasks found for this date.</div>';
-            } else {
-                foreach ($employees as $emp) {
-                    $emp_id = intval($emp['id']);
-                    $emp_name = htmlspecialchars($emp['name']);
-                    $emp_dept = !empty($emp['department']) ? $emp['department'] : (!empty($emp['designation']) ? $emp['designation'] : 'Employee');
-                    $emp_job = htmlspecialchars($emp_dept);
-                    $emp_img = !empty($emp['employee_image']) ? 'uploads/' . htmlspecialchars($emp['employee_image']) : null;
-                ?>
-                    <div class="todo-column" data-emp-id="<?php echo $emp_id; ?>" data-dept="<?php echo htmlspecialchars($emp['department'] ?? 'Not Assigned'); ?>">
-                        <div class="todo-col-header">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <?php if ($emp_img && file_exists('../../' . $emp_img)) { ?>
-                                    <img src="<?php echo $emp_img; ?>" class="emp-avatar">
-                                <?php } else { ?>
-                                    <div class="emp-avatar-fallback"><?php echo strtoupper(substr($emp_name, 0, 1)); ?></div>
-                                <?php } ?>
-                                <div>
-                                    <div class="emp-name"><?php echo $emp_name; ?></div>
-                                    <div class="emp-role"><?php echo $emp_job; ?></div>
-                                </div>
-                            </div>
-                            <button class="icon-btn"><i class="fa fa-ellipsis-v"></i></button>
-                        </div>
-
-                        <?php if (function_exists('canAdminAccess') && canAdminAccess('todo_insert')): ?>
-                            <div class="add-task-trigger" onclick="showInlineAddTask(<?php echo $emp_id; ?>)">
-                                <i class="fa fa-plus-circle" style="font-size: 16px; color: #94a3b8;"></i>
-                                <span>Add a task</span>
-                            </div>
-                        <?php endif; ?>
-
-                        <div class="add-task-form" id="inline-add-form-<?php echo $emp_id; ?>" style="display: none;">
-                            <input type="text" class="task-input" id="inline-task-input-<?php echo $emp_id; ?>" placeholder="What needs to be done?">
-                            <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
-                                <input type="date" class="task-date-input" id="inline-task-date-<?php echo $emp_id; ?>">
-                                <select class="task-priority-input" id="inline-task-priority-<?php echo $emp_id; ?>">
-                                    <option value="Low">Low Priority</option>
-                                    <option value="Medium" selected>Medium Priority</option>
-                                    <option value="High">High Priority</option>
-                                </select>
-                                <button class="btn-premium-add" onclick="saveInlineTask(<?php echo $emp_id; ?>)">Add</button>
-                                <button class="btn-premium-cancel" onclick="hideInlineAddTask(<?php echo $emp_id; ?>)">Cancel</button>
-                            </div>
-                        </div>
-
-                        <div class="task-list" id="task-list-<?php echo $emp_id; ?>">
-                            <div style="text-align: center; padding: 20px;"><i class="fa fa-spinner fa-spin" style="color: #cbd5e1;"></i></div>
-                        </div>
-                    </div>
-        <?php
-                }
-            }
-        }
-        ?>
-    </div>
-</div>
-
-<!-- Add Task Modal -->
-<div class="modal fade" id="globalAddTaskModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document" style="max-width: 540px;">
-        <div class="modal-content" style="border-radius: 14px; border: none; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.18);">
-            <div class="modal-header" style="border-bottom: 1px solid #f1f5f9; padding: 20px 24px; background: #ffeaeb; border-radius: 14px 14px 0 0; position: relative;">
-                <div style="display: flex; align-items: center; width: 100%; gap: 12px;">
-                    <div style="width: 36px; height: 36px; background: #dc2626; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa fa-plus" style="color: #fff; font-size: 14px;"></i>
-                    </div>
-                    <div>
-                        <h5 class="modal-title" style="font-weight: 800; color: #0f172a; font-size: 17px; margin: 0;">Add New Task</h5>
-                        <p style="margin: 0; font-size: 12px; color: #94a3b8; font-weight: 500;">Assign a task to an employee</p>
-                    </div>
-                </div>
-                <button type="button" class="btn-modal-close" data-dismiss="modal" aria-label="Close">
-                    <i class="fa fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body" style="padding: 24px;">
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                        <i class="fa fa-briefcase" style="color: #dc2626; font-size: 11px;"></i> Project
-                    </label>
-                    <select class="form-control premium-modal-input" id="global-task-project" onchange="fetchProjectEmployees(this.value)">
-                        <option value="">-- Select a Project --</option>
-                        <?php foreach ($active_projects as $p) { ?>
-                            <option value="<?php echo $p['id']; ?>"><?php echo htmlspecialchars($p['project_name']); ?></option>
-                        <?php } ?>
-                    </select>
-                </div>
-
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                        <i class="fa fa-user" style="color: #dc2626; font-size: 11px;"></i> Assign To
-                    </label>
-                    <select class="form-control premium-modal-input" id="global-task-employee" disabled>
-                        <option value="">-- Select Project First --</option>
-                    </select>
-                </div>
-
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                        <i class="fa fa-tasks" style="color: #dc2626; font-size: 11px;"></i> Task Name
-                    </label>
-                    <input type="text" class="form-control premium-modal-input" id="global-task-input" placeholder="e.g. Prepare monthly report...">
-                </div>
-
-                <div class="row" style="margin: 0 -6px;">
-                    <div class="col-md-6 form-group" style="padding: 0 6px; margin-bottom: 8px;">
-                        <label style="font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                            <i class="fa fa-calendar" style="color: #dc2626; font-size: 11px;"></i> Due Date
-                        </label>
-                        <input type="date" class="form-control premium-modal-input" id="global-task-date">
-                    </div>
-                    <div class="col-md-6 form-group" style="padding: 0 6px; margin-bottom: 8px;">
-                        <label style="font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                            <i class="fa fa-flag" style="color: #dc2626; font-size: 11px;"></i> Priority
-                        </label>
-                        <select class="form-control premium-modal-input" id="global-task-priority">
-                            <option value="Low">🟢 Low Priority</option>
-                            <option value="Medium" selected>🟡 Medium Priority</option>
-                            <option value="High">🔴 High Priority</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer" style="border-top: 1px solid #f1f5f9; padding: 16px 24px; background: #f8fafc; border-radius: 0 0 14px 14px; gap: 10px;">
-                <button type="button" class="btn-premium-cancel" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn-premium-add" onclick="saveGlobalTask()">
-                    <i class="fa fa-check" style="margin-right: 6px;"></i> Save Task
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ===== SAME-TO-SAME TRELLO CARD POPUP MODAL ===== -->
-<div id="taskDetailOverlay">
-    <div id="taskDetailModal">
-        <!-- Top Navigation Bar -->
-        <div class="tdm-top-bar">
-            <div class="tdm-list-tag">
-                <span id="td-in-list">List Name</span> <i class="fa fa-angle-down" style="font-size: 11px; margin-left: 4px;"></i>
-            </div>
-            <div class="tdm-top-actions">
-                <button class="tdm-icon-btn" title="Project"><i class="fa fa-briefcase"></i> <span id="td-project-name" style="font-size:12px; font-weight:600;">Project</span></button>
-                <button class="btn-modal-close" onclick="closeTaskDetail()" title="Close (Esc)"><i class="fa fa-times"></i></button>
-            </div>
-        </div>
-
-        <!-- 2-Column Split Layout -->
-        <div class="tdm-body">
-            <!-- LEFT COLUMN: Title, Date, Priority & Description -->
-            <div class="tdm-left">
-                <div class="tdm-header">
-                    <div id="td-check-circle" class="tdm-check" onclick="tdToggleStatus()" title="Toggle mark complete">
-                        <i class="fa fa-check"></i>
-                    </div>
-                    <textarea id="td-title" class="tdm-title-input" rows="1" placeholder="Task title..."
-                        onfocus="this.style.borderBottomColor='#dd2127'"
-                        onblur="this.style.borderBottomColor='transparent'; saveTdField('task_name', this.value)"></textarea>
-                </div>
-
-                <div class="tdm-meta-row">
-                    <div class="tdm-meta-group">
-                        <div class="tdm-meta-label">DUE DATE</div>
-                        <input type="date" id="td-due-date" class="tdm-date-input no-global-flatpickr"
-                            onchange="saveTdField('due_date', this.value)">
-                        <div id="td-due-date-display" style="display:none; padding:7px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; font-weight:700; color:#0f172a; min-width:130px; user-select:none;"><i class="fa fa-calendar" style="color:#dd2127; margin-right:6px;"></i><span id="td-due-date-text">--</span></div>
-                    </div>
-                    <div class="tdm-meta-group">
-                        <div class="tdm-meta-label">PRIORITY</div>
-                        <select id="td-priority" class="tdm-select" onchange="saveTdField('priority', this.value)">
-                            <option value="">— None</option>
-                            <option value="Low">🟢 Low</option>
-                            <option value="Medium">🟡 Medium</option>
-                            <option value="High">🔴 High</option>
-                        </select>
-                        <div id="td-priority-display" style="display:none; padding:7px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; font-weight:700; min-width:110px; user-select:none;"><span id="td-priority-text">--</span></div>
-                    </div>
-                </div>
-
-                <div class="tdm-section">
-                    <div class="tdm-section-title" style="display: flex; justify-content: space-between; align-items: center;">
-                        <span><i class="fa fa-align-left"></i> Description</span>
-                        <div id="td-desc-upload-btn-wrap" style="display: none;">
-                            <label style="margin: 0; padding: 4px 10px; background: #ffeaeb; color: #dd2127; border-radius: 6px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.15s;" title="Upload Document for Description">
-                                <i class="fa fa-paperclip"></i> Attach Document
-                                <input type="file" id="td-desc-file-input" style="display: none;" onchange="uploadTdDescAttachment(this)">
-                            </label>
-                        </div>
-                    </div>
-                    <textarea id="td-description" class="tdm-desc" rows="3"
-                        placeholder="Add a more detailed description..."
-                        onfocus="this.classList.add('focused')"
-                        onblur="this.classList.remove('focused'); saveTdField('description', this.value)"></textarea>
-
-                    <div id="td-desc-attachments-container" style="margin-top: 10px; display: none;">
-                        <div style="font-size: 11px; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 6px;">ATTACHED DOCUMENTS</div>
-                        <div id="td-desc-attachments-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RIGHT COLUMN: Comments and Activity Stream -->
-            <div class="tdm-right">
-                <div class="tdm-section-title" style="justify-content: space-between; margin-bottom: 16px;">
-                    <span><i class="fa fa-comments-o"></i> Comments and activity</span>
-                </div>
-
-                <div class="tdm-comment-add">
-                    <div class="tdm-comment-avatar"><i class="fa fa-user"></i></div>
-                    <div style="flex:1;">
-                        <textarea id="td-comment-input" class="tdm-comment-textarea" rows="2"
-                            placeholder="Write a comment..."
-                            onfocus="document.getElementById('td-comment-actions').style.display='flex'; this.classList.add('focused')"
-                            onkeydown="if(event.ctrlKey && event.key==='Enter'){tdSubmitComment();}"></textarea>
-
-                        <div id="td-comment-file-preview" style="display:none; font-size:11.5px; color:#dd2127; font-weight:600; margin-top:6px; background:#ffeaeb; padding:4px 8px; border-radius:6px; width:fit-content; align-items:center; gap:6px;">
-                            <i class="fa fa-paperclip"></i> <span id="td-comment-file-name">file.pdf</span>
-                            <i class="fa fa-times" onclick="clearTdCommentFile()" style="cursor:pointer; margin-left:4px;"></i>
-                        </div>
-
-                        <div id="td-comment-actions" style="display:none; margin-top:8px; justify-content:space-between; align-items:center;">
-                            <label style="margin:0; font-size:12px; color:#64748b; cursor:pointer; display:inline-flex; align-items:center; gap:5px; font-weight:600;" title="Attach Document to Comment">
-                                <i class="fa fa-paperclip" style="color:#dd2127; font-size:14px;"></i> Attach File
-                                <input type="file" id="td-comment-file" style="display:none;" onchange="handleTdCommentFileSelect(this)">
-                            </label>
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <span style="font-size:11px; color:#94a3b8;">Ctrl + Enter</span>
-                                <button id="td-comment-save" class="tdm-save-btn" onclick="tdSubmitComment()">Save</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="td-activity" class="tdm-activity"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <style>
     .todo-board {
         display: flex;
@@ -1317,6 +991,336 @@ if ($run_projs) {
     }
 </style>
 
+<div class="page-wrapper premium-ui-enabled" style="background: #f8fafc; min-height: calc(100vh - 60px);">
+    <div class="page-header-premium" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <h1></h1>
+            <div style="padding: 8px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-weight: 700; color: #334155; display: flex; align-items: center; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                All Tasks
+            </div>
+        </div>
+        <div class="header-actions-premium" style="display: flex; gap: 16px; align-items: center;">
+            <?php if (!$is_employee_portal): ?>
+                <div style="position: relative;">
+                    <select id="task-dept-filter" style="padding: 10px 15px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 600; outline: none; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.02); background: #fff;" title="Filter by Department">
+                        <option value="">All Departments</option>
+                        <?php foreach ($departments_list as $dept) { ?>
+                            <option value="<?php echo htmlspecialchars($dept); ?>"><?php echo htmlspecialchars($dept); ?></option>
+                        <?php } ?>
+                    </select>
+                </div>
+                <div style="position: relative;">
+                    <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px;"></i>
+                    <input type="text" id="task-emp-search" placeholder="Search employee name..." style="padding: 10px 15px 10px 34px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 600; outline: none; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.02); width: 210px; background: #fff;" title="Type employee name to filter columns">
+                </div>
+                <div style="position: relative;">
+                    <input type="date" id="task-date-filter" style="padding: 10px 15px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 500; outline: none; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" title="Filter by Due Date (Shows only incomplete tasks for date)">
+                </div>
+            <?php endif; ?>
+            <!-- <div style="position: relative;">
+                <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px;"></i>
+                <input type="text" id="task-search" placeholder="Search tasks..." style="width: 250px; padding: 10px 15px 10px 38px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; font-weight: 500; outline: none; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            </div> -->
+            <?php if (function_exists('canAdminAccess') && canAdminAccess('todo_insert')): ?>
+                <button class="btn-premium-add" onclick="showGlobalAddTask()">
+                    <i class="fa fa-plus"></i> Add Task
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="todo-board">
+        <?php
+        if ($is_employee_portal) {
+            foreach ($emp_projects as $proj) {
+                $p_id = intval($proj['id']);
+                $p_name = htmlspecialchars($proj['project_name']);
+                $p_sub = !empty($proj['client_name']) ? htmlspecialchars($proj['client_name']) : 'Project Task';
+                $p_dept = htmlspecialchars($proj['department'] ?? 'General');
+                $col_key = $logged_in_emp_id . '-' . $p_id;
+        ?>
+                <div class="todo-column" data-emp-id="<?php echo $logged_in_emp_id; ?>" data-project-id="<?php echo $p_id; ?>" data-dept="<?php echo $p_dept; ?>">
+                    <div class="todo-col-header">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="emp-avatar-fallback" style="background: #fef2f2; color: #dc2626; border-color: #fecaca;">
+                                <i class="fa <?php echo $p_id === 0 ? 'fa-tasks' : 'fa-briefcase'; ?>"></i>
+                            </div>
+                            <div>
+                                <div class="emp-name"><?php echo $p_name; ?></div>
+                            </div>
+                        </div>
+                        <button class="icon-btn"><i class="fa fa-ellipsis-v"></i></button>
+                    </div>
+
+                    <div class="add-task-trigger" onclick="showInlineAddTask(<?php echo $logged_in_emp_id; ?>, <?php echo $p_id; ?>)">
+                        <i class="fa fa-plus-circle" style="font-size: 16px; color: #94a3b8;"></i>
+                        <span>Add a task</span>
+                    </div>
+
+                    <div class="add-task-form" id="inline-add-form-<?php echo $col_key; ?>" style="display: none;">
+                        <input type="text" class="task-input" id="inline-task-input-<?php echo $col_key; ?>" placeholder="What needs to be done?">
+                        <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                            <input type="date" class="task-date-input" id="inline-task-date-<?php echo $col_key; ?>">
+                            <select class="task-priority-input" id="inline-task-priority-<?php echo $col_key; ?>">
+                                <option value="Low">Low Priority</option>
+                                <option value="Medium" selected>Medium Priority</option>
+                                <option value="High">High Priority</option>
+                            </select>
+                            <button class="btn-premium-add" onclick="saveInlineTask(<?php echo $logged_in_emp_id; ?>, <?php echo $p_id; ?>)">Add</button>
+                            <button class="btn-premium-cancel" onclick="hideInlineAddTask(<?php echo $logged_in_emp_id; ?>, <?php echo $p_id; ?>)">Cancel</button>
+                        </div>
+                    </div>
+
+                    <div class="task-list" id="task-list-<?php echo $col_key; ?>">
+                        <div style="text-align: center; padding: 20px;"><i class="fa fa-spinner fa-spin" style="color: #cbd5e1;"></i></div>
+                    </div>
+                </div>
+                <?php
+            }
+        } else {
+            if (empty($employees)) {
+                echo '<div style="text-align: center; width: 100%; padding: 50px; color: #64748b; font-weight: 600;">No tasks found for this date.</div>';
+            } else {
+                foreach ($employees as $emp) {
+                    $emp_id = intval($emp['id']);
+                    $emp_name = htmlspecialchars($emp['name']);
+                    $emp_dept = !empty($emp['department']) ? $emp['department'] : (!empty($emp['designation']) ? $emp['designation'] : 'Employee');
+                    $emp_job = htmlspecialchars($emp_dept);
+                    $emp_img = !empty($emp['employee_image']) ? 'uploads/' . htmlspecialchars($emp['employee_image']) : null;
+                ?>
+                    <div class="todo-column" data-emp-id="<?php echo $emp_id; ?>" data-dept="<?php echo htmlspecialchars($emp['department'] ?? 'Not Assigned'); ?>">
+                        <div class="todo-col-header">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <?php if ($emp_img && file_exists('../../' . $emp_img)) { ?>
+                                    <img src="<?php echo $emp_img; ?>" class="emp-avatar">
+                                <?php } else { ?>
+                                    <div class="emp-avatar-fallback"><?php echo strtoupper(substr($emp_name, 0, 1)); ?></div>
+                                <?php } ?>
+                                <div>
+                                    <div class="emp-name"><?php echo $emp_name; ?></div>
+                                    <div class="emp-role"><?php echo $emp_job; ?></div>
+                                </div>
+                            </div>
+                            <button class="icon-btn"><i class="fa fa-ellipsis-v"></i></button>
+                        </div>
+
+                        <?php if (function_exists('canAdminAccess') && canAdminAccess('todo_insert')): ?>
+                            <div class="add-task-trigger" onclick="showInlineAddTask(<?php echo $emp_id; ?>)">
+                                <i class="fa fa-plus-circle" style="font-size: 16px; color: #94a3b8;"></i>
+                                <span>Add a task</span>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="add-task-form" id="inline-add-form-<?php echo $emp_id; ?>" style="display: none;">
+                            <input type="text" class="task-input" id="inline-task-input-<?php echo $emp_id; ?>" placeholder="What needs to be done?">
+                            <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                                <input type="date" class="task-date-input" id="inline-task-date-<?php echo $emp_id; ?>">
+                                <select class="task-priority-input" id="inline-task-priority-<?php echo $emp_id; ?>">
+                                    <option value="Low">Low Priority</option>
+                                    <option value="Medium" selected>Medium Priority</option>
+                                    <option value="High">High Priority</option>
+                                </select>
+                                <button class="btn-premium-add" onclick="saveInlineTask(<?php echo $emp_id; ?>)">Add</button>
+                                <button class="btn-premium-cancel" onclick="hideInlineAddTask(<?php echo $emp_id; ?>)">Cancel</button>
+                            </div>
+                        </div>
+
+                        <div class="task-list" id="task-list-<?php echo $emp_id; ?>">
+                            <div style="text-align: center; padding: 20px;"><i class="fa fa-spinner fa-spin" style="color: #cbd5e1;"></i></div>
+                        </div>
+                    </div>
+        <?php
+                }
+            }
+        }
+        ?>
+    </div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal fade" id="globalAddTaskModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document" style="max-width: 540px;">
+        <div class="modal-content" style="border-radius: 14px; border: none; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.18);">
+            <div class="modal-header" style="border-bottom: 1px solid #f1f5f9; padding: 20px 24px; background: #ffeaeb; border-radius: 14px 14px 0 0; position: relative;">
+                <div style="display: flex; align-items: center; width: 100%; gap: 12px;">
+                    <div style="width: 36px; height: 36px; background: #dc2626; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa fa-plus" style="color: #fff; font-size: 14px;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title" style="font-weight: 800; color: #0f172a; font-size: 17px; margin: 0;">Add New Task</h5>
+                        <p style="margin: 0; font-size: 12px; color: #94a3b8; font-weight: 500;">Assign a task to an employee</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-modal-close" data-dismiss="modal" aria-label="Close">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa fa-briefcase" style="color: #dc2626; font-size: 11px;"></i> Project
+                    </label>
+                    <select class="form-control premium-modal-input" id="global-task-project" onchange="fetchProjectEmployees(this.value)">
+                        <option value="">-- Select a Project --</option>
+                        <?php foreach ($active_projects as $p) { ?>
+                            <option value="<?php echo $p['id']; ?>"><?php echo htmlspecialchars($p['project_name']); ?></option>
+                        <?php } ?>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa fa-user" style="color: #dc2626; font-size: 11px;"></i> Assign To
+                    </label>
+                    <select class="form-control premium-modal-input" id="global-task-employee" disabled>
+                        <option value="">-- Select Project First --</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa fa-tasks" style="color: #dc2626; font-size: 11px;"></i> Task Name
+                    </label>
+                    <input type="text" class="form-control premium-modal-input" id="global-task-input" placeholder="e.g. Prepare monthly report...">
+                </div>
+
+                <div class="row" style="margin: 0 -6px;">
+                    <div class="col-md-6 form-group" style="padding: 0 6px; margin-bottom: 8px;">
+                        <label style="font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa fa-calendar" style="color: #dc2626; font-size: 11px;"></i> Due Date
+                        </label>
+                        <input type="date" class="form-control premium-modal-input" id="global-task-date">
+                    </div>
+                    <div class="col-md-6 form-group" style="padding: 0 6px; margin-bottom: 8px;">
+                        <label style="font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa fa-flag" style="color: #dc2626; font-size: 11px;"></i> Priority
+                        </label>
+                        <select class="form-control premium-modal-input" id="global-task-priority">
+                            <option value="Low">🟢 Low Priority</option>
+                            <option value="Medium" selected>🟡 Medium Priority</option>
+                            <option value="High">🔴 High Priority</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #f1f5f9; padding: 16px 24px; background: #f8fafc; border-radius: 0 0 14px 14px; gap: 10px;">
+                <button type="button" class="btn-premium-cancel" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn-premium-add" onclick="saveGlobalTask()">
+                    <i class="fa fa-check" style="margin-right: 6px;"></i> Save Task
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SAME-TO-SAME TRELLO CARD POPUP MODAL ===== -->
+<div id="taskDetailOverlay">
+    <div id="taskDetailModal">
+        <!-- Top Navigation Bar -->
+        <div class="tdm-top-bar">
+            <div class="tdm-list-tag">
+                <span id="td-in-list">List Name</span> <i class="fa fa-angle-down" style="font-size: 11px; margin-left: 4px;"></i>
+            </div>
+            <div class="tdm-top-actions">
+                <button class="tdm-icon-btn" title="Project"><i class="fa fa-briefcase"></i> <span id="td-project-name" style="font-size:12px; font-weight:600;">Project</span></button>
+                <button class="btn-modal-close" onclick="closeTaskDetail()" title="Close (Esc)"><i class="fa fa-times"></i></button>
+            </div>
+        </div>
+
+        <!-- 2-Column Split Layout -->
+        <div class="tdm-body">
+            <!-- LEFT COLUMN: Title, Date, Priority & Description -->
+            <div class="tdm-left">
+                <div class="tdm-header">
+                    <div id="td-check-circle" class="tdm-check" onclick="tdToggleStatus()" title="Toggle mark complete">
+                        <i class="fa fa-check"></i>
+                    </div>
+                    <textarea id="td-title" class="tdm-title-input" rows="1" placeholder="Task title..."
+                        onfocus="this.style.borderBottomColor='#dd2127'"
+                        onblur="this.style.borderBottomColor='transparent'; saveTdField('task_name', this.value)"></textarea>
+                </div>
+
+                <div class="tdm-meta-row">
+                    <div class="tdm-meta-group">
+                        <div class="tdm-meta-label">DUE DATE</div>
+                        <input type="date" id="td-due-date" class="tdm-date-input no-global-flatpickr"
+                            onchange="saveTdField('due_date', this.value)">
+                        <div id="td-due-date-display" style="display:none; padding:7px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; font-weight:700; color:#0f172a; min-width:130px; user-select:none;"><i class="fa fa-calendar" style="color:#dd2127; margin-right:6px;"></i><span id="td-due-date-text">--</span></div>
+                    </div>
+                    <div class="tdm-meta-group">
+                        <div class="tdm-meta-label">PRIORITY</div>
+                        <select id="td-priority" class="tdm-select" onchange="saveTdField('priority', this.value)">
+                            <option value="">— None</option>
+                            <option value="Low">🟢 Low</option>
+                            <option value="Medium">🟡 Medium</option>
+                            <option value="High">🔴 High</option>
+                        </select>
+                        <div id="td-priority-display" style="display:none; padding:7px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; font-weight:700; min-width:110px; user-select:none;"><span id="td-priority-text">--</span></div>
+                    </div>
+                </div>
+
+                <div class="tdm-section">
+                    <div class="tdm-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fa fa-align-left"></i> Description</span>
+                        <div id="td-desc-upload-btn-wrap" style="display: none;">
+                            <label style="margin: 0; padding: 4px 10px; background: #ffeaeb; color: #dd2127; border-radius: 6px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.15s;" title="Upload Document for Description">
+                                <i class="fa fa-paperclip"></i> Attach Document
+                                <input type="file" id="td-desc-file-input" style="display: none;" onchange="uploadTdDescAttachment(this)">
+                            </label>
+                        </div>
+                    </div>
+                    <textarea id="td-description" class="tdm-desc" rows="3"
+                        placeholder="Add a more detailed description..."
+                        onfocus="this.classList.add('focused')"
+                        onblur="this.classList.remove('focused'); saveTdField('description', this.value)"></textarea>
+
+                    <div id="td-desc-attachments-container" style="margin-top: 10px; display: none;">
+                        <div style="font-size: 11px; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 6px;">ATTACHED DOCUMENTS</div>
+                        <div id="td-desc-attachments-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Comments and Activity Stream -->
+            <div class="tdm-right">
+                <div class="tdm-section-title" style="justify-content: space-between; margin-bottom: 16px;">
+                    <span><i class="fa fa-comments-o"></i> Comments and activity</span>
+                </div>
+
+                <div class="tdm-comment-add">
+                    <div class="tdm-comment-avatar"><i class="fa fa-user"></i></div>
+                    <div style="flex:1;">
+                        <textarea id="td-comment-input" class="tdm-comment-textarea" rows="2"
+                            placeholder="Write a comment..."
+                            onfocus="document.getElementById('td-comment-actions').style.display='flex'; this.classList.add('focused')"
+                            onkeydown="if(event.ctrlKey && event.key==='Enter'){tdSubmitComment();}"></textarea>
+
+                        <div id="td-comment-file-preview" style="display:none; font-size:11.5px; color:#dd2127; font-weight:600; margin-top:6px; background:#ffeaeb; padding:4px 8px; border-radius:6px; width:fit-content; align-items:center; gap:6px;">
+                            <i class="fa fa-paperclip"></i> <span id="td-comment-file-name">file.pdf</span>
+                            <i class="fa fa-times" onclick="clearTdCommentFile()" style="cursor:pointer; margin-left:4px;"></i>
+                        </div>
+
+                        <div id="td-comment-actions" style="display:none; margin-top:8px; justify-content:space-between; align-items:center;">
+                            <label style="margin:0; font-size:12px; color:#64748b; cursor:pointer; display:inline-flex; align-items:center; gap:5px; font-weight:600;" title="Attach Document to Comment">
+                                <i class="fa fa-paperclip" style="color:#dd2127; font-size:14px;"></i> Attach File
+                                <input type="file" id="td-comment-file" style="display:none;" onchange="handleTdCommentFileSelect(this)">
+                            </label>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:11px; color:#94a3b8;">Ctrl + Enter</span>
+                                <button id="td-comment-save" class="tdm-save-btn" onclick="tdSubmitComment()">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="td-activity" class="tdm-activity"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
 <script>
     const ajaxBaseUrl = '<?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'emp_area') !== false || (isset($_SESSION['emp_id']) && !isset($_SESSION['admin_email']))) ? '../admin_area/ajax/projects/' : 'ajax/projects/'; ?>';
     const canTodoDelete = <?php echo ($is_employee_portal || (function_exists('canAdminAccess') && (canAdminAccess('todo_delete') || canAdminAccess('project_assign_task')))) ? 'true' : 'false'; ?>;
@@ -1336,14 +1340,25 @@ if ($run_projs) {
             const term = searchVal ? searchVal.toLowerCase() : '';
             const filterDate = $('#task-date-filter').val();
             const filterDept = $('#task-dept-filter').val();
+            const empSearchVal = $('#task-emp-search').val() ? $('#task-emp-search').val().toLowerCase().trim() : '';
 
-            // Toggle column visibility by selected department
+            // Toggle column visibility by selected department & typed employee name
             $('.todo-column').each(function() {
                 const empDept = $(this).attr('data-dept') || '';
+                const empName = $(this).find('.emp-name').text().toLowerCase();
+
+                let showCol = true;
                 if (filterDept && empDept !== filterDept) {
-                    $(this).hide();
-                } else {
+                    showCol = false;
+                }
+                if (empSearchVal && !empName.includes(empSearchVal)) {
+                    showCol = false;
+                }
+
+                if (showCol) {
                     $(this).show();
+                } else {
+                    $(this).hide();
                 }
             });
 
@@ -1424,9 +1439,10 @@ if ($run_projs) {
             });
         }
 
-        $('#task-search').on('keyup', applyFilters);
+        $('#task-search').on('keyup input', applyFilters);
         $('#task-date-filter').on('change', applyFilters);
         $('#task-dept-filter').on('change', applyFilters);
+        $('#task-emp-search').on('keyup input', applyFilters);
     });
 
     function showGlobalAddTask() {

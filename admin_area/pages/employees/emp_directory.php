@@ -1943,10 +1943,10 @@ if ($usedLeavesQuery && mysqli_num_rows($usedLeavesQuery) > 0) {
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <input type="number" id="inputExtraLeaves" min="0" max="365" placeholder="e.g. 3" class="form-control" style="height: 40px; font-size: 13px; font-weight: 700; width: 110px; border-radius: 10px; border: 1.5px solid #dd2127; background: #ffffff; text-align: center;">
-                            <button type="button" class="btn" onclick="saveExtraLeaves()" style="background: #dd2127; color: white; border-radius: 10px; font-weight: 700; font-size: 13px; height: 40px; padding: 0 20px; border: none; box-shadow: 0 4px 12px rgba(221,33,39,0.25);">
+                            <button type="button" class="btn-premium-add" onclick="saveExtraLeaves()">
                                 Save Extra Leaves
                             </button>
-                            <button type="button" class="btn btn-default" onclick="toggleExtraLeaveForm()" style="border-radius: 10px; font-weight: 700; font-size: 13px; height: 40px; padding: 0 16px; color: #64748b; border: 1.5px solid #e2e8f0;">
+                            <button type="button" class="btn-premium-cancel" onclick="toggleExtraLeaveForm()">
                                 Cancel
                             </button>
                         </div>
