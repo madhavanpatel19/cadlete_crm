@@ -385,7 +385,8 @@ if (isset($_POST['update_lead'])) {
     $(document).ready(function() {
         $('#add-source-form-main').submit(function(e) {
             e.preventDefault();
-            var source = $('#new_source_name').val();
+            var source = $('#new_source_name').val().trim();
+            if (!source) return;
             var submitBtn = $(this).find('button[type="submit"]');
             submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
 
@@ -399,16 +400,40 @@ if (isset($_POST['update_lead'])) {
                 success: function(data) {
                     submitBtn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Source');
                     if (data.status == "success") {
-                        var newHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">' +
-                            '<label style="font-weight: 500; color: #475569; cursor: pointer; margin: 0;">' +
-                            '<input type="checkbox" name="lead_source[]" value="' + data.name + '" checked style="margin-right: 8px; width: 16px; height: 16px; vertical-align: middle; accent-color: #4f46e5;"> ' + data.name +
-                            '</label>' +
-                            '<i class="fa fa-trash" style="color: #ef4444; cursor: pointer; font-size: 13px;" onclick="deleteSource(' + data.id + ', this)"></i>' +
-                            '</div>';
-                        $("#source_checkbox_container").append(newHtml);
+                        var existingCheckbox = $("input[name='lead_source[]']").filter(function() {
+                            return $(this).val().toLowerCase() === data.name.toLowerCase();
+                        });
+
+                        if (existingCheckbox.length > 0) {
+                            existingCheckbox.prop('checked', true);
+                        } else {
+                            var newHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">' +
+                                '<label style="font-weight: 500; color: #475569; cursor: pointer; margin: 0;">' +
+                                '<input type="checkbox" name="lead_source[]" value="' + data.name + '" checked style="margin-right: 8px; width: 16px; height: 16px; vertical-align: middle; accent-color: #4f46e5;"> ' + data.name +
+                                '</label>' +
+                                '<i class="fa fa-trash" style="color: #ef4444; cursor: pointer; font-size: 13px;" onclick="deleteSource(' + data.id + ', this)"></i>' +
+                                '</div>';
+                            $("#source_checkbox_container").append(newHtml);
+                        }
+
+                        $('#addSourceModal [data-dismiss="modal"]').first().trigger('click');
                         $('#addSourceModal').modal('hide');
                         $('#new_source_name').val('');
-                        showPremiumAlert("Source added and selected!");
+                        $('.modal-backdrop').remove();
+                        $('body').removeClass('modal-open').css('padding-right', '');
+
+                        if (typeof showPremiumAlert === 'function') {
+                            showPremiumAlert("Source selected!");
+                        } else {
+                            Swal.fire({
+                                title: 'Source Selected!',
+                                text: 'The source has been checked and selected.',
+                                icon: 'success',
+                                confirmButtonColor: '#4f46e5',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }
                     } else {
                         Swal.fire('Notification', "Error: " + data.message, 'error');
                     }

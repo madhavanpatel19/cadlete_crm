@@ -263,20 +263,22 @@ if (isset($_POST['save_lead'])) {
 <div class="modal fade" id="addSourceModal" tabindex="-1" role="dialog" aria-labelledby="addSourceModalLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden;">
-            <div class="modal-header" style="background: #1e293b; color: #fff; padding: 20px 25px; border: none;">
+            <div class="modal-header" style="background: #ffedeb; color: #1e293b; padding: 20px 25px; border: none; position: relative;">
+                <button class="btn-modal-close" data-dismiss="modal" aria-label="Close">
+                    <i class="fa fa-times"></i>
+                </button>
                 <h4 class="modal-title" id="addSourceModalLabel" style="font-weight: 700; display: flex; align-items: center; gap: 12px; margin: 0;">
-                    <div style="background: rgba(255,255,255,0.1); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: #DD2127; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
                         <i class="fa fa-plus" style="font-size: 14px;"></i>
                     </div>
                     Add New Source
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: #fff; opacity: 0.8; font-size: 24px; position: absolute; right: 20px; top: 20px;">&times;</button>
-                </h4>
+                </h4>   
             </div>
             <div class="modal-body" style="padding: 30px; background: #fff;">
                 <form id="add-source-form-main" onsubmit="event.preventDefault();">
                     <div style="margin-bottom: 25px;">
                         <label style="font-weight: 700; color: #475569; display: block; margin-bottom: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Source Name</label>
-                        <input type="text" name="source_name" id="new_source_name" placeholder="e.g. Website, LinkedIn" required style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#6366f1'; this.style.boxShadow='0 0 0 4px rgba(99, 102, 241, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                        <input type="text" name="source_name" id="new_source_name" placeholder="e.g. Website, LinkedIn" required style="height: 50px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 20px; width: 100%; color: #0f172a; font-weight: 600; outline: none; transition: all 0.3s;" onfocus="this.style.borderColor='#dd2127'; this.style.boxShadow='0 0 0 4px rgba(223, 33, 39, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
                     </div>
                     <div style="text-align: right; gap: 12px; display: flex; justify-content: flex-end;">
                         <button type="button" class="btn-premium-cancel" data-dismiss="modal">Cancel</button>
@@ -321,7 +323,8 @@ if (isset($_POST['save_lead'])) {
     $(document).ready(function() {
         $('#add-source-form-main').submit(function(e) {
             e.preventDefault();
-            var source = $('#new_source_name').val();
+            var source = $('#new_source_name').val().trim();
+            if (!source) return;
             var submitBtn = $(this).find('button[type="submit"]');
             submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
 
@@ -335,16 +338,40 @@ if (isset($_POST['save_lead'])) {
                 success: function(data) {
                     submitBtn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Source');
                     if (data.status == "success") {
-                        var newHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">' +
-                            '<label style="font-weight: 500; color: #475569; cursor: pointer; margin: 0;">' +
-                            '<input type="checkbox" name="lead_source[]" value="' + data.name + '" checked style="margin-right: 8px; width: 16px; height: 16px; vertical-align: middle; accent-color: #dd2127;"> ' + data.name +
-                            '</label>' +
-                            '<i class="fa fa-trash" style="color: #ef4444; cursor: pointer; font-size: 13px;" onclick="deleteSource(' + data.id + ', this)"></i>' +
-                            '</div>';
-                        $("#source_checkbox_container").append(newHtml);
+                        var existingCheckbox = $("input[name='lead_source[]']").filter(function() {
+                            return $(this).val().toLowerCase() === data.name.toLowerCase();
+                        });
+
+                        if (existingCheckbox.length > 0) {
+                            existingCheckbox.prop('checked', true);
+                        } else {
+                            var newHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">' +
+                                '<label style="font-weight: 500; color: #475569; cursor: pointer; margin: 0;">' +
+                                '<input type="checkbox" name="lead_source[]" value="' + data.name + '" checked style="margin-right: 8px; width: 16px; height: 16px; vertical-align: middle; accent-color: #dd2127;"> ' + data.name +
+                                '</label>' +
+                                '<i class="fa fa-trash" style="color: #ef4444; cursor: pointer; font-size: 13px;" onclick="deleteSource(' + data.id + ', this)"></i>' +
+                                '</div>';
+                            $("#source_checkbox_container").append(newHtml);
+                        }
+
+                        $('#addSourceModal [data-dismiss="modal"]').first().trigger('click');
                         $('#addSourceModal').modal('hide');
                         $('#new_source_name').val('');
-                        showPremiumAlert("Source added and selected!");
+                        $('.modal-backdrop').remove();
+                        $('body').removeClass('modal-open').css('padding-right', '');
+
+                        if (typeof showPremiumAlert === 'function') {
+                            showPremiumAlert("Source selected!");
+                        } else {
+                            Swal.fire({
+                                title: 'Source Selected!',
+                                text: 'The source has been checked and selected.',
+                                icon: 'success',
+                                confirmButtonColor: '#dd2127',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }
                     } else {
                         Swal.fire('Notification', "Error: " + data.message, 'error');
                     }

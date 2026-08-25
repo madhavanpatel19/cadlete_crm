@@ -30,6 +30,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_leave'])) {
         $insert = "INSERT INTO leave_applications (emp_id, leave_type_id, leave_from, leave_to, reason, status) VALUES ('$emp_id', '$leave_type_id', '$leave_from', '$leave_to', '$reason', 'pending')";
         if (mysqli_query($con, $insert)) {
             $_SESSION['leave_success'] = "Leave application submitted successfully!";
+
+            // Fetch leave type name for notification
+            $leave_type_name = "Extra Leaves";
+            if ($leave_type_id > 0) {
+                $lt_name_q = mysqli_query($con, "SELECT leave_name FROM leave_types WHERE id = '$leave_type_id' LIMIT 1");
+                if ($lt_name_q && $ltr = mysqli_fetch_assoc($lt_name_q)) {
+                    $leave_type_name = $ltr['leave_name'];
+                }
+            }
+
+            // Send notification to admins
+            if (file_exists(__DIR__ . '/../../../admin_area/includes/notification_helper.php')) {
+                include_once(__DIR__ . '/../../../admin_area/includes/notification_helper.php');
+                if (function_exists('notifyAllAdmins')) {
+                    $notif_title = "New Leave Request: " . $emp_name;
+                    $notif_msg = $emp_name . " applied for " . $leave_type_name . " (" . date('d M Y', strtotime($leave_from)) . " to " . date('d M Y', strtotime($leave_to)) . "). Reason: " . $reason;
+                    $notif_url = "index.php?view_leave_requests";
+                    notifyAllAdmins($notif_title, $notif_msg, $notif_url, 'warning');
+                }
+            }
         } else {
             $_SESSION['leave_error'] = "Error: " . mysqli_error($con);
         }
@@ -126,13 +146,22 @@ $result = mysqli_query($con, $query);
                     </style>
 
                     <?php
+                    // Check for extra_leaves assigned to this employee
+                    $extra_leaves = 0;
+                    $check_extra_q = mysqli_query($con, "SELECT extra_leaves FROM emp_list WHERE id = '$emp_id' LIMIT 1");
+                    if ($check_extra_q && $extra_row = mysqli_fetch_assoc($check_extra_q)) {
+                        $extra_leaves = intval($extra_row['extra_leaves'] ?? 0);
+                    }
+
                     // Calculate Overall Totals
                     $total_allowed = 0;
                     $total_used = 0;
 
-                    $total_allowed_q = mysqli_query($con, "SELECT SUM(num_of_leave) as total FROM leave_types");
+                    $total_allowed_q = mysqli_query($con, "SELECT SUM(num_of_leave) as total FROM leave_types WHERE deleted_at IS NULL");
                     if ($total_allowed_q) {
-                        $total_allowed = mysqli_fetch_assoc($total_allowed_q)['total'] ?: 0;
+                        $total_allowed = (mysqli_fetch_assoc($total_allowed_q)['total'] ?: 0) + $extra_leaves;
+                    } else {
+                        $total_allowed = $extra_leaves;
                     }
 
                     // Count actual leave days from attendance (not raw date range),
@@ -147,7 +176,7 @@ $result = mysqli_query($con, $query);
                             if ($cnt_q) $total_used += (int)mysqli_fetch_assoc($cnt_q)['cnt'];
                         }
                     }
-                    $total_remaining = $total_allowed - $total_used;
+                    $total_remaining = max(0, $total_allowed - $total_used);
                     ?>
 
                     <!-- 1. TOTAL LEAVE BOX (DEFAULT) -->
@@ -165,7 +194,7 @@ $result = mysqli_query($con, $query);
                     </div>
 
                     <?php
-                    $lt_sum = mysqli_query($con, "SELECT * FROM leave_types");
+                    $lt_sum = mysqli_query($con, "SELECT * FROM leave_types WHERE deleted_at IS NULL");
                     $colors = ['#6366f1', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
                     $bg_colors = ['rgba(99, 102, 241, 0.08)', 'rgba(16, 185, 129, 0.08)', 'rgba(59, 130, 246, 0.08)', 'rgba(245, 158, 11, 0.08)', 'rgba(239, 68, 68, 0.08)'];
                     $icons = ['fa-calendar-o', 'fa-heartbeat', 'fa-umbrella', 'fa-plane', 'fa-medkit'];
@@ -210,7 +239,24 @@ $result = mysqli_query($con, $query);
                     <?php
                         }
                     }
+
+                    if ($extra_leaves > 0) :
                     ?>
+                        <div class="premium-stat-card" style="border-left: 3.5px solid #dd2127; min-width: 170px; flex-shrink: 0; background: #fff5f5; border-radius: 18px; box-shadow: 0 4px 20px -2px rgba(221,33,39,0.08); display: flex; align-items: center; gap: 12px; padding: 12px 18px; border: 1px solid #fca5a5;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 9px; font-weight: 800; color: #991b1b; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px;">
+                                    Extra Leaves <span style="opacity: 0.7; font-size: 8px;">(+<?php echo $extra_leaves; ?>)</span>
+                                </div>
+                                <div style="display: flex; align-items: baseline; gap: 3px;">
+                                    <span style="font-size: 22px; font-weight: 900; color: #7f1d1d; line-height: 1;"><?php echo $extra_leaves; ?></span>
+                                    <span style="font-size: 10px; font-weight: 700; color: #991b1b; text-transform: uppercase;">Left</span>
+                                </div>
+                            </div>
+                            <div style="width: 34px; height: 34px; border-radius: 10px; background: #fee2e2; color: #dd2127; display: flex; align-items: center; justify-content: center; font-size: 15px;">
+                                <i class="fa fa-star"></i>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -267,9 +313,12 @@ $result = mysqli_query($con, $query);
                                                 <select name="leave_type_id" class="p-input-premium" required>
                                                     <option value="">Select Leave Type...</option>
                                                     <?php
-                                                    $lt_query = mysqli_query($con, "SELECT * FROM leave_types ORDER BY leave_name ASC");
+                                                    $lt_query = mysqli_query($con, "SELECT * FROM leave_types WHERE deleted_at IS NULL ORDER BY leave_name ASC");
                                                     while ($lt = mysqli_fetch_assoc($lt_query)) {
-                                                        echo "<option value='" . $lt['id'] . "'>" . $lt['leave_name'] . " (" . $lt['num_of_leave'] . " Days/Yr)</option>";
+                                                        echo "<option value='" . $lt['id'] . "'>" . htmlspecialchars($lt['leave_name']) . " (" . $lt['num_of_leave'] . " Days/Yr)</option>";
+                                                    }
+                                                    if ($extra_leaves > 0) {
+                                                        echo "<option value='0'>Extra Leaves (" . $extra_leaves . " Days/Yr)</option>";
                                                     }
                                                     ?>
                                                 </select>
@@ -371,7 +420,7 @@ $result = mysqli_query($con, $query);
                                                 <td style="text-align: center; font-weight: 500; color: #64748b; font-size: 13px;"><?php echo date('d-m-Y', strtotime($row['created_at'])); ?></td>
                                                 <td style="text-align: center; padding: 12px;">
                                                     <span style="background: #ffeaeb; color: #dc2626; font-weight: 700; padding: 4px 12px; border-radius: 8px; font-size: 11px; display: inline-block;">
-                                                        <?php echo !empty($row['leave_name']) ? htmlspecialchars($row['leave_name']) : 'General Leave'; ?>
+                                                        <?php echo !empty($row['leave_name']) ? htmlspecialchars($row['leave_name']) : 'Extra Leaves'; ?>
                                                     </span>
                                                 </td>
                                                 <td style="text-align: center; font-weight: 600; color: #1e293b;"><?php echo date('d-m-Y', strtotime($row['leave_from'])); ?></td>

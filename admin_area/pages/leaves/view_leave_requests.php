@@ -6,6 +6,15 @@ if (!isset($_SESSION['admin_email'])) {
 
 $message = "";
 
+// Auto-migrate attendance status column from ENUM to VARCHAR(20) if needed
+$checkAttCol = @mysqli_query($con, "SHOW COLUMNS FROM attendance LIKE 'status'");
+if ($checkAttCol && $attCol = mysqli_fetch_assoc($checkAttCol)) {
+    if (strpos(strtolower($attCol['Type']), 'enum') !== false) {
+        @mysqli_query($con, "ALTER TABLE attendance MODIFY COLUMN status VARCHAR(20) DEFAULT 'present'");
+        @mysqli_query($con, "UPDATE attendance SET status = 'leave' WHERE (remarks LIKE 'Leave:%' OR remarks LIKE '%leave%') AND (check_in_time IS NULL OR check_in_time = '')");
+    }
+}
+
 // Handle Approval / Rejection
 if (isset($_GET['approve']) || isset($_GET['reject'])) {
     if (!canAdminAccess('leave_approve')) {
@@ -48,6 +57,19 @@ if (isset($_GET['approve']) || isset($_GET['reject'])) {
                     }
                 }
             }
+
+            // Send notification to employee
+            if (file_exists(__DIR__ . '/../../includes/notification_helper.php')) {
+                include_once(__DIR__ . '/../../includes/notification_helper.php');
+                if (function_exists('addSystemNotification')) {
+                    $notif_title = "Leave Request " . ucfirst($new_status);
+                    $notif_msg = "Your leave request (" . date('d M Y', strtotime($from)) . " to " . date('d M Y', strtotime($to)) . ") has been " . $new_status . ".";
+                    $notif_url = "index.php?leave_application";
+                    $notif_type = ($new_status === 'approved' ? 'success' : 'danger');
+                    addSystemNotification('employee', intval($emp_id), $notif_title, $notif_msg, $notif_url, $notif_type);
+                }
+            }
+
             $message = "Leave request " . ($new_status === 'approved' ? "approved" : "rejected") . " successfully!";
         }
     }
@@ -413,7 +435,7 @@ if ($run_stats) {
                                     </div>
                                 </td>
                                 <td style="text-align: center;">
-                                    <span class="p-badge p-badge-secondary" style="background: #ffeaeb; color: #dd2127; border: none; font-weight: 600; padding: 4px 10px;"><?php echo htmlspecialchars($row['leave_name'] ?: 'N/A'); ?></span>
+                                    <span class="p-badge p-badge-secondary" style="background: #ffeaeb; color: #dd2127; border: none; font-weight: 600; padding: 4px 10px;"><?php echo htmlspecialchars(!empty($row['leave_name']) ? $row['leave_name'] : 'Extra Leaves'); ?></span>
                                 </td>
                                 <td class="text-center" style="font-weight: 600; color: #475569; font-size: 13px;">
                                     <?php echo date('d-m-Y', strtotime($row['leave_from'])); ?>

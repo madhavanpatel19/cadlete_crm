@@ -222,7 +222,9 @@ if (isset($_POST['submit_project'])) {
 
     if (mysqli_query($con, $update_project)) {
         require_once __DIR__ . '/../../includes/notification_helper.php';
-        $assigned_ids = array_filter(explode(',', $assigned_employees), function($id) { return !empty(trim($id)); });
+        $assigned_ids = array_filter(explode(',', $assigned_employees), function ($id) {
+            return !empty(trim($id));
+        });
         foreach ($assigned_ids as $eid) {
             $eid = intval($eid);
             if ($eid > 0) {
@@ -847,9 +849,9 @@ $run_admins = mysqli_query($con, $get_admins);
                         </button>
                     </div>
 
-                    <?php 
+                    <?php
                     $can_show_proposal = isSuperAdmin() || ($current_admin_id > 0 && in_array((string)$current_admin_id, array_map('trim', $existing_admins), true));
-                    if ($can_show_proposal): 
+                    if ($can_show_proposal):
                     ?>
                         <!-- Dedicated Project Proposal Section (Super Admin & Assigned Admin) -->
                         <div style="margin-top: 40px;">
@@ -1265,7 +1267,8 @@ $run_admins = mysqli_query($con, $get_admins);
     $(document).ready(function() {
         $('#add-source-form-main').submit(function(e) {
             e.preventDefault();
-            var source = $('#new_source_name').val();
+            var source = $('#new_source_name').val().trim();
+            if (!source) return;
             var submitBtn = $(this).find('button[type="submit"]');
             submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
 
@@ -1285,49 +1288,33 @@ $run_admins = mysqli_query($con, $get_admins);
                         return;
                     }
                     if (data.status == "success") {
-                        var newHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">' +
-                            '<label style="font-weight: 500; color: #475569; cursor: pointer; margin: 0;">' +
-                            '<input type="checkbox" name="project_source[]" value="' + data.name + '" checked style="margin-right: 8px; width: 16px; height: 16px; vertical-align: middle; accent-color: #dd2127;"> ' + data.name +
-                            '</label>' +
-                            '<i class="fa fa-trash" style="color: #ef4444; cursor: pointer; font-size: 13px;" onclick="deleteSource(' + data.id + ', this)"></i>' +
-                            '</div>';
-                        $("#source_checkbox_container").append(newHtml);
-                        // Close modal by clicking the dismiss button
+                        var existingCheckbox = $("input[name='project_source[]']").filter(function() {
+                            return $(this).val().toLowerCase() === data.name.toLowerCase();
+                        });
+
+                        if (existingCheckbox.length > 0) {
+                            existingCheckbox.prop('checked', true);
+                        } else {
+                            var newHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">' +
+                                '<label style="font-weight: 500; color: #475569; cursor: pointer; margin: 0;">' +
+                                '<input type="checkbox" name="project_source[]" value="' + data.name + '" checked style="margin-right: 8px; width: 16px; height: 16px; vertical-align: middle; accent-color: #dd2127;"> ' + data.name +
+                                '</label>' +
+                                '<i class="fa fa-trash" style="color: #ef4444; cursor: pointer; font-size: 13px;" onclick="deleteSource(' + data.id + ', this)"></i>' +
+                                '</div>';
+                            $("#source_checkbox_container").append(newHtml);
+                        }
+
                         $('#addSourceModal [data-dismiss="modal"]').first().trigger('click');
-                        $('#addSourceModal').hide(); // Fallback for visibility
+                        $('#addSourceModal').modal('hide');
                         $('#new_source_name').val('');
                         $('.modal-backdrop').remove();
-                        $('body').removeClass('modal-open');
-                        $('body').css('padding-right', '');
-                    } else {
-                        if (data.message === "Source already exists") {
-                            // Find the existing checkbox and check it
-                            var existingCheckbox = $("input[name='project_source[]']").filter(function() {
-                                return $(this).val().toLowerCase() === source.toLowerCase();
-                            });
+                        $('body').removeClass('modal-open').css('padding-right', '');
 
-                            if (existingCheckbox.length > 0) {
-                                existingCheckbox.prop('checked', true);
-                            } else {
-                                // Fallback: append it if not found in DOM
-                                var newHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">' +
-                                    '<label style="font-weight: 500; color: #475569; cursor: pointer; margin: 0;">' +
-                                    '<input type="checkbox" name="project_source[]" value="' + source + '" checked style="margin-right: 8px; width: 16px; height: 16px; vertical-align: middle; accent-color: #dd2127;"> ' + source +
-                                    '</label>' +
-                                    '<i class="fa fa-trash" style="color: #ef4444; cursor: pointer; font-size: 13px;" onclick="deleteSource(' + data.id + ', this)"></i>' +
-                                    '</div>';
-                                $("#source_checkbox_container").append(newHtml);
-                            }
-                            // Close modal by clicking the dismiss button
-                            $('#addSourceModal [data-dismiss="modal"]').first().trigger('click');
-                            $('#addSourceModal').hide(); // Fallback for visibility
-                            $('#new_source_name').val('');
-                            $('.modal-backdrop').remove();
-                            $('body').removeClass('modal-open');
-                            $('body').css('padding-right', '');
-                        } else {
-                            Swal.fire('Notification', "Error: " + data.message, 'error');
+                        if (typeof showPremiumAlert === 'function') {
+                            showPremiumAlert("Source selected!");
                         }
+                    } else {
+                        Swal.fire('Notification', "Error: " + data.message, 'error');
                     }
                 },
                 error: function(xhr, status, error) {

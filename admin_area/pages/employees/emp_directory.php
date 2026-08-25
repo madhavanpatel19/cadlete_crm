@@ -257,9 +257,78 @@ $yearOptions = array();
 for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
     $yearOptions[] = $y;
 }
+
+// Check extra_leaves column in emp_list
+$checkExtraCol = @mysqli_query($con, "SHOW COLUMNS FROM emp_list LIKE 'extra_leaves'");
+if ($checkExtraCol && mysqli_num_rows($checkExtraCol) == 0) {
+    @mysqli_query($con, "ALTER TABLE emp_list ADD COLUMN extra_leaves INT(11) DEFAULT 0");
+}
+
+// Default system allowed leaves sum from leave_types (Annual Leave Policy sum)
+$defaultSystemAllowedLeaves = 0;
+$lt_sum_q = @mysqli_query($con, "SELECT SUM(num_of_leave) as total FROM leave_types WHERE deleted_at IS NULL");
+if ($lt_sum_q && $lt_sum_row = mysqli_fetch_assoc($lt_sum_q)) {
+    if ($lt_sum_row['total'] !== null && $lt_sum_row['total'] !== '') {
+        $defaultSystemAllowedLeaves = intval($lt_sum_row['total']);
+    }
+}
+
+// Pre-calculate used leaves per employee
+$empUsedLeavesMap = array();
+$usedLeavesQuery = @mysqli_query($con, "SELECT emp_id, leave_from, leave_to FROM leave_applications WHERE status = 'approved'");
+if ($usedLeavesQuery && mysqli_num_rows($usedLeavesQuery) > 0) {
+    while ($ul = mysqli_fetch_assoc($usedLeavesQuery)) {
+        $eId = (int)$ul['emp_id'];
+        $from = strtotime($ul['leave_from']);
+        $to = strtotime($ul['leave_to']);
+        $days = 1;
+        if ($from && $to && $to >= $from) {
+            $days = round(($to - $from) / (60 * 60 * 24)) + 1;
+        }
+        if (!isset($empUsedLeavesMap[$eId])) {
+            $empUsedLeavesMap[$eId] = 0;
+        }
+        $empUsedLeavesMap[$eId] += $days;
+    }
+}
 ?>
 
 <style>
+    .btn-leave-badge {
+        background: #FFEAEB;
+        color: #DD2127;
+        border: 1px solid #FCA5A5;
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        display: inline-flex;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(221, 33, 39, 0.08);
+        outline: none !important;
+    }
+
+    .btn-leave-badge:hover {
+        background: #DD2127;
+        color: #ffffff;
+        border-color: #DD2127;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(221, 33, 39, 0.25);
+    }
+
+    .leave-stat-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 16px 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
     /* Prevent Flash of Unstyled Content (FOUC) / profile picture flash on page refresh */
     .modal:not(.in):not(.show) {
         display: none !important;
@@ -1111,6 +1180,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
                     <th>Name</th>
                     <th class="text-center" style="text-align: center;">Designation</th>
                     <th class="text-center" style="text-align: center;">Department</th>
+                    <th class="text-center" style="text-align: center;">Leaves</th>
                     <th class="text-center" style="text-align: center;">Details</th>
                     <!-- <th class="text-center" style="text-align: center;">Rating</th> -->
                     <th class="text-center" style="text-align: center;">Files</th>
@@ -1197,6 +1267,19 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
                                 <?php else: ?>
                                     <span style="font-size: 12px; color: #94a3b8; font-weight: 600;">Not Assigned</span>
                                 <?php endif; ?>
+                            </td>
+                            <td class="text-center" style="text-align: center; vertical-align: middle;">
+                                <?php
+                                $empExtra = intval($row['extra_leaves'] ?? 0);
+                                $empAllowed = $defaultSystemAllowedLeaves + $empExtra;
+                                $empUsed = isset($empUsedLeavesMap[$pk]) ? intval($empUsedLeavesMap[$pk]) : 0;
+                                ?>
+                                <button type="button" class="btn-leave-badge"
+                                    onclick="openEmpLeaveModal(<?php echo $pk; ?>, '<?php echo addslashes($name); ?>')"
+                                    title="Click to view & edit leave details for <?php echo addslashes($name); ?>">
+                                    <i class="fa fa-calendar-check-o" style="margin-right: 5px;"></i>
+                                    <span><?php echo $empUsed; ?> / <?php echo $empAllowed; ?></span>
+                                </button>
                             </td>
                             <td class="text-center" style="text-align: center;">
                                 <button type="button" class="btn" style="padding: 6px 12px; border-radius: 8px; font-weight: 600; background: #f1f5f9; color: #475569; border: 1.5px solid #e2e8f0; font-size: 12px;"
@@ -1778,6 +1861,177 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
     </div>
 </div>
 
+<!-- Employee Leave Modal -->
+<div class="modal fade" id="empLeaveModal" tabindex="-1" role="dialog" aria-labelledby="empLeaveModalLabel" style="display: none;">
+    <div class="modal-dialog modal-lg" role="document" style="width: 92%; max-width: 1050px;">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 25px 70px rgba(0,0,0,0.3); overflow: hidden;">
+            <div class="modal-header" style="background: #ffedeb; color: #1e293b; padding: 20px 28px; border: none; position: relative;">
+                <button type="button" class="close-profile-btn" data-dismiss="modal" aria-label="Close" style="top: 18px; right: 20px;">
+                    <i class="fa fa-times"></i>
+                </button>
+                <h4 class="modal-title" style="font-weight: 800; display: flex; align-items: center; gap: 12px; margin: 0; font-size: 18px;">
+                    <div style="background: #DD2127; color: white; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                        <i class="fa fa-calendar-check-o"></i>
+                    </div>
+                    <div>
+                        <span id="leaveModalEmpName">Employee Name</span> - Leave Management
+                        <div style="font-size: 12px; font-weight: 600; color: #64748b; margin-top: 2px;">View leave history, adjust allowed quota & manage leave applications</div>
+                    </div>
+                </h4>
+            </div>
+
+            <div class="modal-body" style="padding: 28px; background: #ffffff;">
+                <!-- Summary Cards Row -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 25px;">
+                    <!-- Used Leaves Card -->
+                    <div class="leave-stat-card" style="border-left: 4.5px solid #ef4444; background: #fef2f2;">
+                        <div>
+                            <div style="font-size: 11px; font-weight: 800; color: #991b1b; text-transform: uppercase; letter-spacing: 0.5px;">Used Leaves</div>
+                            <div style="font-size: 26px; font-weight: 900; color: #7f1d1d; margin-top: 4px;" id="modalUsedLeaves">0 Days</div>
+                        </div>
+                        <div style="width: 42px; height: 42px; border-radius: 12px; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                            <i class="fa fa-calendar-minus-o"></i>
+                        </div>
+                    </div>
+
+                    <!-- Remaining Leaves Card -->
+                    <div class="leave-stat-card" style="border-left: 4.5px solid #10b981; background: #ecfdf5;">
+                        <div>
+                            <div style="font-size: 11px; font-weight: 800; color: #065f46; text-transform: uppercase; letter-spacing: 0.5px;">Remaining Balance</div>
+                            <div style="font-size: 26px; font-weight: 900; color: #047857; margin-top: 4px;" id="modalRemainingLeaves">0 Days</div>
+                        </div>
+                        <div style="width: 42px; height: 42px; border-radius: 12px; background: #d1fae5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                            <i class="fa fa-calendar-check-o"></i>
+                        </div>
+                    </div>
+
+                    <!-- Total Allowed Leaves Card -->
+                    <div class="leave-stat-card" style="border-left: 4.5px solid #dd2127; background: #fff5f5;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 11px; font-weight: 800; color: #991b1b; text-transform: uppercase; letter-spacing: 0.5px;">Total Allowed Leaves</div>
+                            <div style="font-size: 26px; font-weight: 900; color: #991b1b; margin-top: 4px;" id="modalAllowedLeaves">0 Days</div>
+                        </div>
+                        <div style="width: 42px; height: 42px; border-radius: 12px; background: #ffe4e6; color: #dd2127; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leave Policy Allowances & Extra Leaves Row -->
+                <div id="modalLeaveTypeBreakdown" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; background: #f8fafc; padding: 14px 18px; border-radius: 14px; border: 1.5px solid #e2e8f0; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 1;">
+                        <div style="font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa fa-pie-chart" style="color: #dd2127; font-size: 14px;"></i> Policy Allowances:
+                        </div>
+                        <div id="modalLeaveTypeBadges" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                    </div>
+                    <div>
+                        <button type="button" class="btn-premium-add" onclick="toggleExtraLeaveForm()">
+                            <i class="fa fa-plus-circle"></i> Add Extra Leaves
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hidden Inline Form to Add / Edit Extra Leaves for this Employee -->
+                <div id="extraLeaveFormBox" style="display: none; background: #fff5f5; border: 1.5px solid #fca5a5; border-radius: 16px; padding: 20px 24px; margin-bottom: 22px; box-shadow: 0 4px 15px rgba(221,33,39,0.05);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+                        <div>
+                            <span style="font-weight: 800; color: #991b1b; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa fa-user-plus" style="color: #dd2127; font-size: 16px;"></i> Personal Extra Leaves for Employee
+                            </span>
+                            <div style="font-size: 11.5px; color: #7f1d1d; margin-top: 3px; font-weight: 500;">Add extra custom leave days for this specific employee on top of the annual policy allowance</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="number" id="inputExtraLeaves" min="0" max="365" placeholder="e.g. 3" class="form-control" style="height: 40px; font-size: 13px; font-weight: 700; width: 110px; border-radius: 10px; border: 1.5px solid #dd2127; background: #ffffff; text-align: center;">
+                            <button type="button" class="btn" onclick="saveExtraLeaves()" style="background: #dd2127; color: white; border-radius: 10px; font-weight: 700; font-size: 13px; height: 40px; padding: 0 20px; border: none; box-shadow: 0 4px 12px rgba(221,33,39,0.25);">
+                                Save Extra Leaves
+                            </button>
+                            <button type="button" class="btn btn-default" onclick="toggleExtraLeaveForm()" style="border-radius: 10px; font-weight: 700; font-size: 13px; height: 40px; padding: 0 16px; color: #64748b; border: 1.5px solid #e2e8f0;">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Header & Add Button -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 14px;">
+                    <h4 style="font-weight: 800; color: #1e293b; margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa fa-list-alt" style="color: #dd2127;"></i> Leave Applications & Record History
+                    </h4>
+                    <button type="button" class="btn-premium-add" onclick="toggleAddLeaveForm()">
+                        <i class="fa fa-plus-circle"></i> Add Leave Entry
+                    </button>
+                </div>
+
+                <!-- Admin Add Leave Entry Form -->
+                <div id="addLeaveFormBox" style="display: none; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 16px; padding: 22px 24px; margin-bottom: 22px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                    <h5 style="font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 18px; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa fa-plus-circle" style="color: #dd2127; font-size: 16px;"></i> Add Leave Entry For Employee
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6" style="margin-bottom: 14px;">
+                            <label style="font-size: 10px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Leave Type</label>
+                            <select id="add_leave_type_id" class="form-control" style="height: 40px; border-radius: 10px; font-weight: 600; font-size: 13px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #1e293b;"></select>
+                        </div>
+                        <div class="col-md-3 col-sm-6" style="margin-bottom: 14px;">
+                            <label style="font-size: 10px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">From Date</label>
+                            <input type="date" id="add_leave_from" class="form-control" style="height: 40px; border-radius: 10px; font-weight: 600; font-size: 13px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #1e293b;">
+                        </div>
+                        <div class="col-md-3 col-sm-6" style="margin-bottom: 14px;">
+                            <label style="font-size: 10px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">To Date</label>
+                            <input type="date" id="add_leave_to" class="form-control" style="height: 40px; border-radius: 10px; font-weight: 600; font-size: 13px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #1e293b;">
+                        </div>
+                        <div class="col-md-3 col-sm-6" style="margin-bottom: 14px;">
+                            <label style="font-size: 10px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Status</label>
+                            <select id="add_leave_status" class="form-control" style="height: 40px; border-radius: 10px; font-weight: 600; font-size: 13px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #1e293b;">
+                                <option value="approved" selected>Approved</option>
+                                <option value="pending">Pending</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12" style="margin-bottom: 16px;">
+                            <label style="font-size: 10px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Reason / Notes</label>
+                            <input type="text" id="add_leave_reason" placeholder="e.g. Medical leave, Personal work" class="form-control" style="height: 40px; border-radius: 10px; font-weight: 600; font-size: 13px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #1e293b;">
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 4px;">
+                        <button type="button" class="btn-premium-cancel" onclick="toggleAddLeaveForm()">
+                            <i class="fa fa-times"></i> Cancel
+                        </button>
+                        <button type="button" class="btn-premium-add" onclick="submitAdminEmpLeave()">
+                            <i class="fa fa-check"></i> Save Leave
+                        </button>
+                    </div>
+                </div>
+
+                <!-- History Table -->
+                <div class="table-responsive" style="border: 1.5px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #fff;">
+                    <table class="table table-hover" style="margin-bottom: 0;">
+                        <thead style="background: #1e293b; color: #ffffff;">
+                            <tr>
+                                <th style="padding: 12px 16px; border: none; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Type</th>
+                                <th style="padding: 12px 16px; border: none; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Dates & Duration</th>
+                                <th style="padding: 12px 16px; border: none; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Days</th>
+                                <th style="padding: 12px 16px; border: none; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Reason</th>
+                                <th style="padding: 12px 16px; border: none; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="empLeaveHistoryBody">
+                            <!-- Dynamic Content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 18px 28px; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end;">
+                <button type="button" class="btn-premium-cancel" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Premium Delete Confirmation Modal -->
 <div class="premium-confirm-overlay" id="deleteConfirmOverlay" style="display: none;">
     <div class="premium-confirm-modal">
@@ -1814,6 +2068,248 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
 
 
 <script>
+    // Employee Leave Management JS
+    let currentEmpLeaveId = 0;
+    let currentEmpLeaveName = '';
+
+    function openEmpLeaveModal(empId, empName) {
+        currentEmpLeaveId = empId;
+        currentEmpLeaveName = empName;
+
+        $('#leaveModalEmpName').text(empName);
+        $('#extraLeaveFormBox').hide();
+        $('#addLeaveFormBox').hide();
+        $('#empLeaveHistoryBody').html('<tr><td colspan="5" class="text-center" style="padding: 25px;"><i class="fa fa-spinner fa-spin fa-2x" style="color: #dd2127;"></i><br><span style="color: #64748b; font-weight: 600; font-size: 13px; margin-top: 8px; display: inline-block;">Loading leave details...</span></td></tr>');
+
+        $('#empLeaveModal').modal('show');
+
+        fetchLeaveDetails(empId);
+    }
+
+    function fetchLeaveDetails(empId) {
+        $.ajax({
+            url: 'ajax/leaves/ajax_get_emp_leave_details.php',
+            method: 'GET',
+            data: {
+                emp_id: empId
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.status === 'success') {
+                    $('#modalUsedLeaves').text(res.emp.used_leaves + ' Days');
+                    $('#modalRemainingLeaves').text(res.emp.remaining_leaves + ' Days');
+                    $('#modalAllowedLeaves').text(res.emp.allowed_leaves + ' Days');
+                    $('#inputExtraLeaves').val(res.emp.extra_leaves || 0);
+
+                    // Populate Policy Allowance & Extra Leaves Badges
+                    let breakdownHtml = '';
+                    if (res.leave_types && res.leave_types.length > 0) {
+                        res.leave_types.forEach(function(lt) {
+                            let used = lt.used_leave || 0;
+                            let total = lt.num_of_leave || 0;
+                            breakdownHtml += `
+                                <div style="background: #ffffff; border: 1px solid #cbd5e1; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; color: #1e293b; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                    <span style="color: #dd2127;">${lt.leave_name}:</span>
+                                    <span style="color: #0f172a;">${used} / ${total} Days</span>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        breakdownHtml = '<span style="font-size: 12px; color: #94a3b8;">No leave policy types configured.</span>';
+                    }
+
+                    if (res.emp.extra_leaves && res.emp.extra_leaves > 0) {
+                        let extraUsed = res.emp.extra_leaves_used || 0;
+                        breakdownHtml += `
+                            <div style="background: #fff5f5; border: 1px solid #fca5a5; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; color: #991b1b; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                <span style="color: #dd2127;"><i class="fa fa-star"></i> Extra Leaves:</span>
+                                <span style="color: #7f1d1d;">${extraUsed} / ${res.emp.extra_leaves} Days</span>
+                            </div>
+                        `;
+                    }
+                    $('#modalLeaveTypeBadges').html(breakdownHtml);
+
+                    // Populate Leave Types Dropdown for Add Form
+                    let typeOptions = '<option value="">-- Select Leave Type --</option>';
+                    if (res.leave_types && res.leave_types.length > 0) {
+                        res.leave_types.forEach(function(lt) {
+                            typeOptions += `<option value="${lt.id}">${lt.leave_name} (${lt.num_of_leave} days)</option>`;
+                        });
+                    }
+                    if (res.emp.extra_leaves && res.emp.extra_leaves > 0) {
+                        typeOptions += `<option value="0">Extra Leaves (${res.emp.extra_leaves} days)</option>`;
+                    }
+                    $('#add_leave_type_id').html(typeOptions);
+
+                    // Render Applications History Table
+                    let rows = '';
+                    if (res.applications && res.applications.length > 0) {
+                        res.applications.forEach(function(app) {
+                            let badgeClass = 'label-warning';
+                            let badgeBg = '#fffbeb';
+                            let badgeColor = '#b45309';
+                            let badgeBorder = '#fde68a';
+
+                            if (app.status === 'approved') {
+                                badgeBg = '#ecfdf5';
+                                badgeColor = '#047857';
+                                badgeBorder = '#a7f3d0';
+                            } else if (app.status === 'rejected') {
+                                badgeBg = '#fef2f2';
+                                badgeColor = '#b91c1c';
+                                badgeBorder = '#fca5a5';
+                            }
+
+                            rows += `
+                                <tr>
+                                    <td style="font-weight: 700; color: #1e293b;">
+                                        <i class="fa fa-tag" style="color: #dd2127; margin-right: 6px;"></i> ${app.leave_name}
+                                    </td>
+                                    <td>
+                                        <span style="font-weight: 600; color: #334155;">${app.leave_from}</span> 
+                                        <i class="fa fa-arrow-right" style="font-size: 10px; color: #94a3b8; margin: 0 4px;"></i> 
+                                        <span style="font-weight: 600; color: #334155;">${app.leave_to}</span>
+                                    </td>
+                                    <td style="text-align: center; font-weight: 800; color: #0f172a;">
+                                        <span style="background: #f1f5f9; padding: 3px 8px; border-radius: 6px; border: 1px solid #e2e8f0;">${app.days} Day(s)</span>
+                                    </td>
+                                    <td style="color: #475569; font-size: 12px; max-width: 200px;">
+                                        ${app.reason ? app.reason : '-'}
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; background: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeBorder}; padding: 3px 10px; border-radius: 20px; display: inline-block;">
+                                            ${app.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        rows = '<tr><td colspan="5" class="text-center" style="padding: 20px; color: #94a3b8; font-weight: 600;">No leave records found for this employee.</td></tr>';
+                    }
+                    $('#empLeaveHistoryBody').html(rows);
+                } else {
+                    $('#empLeaveHistoryBody').html(`<tr><td colspan="5" class="text-center text-danger">${res.message}</td></tr>`);
+                }
+            },
+            error: function() {
+                $('#empLeaveHistoryBody').html('<tr><td colspan="5" class="text-center text-danger">Connection error. Could not fetch details.</td></tr>');
+            }
+        });
+    }
+
+    function toggleExtraLeaveForm() {
+        $('#extraLeaveFormBox').slideToggle(200);
+    }
+
+    function saveExtraLeaves() {
+        let val = parseInt($('#inputExtraLeaves').val());
+        if (isNaN(val) || val < 0) val = 0;
+
+        $.ajax({
+            url: 'ajax/leaves/ajax_update_emp_leave_quota.php',
+            method: 'POST',
+            data: {
+                emp_id: currentEmpLeaveId,
+                extra_leaves: val
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.status === 'success') {
+                    if (typeof showPremiumAlert === 'function') showPremiumAlert('Extra leaves updated!');
+                    $('#extraLeaveFormBox').slideUp(200);
+                    fetchLeaveDetails(currentEmpLeaveId);
+                } else {
+                    alert('Error: ' + res.message);
+                }
+            }
+        });
+    }
+
+    function toggleAddLeaveForm() {
+        $('#addLeaveFormBox').slideToggle(200);
+    }
+
+    function submitAdminEmpLeave() {
+        let typeId = $('#add_leave_type_id').val();
+        let fromDate = $('#add_leave_from').val();
+        let toDate = $('#add_leave_to').val();
+        let reason = $('#add_leave_reason').val();
+        let status = $('#add_leave_status').val();
+
+        if (typeId === null || typeId === '' || typeId === undefined || !fromDate || !toDate) {
+            if (typeof showPremiumAlert === 'function') showPremiumAlert('Please fill in Leave Type, From Date and To Date', 'error');
+            return;
+        }
+
+        $.ajax({
+            url: 'ajax/leaves/ajax_add_emp_leave.php',
+            method: 'POST',
+            data: {
+                emp_id: currentEmpLeaveId,
+                leave_type_id: typeId,
+                leave_from: fromDate,
+                leave_to: toDate,
+                reason: reason,
+                status: status
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.status === 'success') {
+                    if (typeof showPremiumAlert === 'function') showPremiumAlert('Leave record added!');
+                    $('#add_leave_from').val('');
+                    $('#add_leave_to').val('');
+                    $('#add_leave_reason').val('');
+                    $('#addLeaveFormBox').slideUp(200);
+                    fetchLeaveDetails(currentEmpLeaveId);
+                } else {
+                    alert('Error: ' + res.message);
+                }
+            }
+        });
+    }
+
+    function updateLeaveAppStatus(appId, newStatus) {
+        $.ajax({
+            url: 'ajax/leaves/ajax_update_leave_app_status.php',
+            method: 'POST',
+            data: {
+                app_id: appId,
+                status: newStatus
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.status === 'success') {
+                    if (typeof showPremiumAlert === 'function') showPremiumAlert('Leave status updated to ' + newStatus);
+                    fetchLeaveDetails(currentEmpLeaveId);
+                } else {
+                    alert('Error: ' + res.message);
+                }
+            }
+        });
+    }
+
+    function deleteLeaveApp(appId) {
+        if (!confirm('Are you sure you want to delete this leave entry?')) return;
+
+        $.ajax({
+            url: 'ajax/leaves/ajax_delete_leave_app.php',
+            method: 'POST',
+            data: {
+                app_id: appId
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.status === 'success') {
+                    if (typeof showPremiumAlert === 'function') showPremiumAlert('Leave entry deleted!');
+                    fetchLeaveDetails(currentEmpLeaveId);
+                } else {
+                    alert('Error: ' + res.message);
+                }
+            }
+        });
+    }
+
     // Zoom/View Profile Image
     function viewImage(img, name) {
         var viewerImg = document.getElementById('viewer_img');
