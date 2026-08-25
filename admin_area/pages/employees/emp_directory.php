@@ -1180,7 +1180,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
                                 </div>
                                 <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
                                     <span style="display:inline-flex; align-items:center; gap:4px; margin-right:10px;"><i class="fa fa-phone" style="color:#333; opacity:0.7;"></i> <?php echo $phone; ?></span>
-                                    <span style="display:inline-flex; align-items:center; gap:4px;"><i class="fa fa-envelope" style="color:#333; opacity:0.7;"></i> <?php echo $email; ?></span>
+                                    <span style="display:inline-flex; align-items:center; gap:4px;"><i class="fa fa-envelope" style="color:#dd2127; opacity:0.8;"></i> <?php echo htmlspecialchars(!empty($row['company_email']) ? $row['company_email'] : $email); ?></span>
                                 </div>
                                 <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;"><i class="fa fa-calendar-check-o"></i> Joined: <?php echo (!empty($row['join_date']) && $row['join_date'] !== '0000-00-00') ? date('d-m-Y', strtotime($row['join_date'])) : '-'; ?></div>
                             </td>
@@ -1606,7 +1606,11 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
                                 <span class="profile-data-value" id="view_phone">-</span>
                             </div>
                             <div class="profile-data-card">
-                                <span class="profile-data-label">Email Address</span>
+                                <span class="profile-data-label">Company Email (Login)</span>
+                                <span class="profile-data-value" id="view_company_email" style="color: #dd2127; font-weight: 700;">-</span>
+                            </div>
+                            <div class="profile-data-card">
+                                <span class="profile-data-label">Personal Email Address</span>
                                 <span class="profile-data-value" id="view_email">-</span>
                             </div>
                             <div class="profile-data-card">
@@ -1968,6 +1972,7 @@ for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++) {
         document.getElementById('view_id_label').textContent = 'ID: ' + data.id;
         document.getElementById('view_gender_badge').textContent = data.gender || 'Other';
         document.getElementById('view_phone').textContent = data.phone_number || '-';
+        if (document.getElementById('view_company_email')) document.getElementById('view_company_email').textContent = data.company_email || data.email || '-';
         document.getElementById('view_email').textContent = data.email || '-';
         document.getElementById('view_blood').textContent = data.blood_group || '-';
         document.getElementById('view_join_sidebar').innerHTML = '<i class="fa fa-calendar-check-o"></i> Joined: ' + (data.join_date || '-');

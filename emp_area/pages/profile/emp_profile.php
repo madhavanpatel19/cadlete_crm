@@ -20,7 +20,9 @@ if (!isset($_SESSION['emp_id'])) {
     }
 
     $emp_name = $employee['name'];
-    $emp_email = $employee['email'];
+    $emp_personal_email = $employee['email'];
+    $emp_company_email = !empty($employee['company_email']) ? $employee['company_email'] : $employee['email'];
+    $emp_email = $emp_company_email;
     $emp_designation = !empty($employee['designation']) ? $employee['designation'] : 'Employee';
     $emp_contact = $employee['phone_number'];
     $emp_address = $employee['address'];
@@ -59,12 +61,21 @@ if (!isset($_SESSION['emp_id'])) {
 
                         <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; display: flex; flex-direction: column; gap: 15px; text-align: left;">
                             <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 32px; height: 32px; border-radius: 10px; background: #fee2e2; color: #dd2127; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                                    <i class="fa fa-building"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Company Email (Login)</div>
+                                    <div style="font-size: 13px; font-weight: 700; color: #dd2127;"><?php echo htmlspecialchars($emp_company_email); ?></div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
                                 <div style="width: 32px; height: 32px; border-radius: 10px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 14px;">
                                     <i class="fa fa-envelope"></i>
                                 </div>
                                 <div>
-                                    <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Email Address</div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #1e293b;"><?php echo $emp_email; ?></div>
+                                    <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Personal Email</div>
+                                    <div style="font-size: 13px; font-weight: 600; color: #1e293b;"><?php echo htmlspecialchars($emp_personal_email); ?></div>
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 12px;">

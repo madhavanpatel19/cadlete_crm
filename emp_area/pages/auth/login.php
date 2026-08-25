@@ -28,8 +28,8 @@ function login_user($con)
     $email    = mysqli_real_escape_string($con, $_POST['email']);
     $password = $_POST['password']; // Plain text comparison (same as existing)
 
-    // -- Query emp_list for matching credentials --
-    $query = mysqli_query($con, "SELECT * FROM emp_list WHERE email='$email' AND password='$password'");
+    // -- Query emp_list for matching credentials (ONLY Company Email is accepted for login) --
+    $query = mysqli_query($con, "SELECT * FROM emp_list WHERE (company_email='$email' OR ((company_email IS NULL OR company_email='') AND email='$email')) AND password='$password'");
 
     if ($query && mysqli_num_rows($query) > 0) {
         $user = mysqli_fetch_assoc($query);
@@ -122,7 +122,7 @@ if (isset($_POST['login'])) {
 
                 <div class="login-input-wrap">
                     <i class="fa fa-envelope-o input-icon"></i>
-                    <input type="email" name="email" class="form-control" placeholder="Email Address" required autocomplete="email">
+                    <input type="email" name="email" class="form-control" placeholder="Company Email Address" required autocomplete="email">
                 </div>
 
                 <div class="login-input-wrap">

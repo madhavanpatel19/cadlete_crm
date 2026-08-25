@@ -90,9 +90,10 @@ function add_user($con)
     @flush();
 
     // -- Sanitize basic fields --
-    $name    = mysqli_real_escape_string($con, $_POST['name']);
-    $email   = mysqli_real_escape_string($con, $_POST['email']);
-    $contact = preg_replace('/\D+/', '', $_POST['number']);
+    $name          = mysqli_real_escape_string($con, $_POST['name']);
+    $email         = mysqli_real_escape_string($con, $_POST['email']);
+    $company_email = mysqli_real_escape_string($con, $_POST['company_email'] ?? '');
+    $contact       = preg_replace('/\D+/', '', $_POST['number']);
 
     // -- Validate phone number (must be exactly 10 digits) --
     if (strlen($contact) != 10) {
@@ -185,11 +186,11 @@ function add_user($con)
 
     // -- Insert employee record into DB --
     $query = "INSERT INTO emp_list
-    (name, phone_number, address, email, blood_group, gender, join_date, department, designation, basic_salary, hra, allowance, deductions, salary, password,
+    (name, phone_number, address, email, company_email, blood_group, gender, join_date, department, designation, basic_salary, hra, allowance, deductions, salary, password,
     age, dob, work_experience, marital_status, num_dependents, emergency_name, emergency_relationship, emergency_address, emergency_phone,
     education_json, employment_json, account_name, bank_branch, account_number, account_type_ifsc, employee_image, offer_latter, NDA, Aadhar_card, Pan_card, Passportsize_photo, old_company_slary_slip)
               VALUES
-    ('$name', '$contact', '$address', '$email', '$blood', '$gender', '$joinDate', '$department', '$designation', '$basic', '$hra', '$allowance', '$deductions', '$salary', '$plainPassword',
+    ('$name', '$contact', '$address', '$email', '$company_email', '$blood', '$gender', '$joinDate', '$department', '$designation', '$basic', '$hra', '$allowance', '$deductions', '$salary', '$plainPassword',
     '$age', '$dob', '$work_exp', '$marital', '$dependents', '$e_name', '$e_rel', '$e_addr', '$e_phone',
     '$edu_json', '$emp_json', '$acc_name', '$bank_br', '$acc_num', '$acc_ifsc', '$employee_image', '$offer_letter', '$NDA', '$Aadhar_card', '$Pan_card', '$Passportsize_photo', '$old_company_slary_slip')";
 
@@ -335,7 +336,7 @@ if ($dept_q) {
         }
     }
 }
-$admin_dept_q = mysqli_query($con, "SELECT DISTINCT department FROM admins WHERE department IS NOT NULL AND TRIM(department) != '' AND LOWER(TRIM(department)) != 'not assigned'");
+$admin_dept_q = @mysqli_query($con, "SELECT DISTINCT department FROM admins WHERE department IS NOT NULL AND TRIM(department) != '' AND LOWER(TRIM(department)) != 'not assigned'");
 if ($admin_dept_q) {
     while ($adr = mysqli_fetch_assoc($admin_dept_q)) {
         $adv = trim($adr['department']);
@@ -492,7 +493,7 @@ sort($existing_desigs);
             </div>
             <div style="padding: 30px;">
                 <div class="row" style="margin-bottom: 10px;">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Contact Number *</label>
                             <div style="position: relative;">
@@ -501,16 +502,25 @@ sort($existing_desigs);
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
-                            <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Email Address *</label>
+                            <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Company Email (For Login) *</label>
                             <div style="position: relative;">
-                                <i class="fa fa-envelope" style="position: absolute; left: 15px; top: 16px; color: #64748b; font-size: 14px;"></i>
-                                <input type="email" name="email" class="p-input-premium" placeholder="email@example.com" required style="padding-left: 40px;">
+                                <i class="fa fa-building" style="position: absolute; left: 15px; top: 16px; color: #dd2127; font-size: 14px;"></i>
+                                <input type="email" name="company_email" class="p-input-premium" placeholder="work@company.com" required style="padding-left: 40px;">
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Personal Email Address *</label>
+                            <div style="position: relative;">
+                                <i class="fa fa-envelope" style="position: absolute; left: 15px; top: 16px; color: #64748b; font-size: 14px;"></i>
+                                <input type="email" name="email" class="p-input-premium" placeholder="personal@example.com" required style="padding-left: 40px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Residential Address *</label>
                             <div style="position: relative;">

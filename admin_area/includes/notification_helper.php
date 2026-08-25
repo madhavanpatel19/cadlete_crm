@@ -147,7 +147,7 @@ function notifyProjectAdmins(int $project_id, string $title, string $message, st
 
     // 3. Find admins whose assigned department matches any of $proj_depts
     if (!empty($proj_depts)) {
-        $d_res = mysqli_query($con, "SELECT admin_id, department FROM admins WHERE department IS NOT NULL AND TRIM(department) != ''");
+        $d_res = @mysqli_query($con, "SELECT admin_id, department FROM admins WHERE department IS NOT NULL AND TRIM(department) != ''");
         if ($d_res) {
             while ($d_row = mysqli_fetch_assoc($d_res)) {
                 $raw_adept = trim($d_row['department'] ?? '');

@@ -13,7 +13,15 @@ $logged_in_emp_id = isset($_SESSION['emp_id']) ? intval($_SESSION['emp_id']) : 0
 $admin_assigned_depts = [];
 if (isset($_SESSION['admin_email'])) {
     $ae = mysqli_real_escape_string($con, $_SESSION['admin_email']);
-    $a_res = mysqli_query($con, "SELECT admin_id, is_super_admin, admin_job, department FROM admins WHERE admin_email = '$ae' LIMIT 1");
+    $check_dept = @mysqli_query($con, "SHOW COLUMNS FROM admins LIKE 'department'");
+    if ($check_dept && mysqli_num_rows($check_dept) === 0) {
+        @mysqli_query($con, "ALTER TABLE admins ADD COLUMN department VARCHAR(255) DEFAULT 'Management'");
+        $check_dept = @mysqli_query($con, "SHOW COLUMNS FROM admins LIKE 'department'");
+    }
+    $has_dept = ($check_dept && mysqli_num_rows($check_dept) > 0);
+    $select_cols = "admin_id, is_super_admin, admin_job" . ($has_dept ? ", department" : "");
+
+    $a_res = @mysqli_query($con, "SELECT $select_cols FROM admins WHERE admin_email = '$ae' LIMIT 1");
     if ($a_res && $a_row = mysqli_fetch_assoc($a_res)) {
         $current_admin_id = intval($a_row['admin_id']);
         if (intval($a_row['is_super_admin'] ?? 0) === 1 || strcasecmp(trim($a_row['admin_job'] ?? ''), 'Super Admin') === 0) {

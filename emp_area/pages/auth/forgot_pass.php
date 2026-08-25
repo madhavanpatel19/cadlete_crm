@@ -51,7 +51,7 @@ if (isset($_SESSION['reset_step'])) {
 // 1. SEND OTP ACTION
 if (isset($_POST['send_otp'])) {
     $email     = mysqli_real_escape_string($con, $_POST['email']);
-    $query     = "SELECT * FROM emp_list WHERE email='$email'";
+    $query     = "SELECT * FROM emp_list WHERE company_email='$email' OR ((company_email IS NULL OR company_email='') AND email='$email')";
     $run_query = mysqli_query($con, $query);
 
     if ($run_query && mysqli_num_rows($run_query) > 0) {

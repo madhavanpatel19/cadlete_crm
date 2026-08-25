@@ -331,6 +331,10 @@ if (isset($con)) {
     if (!$check_perm || mysqli_num_rows($check_perm) === 0) {
         @mysqli_query($con, "ALTER TABLE admins ADD COLUMN permissions TEXT NULL");
     }
+    $check_dept = @mysqli_query($con, "SHOW COLUMNS FROM admins LIKE 'department'");
+    if (!$check_dept || mysqli_num_rows($check_dept) === 0) {
+        @mysqli_query($con, "ALTER TABLE admins ADD COLUMN department VARCHAR(255) DEFAULT 'Management'");
+    }
 }
 
 if (!function_exists('isSuperAdmin')) {
