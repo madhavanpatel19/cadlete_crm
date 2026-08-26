@@ -178,7 +178,6 @@ if ($run_projs) {
         justify-content: space-between;
         align-items: center;
         padding: 16px 20px;
-        border-left: 4px solid #dc2626;
         background: #fff;
     }
 
@@ -418,11 +417,16 @@ if ($run_projs) {
     .task-proj-name {
         font-size: 10px;
         font-weight: 700;
-        color: #94a3b8;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         white-space: nowrap;
         flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        line-height: 1.3;
     }
 
     .task-name {
@@ -1031,19 +1035,45 @@ if ($run_projs) {
 
     <div class="todo-board">
         <?php
+        $module_colors = [
+            // 0: General Tasks -> Indigo / Royal Theme
+            ['primary' => '#4f46e5', 'border' => '#6366f1', 'bg' => '#e0e7ff', 'color' => '#3730a3', 'icon' => 'fa-tasks', 'badge_bg' => '#e0e7ff', 'badge_border' => '#c7d2fe'],
+            // 1: Emerald Green
+            ['primary' => '#059669', 'border' => '#10b981', 'bg' => '#d1fae5', 'color' => '#065f46', 'icon' => 'fa-briefcase', 'badge_bg' => '#d1fae5', 'badge_border' => '#a7f3d0'],
+            // 2: Amber / Golden Orange
+            ['primary' => '#d97706', 'border' => '#f59e0b', 'bg' => '#fef3c7', 'color' => '#92400e', 'icon' => 'fa-folder-open', 'badge_bg' => '#fef3c7', 'badge_border' => '#fde68a'],
+            // 3: Rose / Coral Pink
+            ['primary' => '#e11d48', 'border' => '#f43f5e', 'bg' => '#ffe4e6', 'color' => '#9f1239', 'icon' => 'fa-rocket', 'badge_bg' => '#ffe4e6', 'badge_border' => '#fecdd3'],
+            // 4: Purple / Violet
+            ['primary' => '#7c3aed', 'border' => '#8b5cf6', 'bg' => '#ede9fe', 'color' => '#5b21b6', 'icon' => 'fa-layer-group', 'badge_bg' => '#ede9fe', 'badge_border' => '#ddd6fe'],
+            // 5: Cyan / Sky Blue
+            ['primary' => '#0891b2', 'border' => '#06b6d4', 'bg' => '#cffaff', 'color' => '#155e75', 'icon' => 'fa-cube', 'badge_bg' => '#cffaff', 'badge_border' => '#a5f3fc'],
+            // 6: Pink / Magenta
+            ['primary' => '#db2777', 'border' => '#ec4899', 'bg' => '#fce7f3', 'color' => '#9d174d', 'icon' => 'fa-chart-pie', 'badge_bg' => '#fce7f3', 'badge_border' => '#fbcfe8'],
+            // 7: Royal Blue
+            ['primary' => '#2563eb', 'border' => '#3b82f6', 'bg' => '#dbeafe', 'color' => '#1e40af', 'icon' => 'fa-code', 'badge_bg' => '#dbeafe', 'badge_border' => '#bfdbfe'],
+        ];
+
         if ($is_employee_portal) {
-            foreach ($emp_projects as $proj) {
+            foreach ($emp_projects as $proj_idx => $proj) {
                 $p_id = intval($proj['id']);
                 $p_name = htmlspecialchars($proj['project_name']);
                 $p_sub = !empty($proj['client_name']) ? htmlspecialchars($proj['client_name']) : 'Project Task';
                 $p_dept = htmlspecialchars($proj['department'] ?? 'General');
                 $col_key = $logged_in_emp_id . '-' . $p_id;
+
+                // Pick distinct color theme for this project module column
+                if ($p_id === 0) {
+                    $c_theme = $module_colors[0];
+                } else {
+                    $c_theme = $module_colors[(($proj_idx - 1) % (count($module_colors) - 1)) + 1];
+                }
         ?>
                 <div class="todo-column" data-emp-id="<?php echo $logged_in_emp_id; ?>" data-project-id="<?php echo $p_id; ?>" data-dept="<?php echo $p_dept; ?>">
-                    <div class="todo-col-header">
+                    <div class="todo-col-header" style="border-left: 4px solid <?php echo $c_theme['border']; ?>;">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <div class="emp-avatar-fallback" style="background: #fef2f2; color: #dc2626; border-color: #fecaca;">
-                                <i class="fa <?php echo $p_id === 0 ? 'fa-tasks' : 'fa-briefcase'; ?>"></i>
+                            <div class="emp-avatar-fallback" style="background: <?php echo $c_theme['bg']; ?>; color: <?php echo $c_theme['color']; ?>; border: 2px solid <?php echo $c_theme['badge_border']; ?>;">
+                                <i class="fa <?php echo $p_id === 0 ? 'fa-tasks' : $c_theme['icon']; ?>"></i>
                             </div>
                             <div>
                                 <div class="emp-name"><?php echo $p_name; ?></div>
@@ -1053,7 +1083,7 @@ if ($run_projs) {
                     </div>
 
                     <div class="add-task-trigger" onclick="showInlineAddTask(<?php echo $logged_in_emp_id; ?>, <?php echo $p_id; ?>)">
-                        <i class="fa fa-plus-circle" style="font-size: 16px; color: #94a3b8;"></i>
+                        <i class="fa fa-plus-circle" style="font-size: 16px; color: <?php echo $c_theme['primary']; ?>;"></i>
                         <span>Add a task</span>
                     </div>
 
@@ -1081,20 +1111,23 @@ if ($run_projs) {
             if (empty($employees)) {
                 echo '<div style="text-align: center; width: 100%; padding: 50px; color: #64748b; font-weight: 600;">No tasks found for this date.</div>';
             } else {
-                foreach ($employees as $emp) {
+                foreach ($employees as $emp_idx => $emp) {
                     $emp_id = intval($emp['id']);
                     $emp_name = htmlspecialchars($emp['name']);
                     $emp_dept = !empty($emp['department']) ? $emp['department'] : (!empty($emp['designation']) ? $emp['designation'] : 'Employee');
                     $emp_job = htmlspecialchars($emp_dept);
                     $emp_img = !empty($emp['employee_image']) ? 'uploads/' . htmlspecialchars($emp['employee_image']) : null;
+
+                    // Pick distinct color theme for this employee column
+                    $c_theme = $module_colors[$emp_idx % count($module_colors)];
                 ?>
                     <div class="todo-column" data-emp-id="<?php echo $emp_id; ?>" data-dept="<?php echo htmlspecialchars($emp['department'] ?? 'Not Assigned'); ?>">
-                        <div class="todo-col-header">
+                        <div class="todo-col-header" style="border-left: 4px solid <?php echo $c_theme['border']; ?>;">
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <?php if ($emp_img && file_exists('../../' . $emp_img)) { ?>
-                                    <img src="<?php echo $emp_img; ?>" class="emp-avatar">
+                                    <img src="<?php echo $emp_img; ?>" class="emp-avatar" style="border: 2px solid <?php echo $c_theme['border']; ?>;">
                                 <?php } else { ?>
-                                    <div class="emp-avatar-fallback"><?php echo strtoupper(substr($emp_name, 0, 1)); ?></div>
+                                    <div class="emp-avatar-fallback" style="background: <?php echo $c_theme['bg']; ?>; color: <?php echo $c_theme['color']; ?>; border: 2px solid <?php echo $c_theme['badge_border']; ?>;"><?php echo strtoupper(substr($emp_name, 0, 1)); ?></div>
                                 <?php } ?>
                                 <div>
                                     <div class="emp-name"><?php echo $emp_name; ?></div>
@@ -1106,7 +1139,7 @@ if ($run_projs) {
 
                         <?php if (function_exists('canAdminAccess') && canAdminAccess('todo_insert')): ?>
                             <div class="add-task-trigger" onclick="showInlineAddTask(<?php echo $emp_id; ?>)">
-                                <i class="fa fa-plus-circle" style="font-size: 16px; color: #94a3b8;"></i>
+                                <i class="fa fa-plus-circle" style="font-size: 16px; color: <?php echo $c_theme['primary']; ?>;"></i>
                                 <span>Add a task</span>
                             </div>
                         <?php endif; ?>
@@ -1572,6 +1605,28 @@ if ($run_projs) {
         });
     }
 
+    function getProjectColorBadge(projName) {
+        const palettes = [
+            { bg: '#e0e7ff', color: '#3730a3', border: '#c7d2fe', icon: 'fa-tasks' },        // Indigo (General Tasks)
+            { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0', icon: 'fa-briefcase' },    // Emerald
+            { bg: '#fef3c7', color: '#92400e', border: '#fde68a', icon: 'fa-folder-open' },  // Amber
+            { bg: '#ffe4e6', color: '#9f1239', border: '#fecdd3', icon: 'fa-rocket' },       // Rose
+            { bg: '#ede9fe', color: '#5b21b6', border: '#ddd6fe', icon: 'fa-layer-group' },  // Violet
+            { bg: '#cffaff', color: '#155e75', border: '#a5f3fc', icon: 'fa-cube' },         // Cyan
+            { bg: '#fce7f3', color: '#9d174d', border: '#fbcfe8', icon: 'fa-chart-pie' },    // Pink
+            { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe', icon: 'fa-code' },         // Blue
+        ];
+        if (!projName || projName.toLowerCase().includes('general')) {
+            return palettes[0];
+        }
+        let hash = 0;
+        for (let i = 0; i < projName.length; i++) {
+            hash = projName.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const idx = 1 + (Math.abs(hash) % (palettes.length - 1));
+        return palettes[idx];
+    }
+
     function renderTasks(empId, projId, tasks) {
         const hasProj = (projId !== undefined && projId !== null);
         const listId = hasProj ? `task-list-${empId}-${projId}` : `task-list-${empId}`;
@@ -1630,6 +1685,7 @@ if ($run_projs) {
                 }
 
                 const projName = task.project_name ? escapeHtml(task.project_name) : 'General Task';
+                const pTheme = getProjectColorBadge(projName);
                 const safeDate = task.due_date ? task.due_date : '';
                 const taskNameStyle = isCompleted ? 'text-decoration: line-through; color: #94a3b8;' : '';
 
@@ -1662,7 +1718,7 @@ if ($run_projs) {
                         <div class="task-meta" onclick="openTaskDetail(${task.id}, ${empId})" style="cursor: pointer;" title="Click to view details">
                             ${priorityHtml}
                             ${dateBadge}
-                            <div class="task-proj-name"><i class="fa fa-building-o"></i> ${projName}</div>
+                            <div class="task-proj-name" style="background: ${pTheme.bg}; color: ${pTheme.color}; border: 1px solid ${pTheme.border};"><i class="fa ${pTheme.icon}"></i> ${projName}</div>
                             ${addedBadge}
                         </div>
                     </div>

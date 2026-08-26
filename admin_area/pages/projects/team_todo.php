@@ -813,10 +813,21 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
     <!-- Kanban Board Columns -->
     <div class="todo-board">
         <?php
+        $module_colors = [
+            ['primary' => '#4f46e5', 'border' => '#6366f1', 'bg' => '#e0e7ff', 'color' => '#3730a3', 'badge_border' => '#c7d2fe'],
+            ['primary' => '#059669', 'border' => '#10b981', 'bg' => '#d1fae5', 'color' => '#065f46', 'badge_border' => '#a7f3d0'],
+            ['primary' => '#d97706', 'border' => '#f59e0b', 'bg' => '#fef3c7', 'color' => '#92400e', 'badge_border' => '#fde68a'],
+            ['primary' => '#e11d48', 'border' => '#f43f5e', 'bg' => '#ffe4e6', 'color' => '#9f1239', 'badge_border' => '#fecdd3'],
+            ['primary' => '#7c3aed', 'border' => '#8b5cf6', 'bg' => '#ede9fe', 'color' => '#5b21b6', 'badge_border' => '#ddd6fe'],
+            ['primary' => '#0891b2', 'border' => '#06b6d4', 'bg' => '#cffaff', 'color' => '#155e75', 'badge_border' => '#a5f3fc'],
+            ['primary' => '#db2777', 'border' => '#ec4899', 'bg' => '#fce7f3', 'color' => '#9d174d', 'badge_border' => '#fbcfe8'],
+            ['primary' => '#2563eb', 'border' => '#3b82f6', 'bg' => '#dbeafe', 'color' => '#1e40af', 'badge_border' => '#bfdbfe'],
+        ];
+
         if (empty($assigned_employees)) {
             echo '<div style="text-align: center; width: 100%; padding: 50px; color: #64748b; font-weight: 600;">No employees assigned to this project.</div>';
         } else {
-            foreach ($assigned_employees as $emp_id) {
+            foreach ($assigned_employees as $emp_idx => $emp_id) {
                 $emp_id = intval($emp_id);
                 $get_emp = mysqli_query($con, "SELECT * FROM emp_list WHERE id = $emp_id");
                 $emp = mysqli_fetch_assoc($get_emp);
@@ -825,14 +836,15 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                 $emp_name = htmlspecialchars($emp['name']);
                 $emp_job = htmlspecialchars(!empty($emp['department']) ? $emp['department'] : (!empty($emp['designation']) ? $emp['designation'] : 'Employee'));
                 $emp_img = !empty($emp['employee_image']) ? 'uploads/' . htmlspecialchars($emp['employee_image']) : null;
+                $c_theme = $module_colors[$emp_idx % count($module_colors)];
         ?>
-                <div class="todo-column" data-emp-id="<?php echo $emp_id; ?>">
-                    <div class="todo-col-header">
+                <div class="todo-column" data-emp-id="<?php echo $emp_id; ?>" style="border-left: 4px solid <?php echo $c_theme['border']; ?>;">
+                    <div class="todo-col-header" style="border-left: none;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <?php if ($emp_img && file_exists('../../' . $emp_img)) { ?>
-                                <img src="<?php echo $emp_img; ?>" class="emp-avatar">
+                                <img src="<?php echo $emp_img; ?>" class="emp-avatar" style="border: 2px solid <?php echo $c_theme['border']; ?>;">
                             <?php } else { ?>
-                                <div class="emp-avatar-fallback"><?php echo strtoupper(substr($emp_name, 0, 1)); ?></div>
+                                <div class="emp-avatar-fallback" style="background: <?php echo $c_theme['bg']; ?>; color: <?php echo $c_theme['color']; ?>; border: 2px solid <?php echo $c_theme['badge_border']; ?>;"><?php echo strtoupper(substr($emp_name, 0, 1)); ?></div>
                             <?php } ?>
                             <div>
                                 <div class="emp-name"><?php echo $emp_name; ?></div>
@@ -895,7 +907,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
 
         <!-- 2-Column Split Layout (Matching Reference Photo EXACTLY) -->
         <div class="tdm-body">
-
+ 
             <!-- LEFT COLUMN (54% Width): Title, Pills & Description -->
             <div class="tdm-left">
                 <!-- Title Row: Check Circle + Large Bold Title Input -->
