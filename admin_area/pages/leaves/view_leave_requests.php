@@ -23,54 +23,65 @@ if (isset($_GET['approve']) || isset($_GET['reject'])) {
         $request_id = isset($_GET['approve']) ? (int)$_GET['approve'] : (int)$_GET['reject'];
         $new_status = isset($_GET['approve']) ? 'approved' : 'rejected';
 
-        $update = "UPDATE leave_applications SET status = '$new_status' WHERE id = '$request_id'";
-        if (mysqli_query($con, $update)) {
-            if ($new_status === 'approved') {
-                // Get leave details to update attendance
-                $get_leave = mysqli_query($con, "SELECT * FROM leave_applications WHERE id = '$request_id'");
-                $leave_row = mysqli_fetch_assoc($get_leave);
-                $emp_id = $leave_row['emp_id'];
-                $from = $leave_row['leave_from'];
-                $to = $leave_row['leave_to'];
-                $reason = $leave_row['reason'];
+        $get_leave = mysqli_query($con, "SELECT * FROM leave_applications WHERE id = '$request_id' LIMIT 1");
+        $leave_row = ($get_leave && mysqli_num_rows($get_leave) > 0) ? mysqli_fetch_assoc($get_leave) : null;
 
-                // Loop through dates and update attendance
-                $start_date = new DateTime($from);
-                $end_date = new DateTime($to);
-                $interval = new DateInterval('P1D');
-                $period = new DatePeriod($start_date, $interval, $end_date->modify('+1 day'));
+        if ($leave_row) {
+            $emp_id = intval($leave_row['emp_id']);
+            $from   = $leave_row['leave_from'];
+            $to     = $leave_row['leave_to'];
+            $reason = mysqli_real_escape_string($con, $leave_row['reason'] ?? '');
 
-                foreach ($period as $date) {
-                    $current_date = $date->format('Y-m-d');
-                    // Check if record exists
-                    $check = mysqli_query($con, "SELECT id, check_in_time FROM attendance WHERE emp_id = '$emp_id' AND attendance_date = '$current_date'");
-                    if (mysqli_num_rows($check) > 0) {
-                        $existing_att = mysqli_fetch_assoc($check);
-                        // If employee has already checked in on this day, they are on duty — do NOT override with leave
-                        if (!empty($existing_att['check_in_time'])) {
-                            continue; // Skip: employee is/was present on this day
+            $update = "UPDATE leave_applications SET status = '$new_status' WHERE id = '$request_id'";
+            if (mysqli_query($con, $update)) {
+                if ($new_status === 'approved') {
+                    // Loop through dates and update attendance
+                    $start_date = new DateTime($from);
+                    $end_date = new DateTime($to);
+                    $interval = new DateInterval('P1D');
+                    $period = new DatePeriod($start_date, $interval, $end_date->modify('+1 day'));
+
+                    foreach ($period as $date) {
+                        $current_date = $date->format('Y-m-d');
+                        // Check if record exists
+                        $check = mysqli_query($con, "SELECT id, check_in_time FROM attendance WHERE emp_id = '$emp_id' AND attendance_date = '$current_date'");
+                        if (mysqli_num_rows($check) > 0) {
+                            $existing_att = mysqli_fetch_assoc($check);
+                            if (!empty($existing_att['check_in_time'])) {
+                                continue; // Skip: employee is/was present on this day
+                            }
+                            mysqli_query($con, "UPDATE attendance SET status = 'leave', remarks = 'Leave: $reason' WHERE emp_id = '$emp_id' AND attendance_date = '$current_date'");
+                        } else {
+                            mysqli_query($con, "INSERT INTO attendance (emp_id, attendance_date, status, remarks) VALUES ('$emp_id', '$current_date', 'leave', 'Leave: $reason')");
                         }
-                        mysqli_query($con, "UPDATE attendance SET status = 'leave', remarks = 'Leave: $reason' WHERE emp_id = '$emp_id' AND attendance_date = '$current_date'");
-                    } else {
-                        // Only insert a leave record for future dates or dates with no activity
-                        mysqli_query($con, "INSERT INTO attendance (emp_id, attendance_date, status, remarks) VALUES ('$emp_id', '$current_date', 'leave', 'Leave: $reason')");
+                    }
+                } else {
+                    // If rejected, remove any leave attendance records for this period
+                    $start_date = new DateTime($from);
+                    $end_date = new DateTime($to);
+                    $interval = new DateInterval('P1D');
+                    $period = new DatePeriod($start_date, $interval, $end_date->modify('+1 day'));
+
+                    foreach ($period as $date) {
+                        $current_date = $date->format('Y-m-d');
+                        mysqli_query($con, "DELETE FROM attendance WHERE emp_id = '$emp_id' AND attendance_date = '$current_date' AND status = 'leave' AND (check_in_time IS NULL OR check_in_time = '')");
                     }
                 }
-            }
 
-            // Send notification to employee
-            if (file_exists(__DIR__ . '/../../includes/notification_helper.php')) {
-                include_once(__DIR__ . '/../../includes/notification_helper.php');
-                if (function_exists('addSystemNotification')) {
-                    $notif_title = "Leave Request " . ucfirst($new_status);
-                    $notif_msg = "Your leave request (" . date('d M Y', strtotime($from)) . " to " . date('d M Y', strtotime($to)) . ") has been " . $new_status . ".";
-                    $notif_url = "index.php?leave_application";
-                    $notif_type = ($new_status === 'approved' ? 'success' : 'danger');
-                    addSystemNotification('employee', intval($emp_id), $notif_title, $notif_msg, $notif_url, $notif_type);
+                // Send notification to employee
+                if ($emp_id > 0 && !empty($from) && !empty($to) && file_exists(__DIR__ . '/../../includes/notification_helper.php')) {
+                    include_once(__DIR__ . '/../../includes/notification_helper.php');
+                    if (function_exists('addSystemNotification')) {
+                        $notif_title = "Leave Request " . ucfirst($new_status);
+                        $notif_msg = "Your leave request (" . date('d M Y', strtotime($from)) . " to " . date('d M Y', strtotime($to)) . ") has been " . $new_status . ".";
+                        $notif_url = "index.php?leave_application";
+                        $notif_type = ($new_status === 'approved' ? 'success' : 'danger');
+                        addSystemNotification('employee', intval($emp_id), $notif_title, $notif_msg, $notif_url, $notif_type);
+                    }
                 }
-            }
 
-            $message = "Leave request " . ($new_status === 'approved' ? "approved" : "rejected") . " successfully!";
+                $message = "Leave request " . ($new_status === 'approved' ? "approved" : "rejected") . " successfully!";
+            }
         }
     }
 }

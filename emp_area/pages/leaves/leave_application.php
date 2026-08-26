@@ -20,44 +20,103 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_leave'])) {
     $leave_from = mysqli_real_escape_string($con, $_POST['leave_from']);
     $leave_to = mysqli_real_escape_string($con, $_POST['leave_to']);
     $reason = mysqli_real_escape_string($con, $_POST['reason']);
+    $leave_type_id = isset($_POST['leave_type_id']) ? intval($_POST['leave_type_id']) : -1;
 
     if (empty($leave_from)) $errorFields[] = 'leave_from';
     if (empty($leave_to)) $errorFields[] = 'leave_to';
     if (empty($reason)) $errorFields[] = 'reason';
+    if ($leave_type_id < 0) $errorFields[] = 'leave_type_id';
 
     if (empty($errorFields)) {
-        $leave_type_id = intval($_POST['leave_type_id']);
-        $insert = "INSERT INTO leave_applications (emp_id, leave_type_id, leave_from, leave_to, reason, status) VALUES ('$emp_id', '$leave_type_id', '$leave_from', '$leave_to', '$reason', 'pending')";
-        if (mysqli_query($con, $insert)) {
-            $_SESSION['leave_success'] = "Leave application submitted successfully!";
+        $from_ts = strtotime($leave_from);
+        $to_ts   = strtotime($leave_to);
 
-            // Fetch leave type name for notification
-            $leave_type_name = "Extra Leaves";
-            if ($leave_type_id > 0) {
-                $lt_name_q = mysqli_query($con, "SELECT leave_name FROM leave_types WHERE id = '$leave_type_id' LIMIT 1");
-                if ($lt_name_q && $ltr = mysqli_fetch_assoc($lt_name_q)) {
-                    $leave_type_name = $ltr['leave_name'];
-                }
-            }
-
-            // Send notification to admins
-            if (file_exists(__DIR__ . '/../../../admin_area/includes/notification_helper.php')) {
-                include_once(__DIR__ . '/../../../admin_area/includes/notification_helper.php');
-                if (function_exists('notifyAllAdmins')) {
-                    $notif_title = "New Leave Request: " . $emp_name;
-                    $notif_msg = $emp_name . " applied for " . $leave_type_name . " (" . date('d M Y', strtotime($leave_from)) . " to " . date('d M Y', strtotime($leave_to)) . "). Reason: " . $reason;
-                    $notif_url = "index.php?view_leave_requests";
-                    notifyAllAdmins($notif_title, $notif_msg, $notif_url, 'warning');
-                }
-            }
+        // 1. Date Range Order Check
+        if ($to_ts < $from_ts) {
+            $_SESSION['leave_error'] = "Error: 'To Date' cannot be earlier than 'From Date'.";
         } else {
-            $_SESSION['leave_error'] = "Error: " . mysqli_error($con);
+            $requested_days = (int)(($to_ts - $from_ts) / 86400) + 1;
+
+            // 2. Check Overlapping Pending or Approved Leaves
+            $overlap_q = mysqli_query($con, "SELECT id FROM leave_applications WHERE emp_id = '$emp_id' AND status IN ('approved', 'pending') AND (leave_from <= '$leave_to' AND leave_to >= '$leave_from') LIMIT 1");
+            if ($overlap_q && mysqli_num_rows($overlap_q) > 0) {
+                $_SESSION['leave_error'] = "Error: You already have a pending or approved leave application for dates overlapping with this period.";
+            } else {
+                // 3. Calculate Remaining Leaves for Selected Type
+                $remaining_leaves = 0;
+                $leave_type_name  = "Extra Leaves";
+
+                if ($leave_type_id == 0) {
+                    // Extra Leaves
+                    $leave_type_name = "Extra Leaves";
+                    $extra_assigned = 0;
+                    $chk_ex = mysqli_query($con, "SELECT extra_leaves FROM emp_list WHERE id = '$emp_id' LIMIT 1");
+                    if ($chk_ex && $ex_r = mysqli_fetch_assoc($chk_ex)) {
+                        $extra_assigned = intval($ex_r['extra_leaves'] ?? 0);
+                    }
+                    $ex_used = 0;
+                    $ex_q = mysqli_query($con, "SELECT leave_from, leave_to FROM leave_applications WHERE emp_id = '$emp_id' AND (leave_type_id = 0 OR leave_type_id IS NULL) AND status IN ('approved', 'pending')");
+                    if ($ex_q) {
+                        while ($ex_r = mysqli_fetch_assoc($ex_q)) {
+                            $ef = strtotime($ex_r['leave_from']);
+                            $et = strtotime($ex_r['leave_to']);
+                            if ($ef && $et && $et >= $ef) {
+                                $ex_used += (int)(($et - $ef) / 86400) + 1;
+                            }
+                        }
+                    }
+                    $remaining_leaves = max(0, $extra_assigned - $ex_used);
+                } else {
+                    // Regular Leave Type
+                    $lt_q = mysqli_query($con, "SELECT leave_name, num_of_leave FROM leave_types WHERE id = '$leave_type_id' AND deleted_at IS NULL LIMIT 1");
+                    if ($lt_q && $lt_r = mysqli_fetch_assoc($lt_q)) {
+                        $leave_type_name = $lt_r['leave_name'];
+                        $allowed = intval($lt_r['num_of_leave']);
+                        $type_used = 0;
+                        $t_q = mysqli_query($con, "SELECT leave_from, leave_to FROM leave_applications WHERE emp_id = '$emp_id' AND leave_type_id = '$leave_type_id' AND status IN ('approved', 'pending')");
+                        if ($t_q) {
+                            while ($t_r = mysqli_fetch_assoc($t_q)) {
+                                $tf = strtotime($t_r['leave_from']);
+                                $tt = strtotime($t_r['leave_to']);
+                                if ($tf && $tt && $tt >= $tf) {
+                                    $type_used += (int)(($tt - $tf) / 86400) + 1;
+                                }
+                            }
+                        }
+                        $remaining_leaves = max(0, $allowed - $type_used);
+                    }
+                }
+
+                // 4. Validate Requested Days vs Remaining Quota
+                if ($requested_days > $remaining_leaves) {
+                    $_SESSION['leave_error'] = "Error: You applied for $requested_days day(s) of $leave_type_name, but you only have $remaining_leaves day(s) remaining for $leave_type_name.";
+                } else {
+                    // Insert Leave Application
+                    $insert = "INSERT INTO leave_applications (emp_id, leave_type_id, leave_from, leave_to, reason, status) VALUES ('$emp_id', '$leave_type_id', '$leave_from', '$leave_to', '$reason', 'pending')";
+                    if (mysqli_query($con, $insert)) {
+                        $_SESSION['leave_success'] = "Leave application submitted successfully!";
+
+                        // Send notification to admins
+                        if (file_exists(__DIR__ . '/../../../admin_area/includes/notification_helper.php')) {
+                            include_once(__DIR__ . '/../../../admin_area/includes/notification_helper.php');
+                            if (function_exists('notifyAllAdmins')) {
+                                $notif_title = "New Leave Request: " . $emp_name;
+                                $notif_msg = $emp_name . " applied for " . $leave_type_name . " (" . date('d M Y', strtotime($leave_from)) . " to " . date('d M Y', strtotime($leave_to)) . ", " . $requested_days . " days). Reason: " . $reason;
+                                $notif_url = "index.php?view_leave_requests";
+                                notifyAllAdmins($notif_title, $notif_msg, $notif_url, 'warning');
+                            }
+                        }
+                    } else {
+                        $_SESSION['leave_error'] = "Error: " . mysqli_error($con);
+                    }
+                }
+            }
         }
     } else {
         $_SESSION['leave_error'] = "Please fill in all required fields.";
     }
 
-    // Redirect to prevent form resubmission using JavaScript since HTML might already be sent
+    // Redirect to prevent form resubmission using JavaScript
     $redirect_url = isset($_GET['leave_application']) ? 'index.php?leave_application' : $_SERVER['PHP_SELF'];
     echo "<script>window.open('$redirect_url','_self');</script>";
     exit();
@@ -69,7 +128,7 @@ if (isset($_SESSION['leave_success'])) {
     unset($_SESSION['leave_success']);
 }
 if (isset($_SESSION['leave_error'])) {
-    $successMessage = $_SESSION['leave_error']; // Reusing the same variable for display logic below
+    $successMessage = $_SESSION['leave_error'];
     unset($_SESSION['leave_error']);
 }
 
@@ -139,7 +198,6 @@ $result = mysqli_query($con, $query);
             <div class="stats-scroll-wrapper" style="margin-bottom: 30px; position: relative;">
                 <div class="stats-scroll-container" style="display: flex; gap: 15px; overflow-x: auto; padding: 5px 5px 15px 5px; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none;">
                     <style>
-                        /* Hide scrollbar for a clean look but keep scrolling functional */
                         .stats-scroll-container::-webkit-scrollbar {
                             display: none;
                         }
@@ -153,10 +211,22 @@ $result = mysqli_query($con, $query);
                         $extra_leaves = intval($extra_row['extra_leaves'] ?? 0);
                     }
 
+                    // Calculate used Extra Leaves (approved + pending)
+                    $extra_used = 0;
+                    $ex_apps_q = mysqli_query($con, "SELECT leave_from, leave_to FROM leave_applications WHERE emp_id = '$emp_id' AND (leave_type_id = 0 OR leave_type_id IS NULL) AND status IN ('approved', 'pending')");
+                    if ($ex_apps_q) {
+                        while ($ex_app = mysqli_fetch_assoc($ex_apps_q)) {
+                            $ef = strtotime($ex_app['leave_from']);
+                            $et = strtotime($ex_app['leave_to']);
+                            if ($ef && $et && $et >= $ef) {
+                                $extra_used += (int)(($et - $ef) / 86400) + 1;
+                            }
+                        }
+                    }
+                    $extra_remaining = max(0, $extra_leaves - $extra_used);
+
                     // Calculate Overall Totals
                     $total_allowed = 0;
-                    $total_used = 0;
-
                     $total_allowed_q = mysqli_query($con, "SELECT SUM(num_of_leave) as total FROM leave_types WHERE deleted_at IS NULL");
                     if ($total_allowed_q) {
                         $total_allowed = (mysqli_fetch_assoc($total_allowed_q)['total'] ?: 0) + $extra_leaves;
@@ -164,22 +234,22 @@ $result = mysqli_query($con, $query);
                         $total_allowed = $extra_leaves;
                     }
 
-                    // Count actual leave days from attendance (not raw date range),
-                    // so days the employee worked within a leave period are not deducted.
-                    $apps_q = mysqli_query($con, "SELECT leave_from, leave_to FROM leave_applications WHERE emp_id = '$emp_id' AND status = 'approved'");
+                    // Total used days across all leave types (approved + pending)
                     $total_used = 0;
-                    if ($apps_q) {
-                        while ($app = mysqli_fetch_assoc($apps_q)) {
-                            $f = mysqli_real_escape_string($con, $app['leave_from']);
-                            $t = mysqli_real_escape_string($con, $app['leave_to']);
-                            $cnt_q = mysqli_query($con, "SELECT COUNT(*) AS cnt FROM attendance WHERE emp_id = '$emp_id' AND attendance_date BETWEEN '$f' AND '$t' AND status = 'leave'");
-                            if ($cnt_q) $total_used += (int)mysqli_fetch_assoc($cnt_q)['cnt'];
+                    $all_apps_q = mysqli_query($con, "SELECT leave_from, leave_to FROM leave_applications WHERE emp_id = '$emp_id' AND status IN ('approved', 'pending')");
+                    if ($all_apps_q) {
+                        while ($app = mysqli_fetch_assoc($all_apps_q)) {
+                            $af = strtotime($app['leave_from']);
+                            $at = strtotime($app['leave_to']);
+                            if ($af && $at && $at >= $af) {
+                                $total_used += (int)(($at - $af) / 86400) + 1;
+                            }
                         }
                     }
                     $total_remaining = max(0, $total_allowed - $total_used);
                     ?>
 
-                    <!-- 1. TOTAL LEAVE BOX (DEFAULT) -->
+                    <!-- 1. TOTAL LEAVE BOX -->
                     <div class="premium-stat-card" style="border-left: 4px solid #1e293b; min-width: 180px; flex-shrink: 0; background: #fff; border-radius: 20px; box-shadow: 0 8px 30px -5px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 15px; padding: 15px 20px; border: 1px solid #f1f5f9;">
                         <div style="flex: 1;">
                             <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Total Leave Summary</div>
@@ -194,7 +264,7 @@ $result = mysqli_query($con, $query);
                     </div>
 
                     <?php
-                    $lt_sum = mysqli_query($con, "SELECT * FROM leave_types WHERE deleted_at IS NULL");
+                    $lt_sum = mysqli_query($con, "SELECT * FROM leave_types WHERE deleted_at IS NULL ORDER BY leave_name ASC");
                     $colors = ['#6366f1', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
                     $bg_colors = ['rgba(99, 102, 241, 0.08)', 'rgba(16, 185, 129, 0.08)', 'rgba(59, 130, 246, 0.08)', 'rgba(245, 158, 11, 0.08)', 'rgba(239, 68, 68, 0.08)'];
                     $icons = ['fa-calendar-o', 'fa-heartbeat', 'fa-umbrella', 'fa-plane', 'fa-medkit'];
@@ -208,27 +278,27 @@ $result = mysqli_query($con, $query);
                             $icon = $icons[$c_idx % count($icons)];
                             $c_idx++;
 
-                            // Count actual leave days from attendance for this leave type
                             $used = 0;
-                            $type_apps_q = mysqli_query($con, "SELECT leave_from, leave_to FROM leave_applications WHERE emp_id = '$emp_id' AND leave_type_id = '$lt_id' AND status = 'approved'");
+                            $type_apps_q = mysqli_query($con, "SELECT leave_from, leave_to FROM leave_applications WHERE emp_id = '$emp_id' AND leave_type_id = '$lt_id' AND status IN ('approved', 'pending')");
                             if ($type_apps_q) {
                                 while ($tapp = mysqli_fetch_assoc($type_apps_q)) {
-                                    $tf = mysqli_real_escape_string($con, $tapp['leave_from']);
-                                    $tt = mysqli_real_escape_string($con, $tapp['leave_to']);
-                                    $tcnt_q = mysqli_query($con, "SELECT COUNT(*) AS cnt FROM attendance WHERE emp_id = '$emp_id' AND attendance_date BETWEEN '$tf' AND '$tt' AND status = 'leave'");
-                                    if ($tcnt_q) $used += (int)mysqli_fetch_assoc($tcnt_q)['cnt'];
+                                    $tf = strtotime($tapp['leave_from']);
+                                    $tt = strtotime($tapp['leave_to']);
+                                    if ($tf && $tt && $tt >= $tf) {
+                                        $used += (int)(($tt - $tf) / 86400) + 1;
+                                    }
                                 }
                             }
-                            $total = $lt['num_of_leave'];
-                            $remaining = $total - $used;
+                            $total_lt = intval($lt['num_of_leave']);
+                            $remaining_lt = max(0, $total_lt - $used);
                     ?>
                             <div class="premium-stat-card" style="border-left: 3.5px solid <?php echo $color; ?>; min-width: 170px; flex-shrink: 0; background: #fff; border-radius: 18px; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 12px; padding: 12px 18px; border: 1px solid #f8fafc;">
                                 <div style="flex: 1;">
                                     <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px;">
-                                        <?php echo htmlspecialchars($lt['leave_name']); ?> <span style="opacity: 0.5; font-size: 8px;">(<?php echo $total; ?>)</span>
+                                        <?php echo htmlspecialchars($lt['leave_name']); ?> <span style="opacity: 0.5; font-size: 8px;">(<?php echo $total_lt; ?>)</span>
                                     </div>
                                     <div style="display: flex; align-items: baseline; gap: 3px;">
-                                        <span style="font-size: 22px; font-weight: 900; color: #0f172a; line-height: 1;"><?php echo $remaining; ?></span>
+                                        <span style="font-size: 22px; font-weight: 900; color: #0f172a; line-height: 1;"><?php echo $remaining_lt; ?></span>
                                         <span style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Left</span>
                                     </div>
                                 </div>
@@ -248,7 +318,7 @@ $result = mysqli_query($con, $query);
                                     Extra Leaves <span style="opacity: 0.7; font-size: 8px;">(+<?php echo $extra_leaves; ?>)</span>
                                 </div>
                                 <div style="display: flex; align-items: baseline; gap: 3px;">
-                                    <span style="font-size: 22px; font-weight: 900; color: #7f1d1d; line-height: 1;"><?php echo $extra_leaves; ?></span>
+                                    <span style="font-size: 22px; font-weight: 900; color: #7f1d1d; line-height: 1;"><?php echo $extra_remaining; ?></span>
                                     <span style="font-size: 10px; font-weight: 700; color: #991b1b; text-transform: uppercase;">Left</span>
                                 </div>
                             </div>
@@ -259,8 +329,6 @@ $result = mysqli_query($con, $query);
                     <?php endif; ?>
                 </div>
             </div>
-
-
 
             <?php if ($successMessage) : ?>
                 <div class="row">
@@ -275,19 +343,6 @@ $result = mysqli_query($con, $query);
 
             <div class="row">
                 <div class="col-lg-12">
-                    <!-- <div class="panel panel-default">
-            <div class="panel-heading">
-                <h3 class="panel-title"><i class="fa fa-paper-plane fa-fw"></i> Apply New Leave</h3>
-            </div>
-            <div class="panel-body">
-                <div style="margin-bottom: 20px; font-weight: bold; color: #555;">
-                    Employee: <?php echo htmlspecialchars($emp_name); ?> (ID: <?php echo htmlspecialchars($emp_id); ?>)
-                </div>
-                
-                 Modal trigger only, form moved to modal below
-            </div>
-        </div> -->
-
                     <!-- Apply Leave Modal -->
                     <div class="modal fade" id="applyLeaveModal" tabindex="-1" role="dialog" aria-labelledby="applyLeaveModalLabel">
                         <div class="modal-dialog" role="document">
@@ -310,15 +365,28 @@ $result = mysqli_query($con, $query);
                                         <div class="form-group" style="margin-bottom: 20px;">
                                             <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">Leave Type <span class="text-danger">*</span></label>
                                             <div class="col-md-8">
-                                                <select name="leave_type_id" class="p-input-premium" required>
-                                                    <option value="">Select Leave Type...</option>
+                                                <select name="leave_type_id" id="leave_type_id_select" class="p-input-premium" required>
+                                                    <option value="" data-remaining="0">Select Leave Type...</option>
                                                     <?php
                                                     $lt_query = mysqli_query($con, "SELECT * FROM leave_types WHERE deleted_at IS NULL ORDER BY leave_name ASC");
                                                     while ($lt = mysqli_fetch_assoc($lt_query)) {
-                                                        echo "<option value='" . $lt['id'] . "'>" . htmlspecialchars($lt['leave_name']) . " (" . $lt['num_of_leave'] . " Days/Yr)</option>";
+                                                        $lt_id = $lt['id'];
+                                                        $used_t = 0;
+                                                        $t_q = mysqli_query($con, "SELECT leave_from, leave_to FROM leave_applications WHERE emp_id = '$emp_id' AND leave_type_id = '$lt_id' AND status IN ('approved', 'pending')");
+                                                        if ($t_q) {
+                                                            while ($tr = mysqli_fetch_assoc($t_q)) {
+                                                                $tf = strtotime($tr['leave_from']);
+                                                                $tt = strtotime($tr['leave_to']);
+                                                                if ($tf && $tt && $tt >= $tf) {
+                                                                    $used_t += (int)(($tt - $tf) / 86400) + 1;
+                                                                }
+                                                            }
+                                                        }
+                                                        $rem_t = max(0, (int)$lt['num_of_leave'] - $used_t);
+                                                        echo "<option value='" . $lt['id'] . "' data-remaining='" . $rem_t . "'>" . htmlspecialchars($lt['leave_name']) . " (" . $rem_t . " Left / " . $lt['num_of_leave'] . " Days/Yr)</option>";
                                                     }
                                                     if ($extra_leaves > 0) {
-                                                        echo "<option value='0'>Extra Leaves (" . $extra_leaves . " Days/Yr)</option>";
+                                                        echo "<option value='0' data-remaining='" . $extra_remaining . "'>Extra Leaves (" . $extra_remaining . " Left / " . $extra_leaves . " Days/Yr)</option>";
                                                     }
                                                     ?>
                                                 </select>
@@ -327,13 +395,13 @@ $result = mysqli_query($con, $query);
                                         <div class="form-group" style="margin-bottom: 20px;">
                                             <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">From Date <span class="text-danger">*</span></label>
                                             <div class="col-md-8">
-                                                <input type="date" name="leave_from" class="p-input-premium" required>
+                                                <input type="date" name="leave_from" id="leave_from_input" class="p-input-premium" required>
                                             </div>
                                         </div>
                                         <div class="form-group" style="margin-bottom: 20px;">
                                             <label class="col-md-4 control-label" style="text-align: left; color: #64748b; font-weight: 600;">To Date <span class="text-danger">*</span></label>
                                             <div class="col-md-8">
-                                                <input type="date" name="leave_to" class="p-input-premium" required>
+                                                <input type="date" name="leave_to" id="leave_to_input" class="p-input-premium" required>
                                             </div>
                                         </div>
                                         <div class="form-group" style="margin-bottom: 20px;">
@@ -358,29 +426,52 @@ $result = mysqli_query($con, $query);
 
                     <script>
                         function validateLeaveForm() {
-                            var from = document.querySelector('#applyLeaveModal input[name="leave_from"]');
-                            var to = document.querySelector('#applyLeaveModal input[name="leave_to"]');
-                            var reason = document.querySelector('#applyLeaveModal textarea[name="reason"]');
-                            var valid = true;
-                            [from, to, reason].forEach(function(field) {
-                                if (!field.value) {
-                                    field.parentElement.classList.add('has-error');
-                                    valid = false;
+                            var typeSelect = document.querySelector('#applyLeaveModal select[name="leave_type_id"]');
+                            var fromInput = document.querySelector('#applyLeaveModal input[name="leave_from"]');
+                            var toInput = document.querySelector('#applyLeaveModal input[name="leave_to"]');
+                            var reasonInput = document.querySelector('#applyLeaveModal textarea[name="reason"]');
+
+                            if (!typeSelect.value) {
+                                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Please select a leave type.', 'error');
+                                else alert('Please select a leave type.');
+                                return false;
+                            }
+
+                            if (!fromInput.value || !toInput.value) {
+                                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Please select both From and To dates.', 'error');
+                                else alert('Please select both From and To dates.');
+                                return false;
+                            }
+
+                            var fromDate = new Date(fromInput.value);
+                            var toDate = new Date(toInput.value);
+
+                            if (toDate < fromDate) {
+                                if (typeof Swal !== 'undefined') Swal.fire('Error', "'To Date' cannot be earlier than 'From Date'.", 'error');
+                                else alert("'To Date' cannot be earlier than 'From Date'.");
+                                return false;
+                            }
+
+                            // Calculate total days requested (inclusive)
+                            var diffTime = Math.abs(toDate - fromDate);
+                            var requestedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+                            // Check remaining balance from select option data-remaining attribute
+                            var selectedOption = typeSelect.options[typeSelect.selectedIndex];
+                            var remaining = parseInt(selectedOption.getAttribute('data-remaining') || '0', 10);
+
+                            if (requestedDays > remaining) {
+                                var typeName = selectedOption.text.split('(')[0].trim();
+                                var msg = 'You are applying for ' + requestedDays + ' day(s) of ' + typeName + ', but you only have ' + remaining + ' day(s) remaining.';
+                                if (typeof Swal !== 'undefined') {
+                                    Swal.fire({ icon: 'error', title: 'Leave Limit Exceeded', text: msg });
                                 } else {
-                                    // Specific check for weekend dates
-                                    if (field.name === 'leave_from' || field.name === 'leave_to') {
-                                        var date = new Date(field.value);
-                                        var day = date.getDay(); // 0 is Sun, 6 is Sat
-                                        if (day === 0 || day === 6) {
-                                            Swal.fire('Notification', "Selected date is a " + (day === 0 ? "Sunday" : "Saturday", 'info') + ", which is already a holiday. Please select a working day.");
-                                            field.value = ""; // Reset the field
-                                            valid = false;
-                                        }
-                                    }
-                                    field.parentElement.classList.remove('has-error');
+                                    alert(msg);
                                 }
-                            });
-                            return valid;
+                                return false;
+                            }
+
+                            return true;
                         }
                     </script>
                 </div>
@@ -439,7 +530,7 @@ $result = mysqli_query($con, $query);
                                         <?php endwhile; ?>
                                     <?php else : ?>
                                         <tr>
-                                            <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                            <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
                                                 <i class="fa fa-folder-open-o" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
                                                 No leave requests found.
                                             </td>
