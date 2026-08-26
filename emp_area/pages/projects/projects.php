@@ -44,6 +44,12 @@ $active_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_pro
 $pending_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_projects WHERE status='Pending' AND FIND_IN_SET('$emp_id', assigned_employees) > 0"));
 $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_projects WHERE status='Completed' AND FIND_IN_SET('$emp_id', assigned_employees) > 0"));
 
+// SOP counts – ensure tables exist and get totals
+mysqli_query($con, "CREATE TABLE IF NOT EXISTS `project_sop_items` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY, `category` VARCHAR(100) NOT NULL, `item_text` TEXT NOT NULL, `sort_order` INT(11) DEFAULT 0, `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+mysqli_query($con, "CREATE TABLE IF NOT EXISTS `project_sop_checklist` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY, `project_id` INT(11) NOT NULL, `sop_item_id` INT(11) NOT NULL, `is_checked` TINYINT(1) DEFAULT 0, `checked_by` VARCHAR(255) DEFAULT NULL, `checked_at` DATETIME DEFAULT NULL, UNIQUE KEY `unique_project_sop` (`project_id`, `sop_item_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+$emp_sop_total_res = mysqli_query($con, "SELECT COUNT(*) as t FROM project_sop_items");
+$emp_sop_total = $emp_sop_total_res ? (int)mysqli_fetch_assoc($emp_sop_total_res)['t'] : 0;
+
 ?>
 
 <style>
@@ -242,6 +248,7 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                 <th style="text-align:center;">Start Date</th>
                                 <th style="text-align:center;">Deadline</th>
                                 <th style="text-align:center;">Expenses</th>
+                                <th style="text-align:center;">SOP</th>
                                 <th style="text-align:center;">FILES</th>
                                 <th style="text-align:center;">Status</th>
                                 <th style="text-align:center;">ACTION</th>
@@ -276,6 +283,24 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                             <button type="button" onclick="openExpenseModal(<?php echo $row['id']; ?>, '<?php echo addslashes($row['project_name']); ?>')"
                                                 style="font-weight: 800; color: #dd2127; font-size: 12px; cursor: pointer; background: #fff1f2; padding: 6px 14px; border-radius: 10px; border: 1px solid #fecdd3; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; box-shadow: 0 1px 3px rgba(221, 33, 39, 0.06);" title="View Project Expenses">
                                                 <span id="proj_exp_badge_<?php echo $row['id']; ?>">Expenses</span>
+                                            </button>
+                                        </td>
+                                        <!-- SOP Checklist Column -->
+                                        <?php
+                                        $emp_sop_done_res = mysqli_query($con, "SELECT COUNT(*) as d FROM project_sop_checklist WHERE project_id=" . (int)$row['id'] . " AND is_checked=1");
+                                        $emp_sop_done = $emp_sop_done_res ? (int)mysqli_fetch_assoc($emp_sop_done_res)['d'] : 0;
+                                        $e_sop_color = ($emp_sop_done == $emp_sop_total && $emp_sop_total > 0) ? '#16a34a' : ($emp_sop_done > 0 ? '#7c3aed' : '#94a3b8');
+                                        $e_sop_bg    = ($emp_sop_done == $emp_sop_total && $emp_sop_total > 0) ? '#f0fdf4' : ($emp_sop_done > 0 ? '#f5f3ff' : '#f8fafc');
+                                        $e_sop_border = ($emp_sop_done == $emp_sop_total && $emp_sop_total > 0) ? '#bbf7d0' : ($emp_sop_done > 0 ? '#ede9fe' : '#e2e8f0');
+                                        ?>
+                                        <td style="text-align: center;">
+                                            <button type="button"
+                                                id="sop_badge_<?php echo $row['id']; ?>"
+                                                onclick="openSopModal(<?php echo $row['id']; ?>, '<?php echo addslashes($row['project_name']); ?>')"
+                                                style="font-weight: 800; color: <?php echo $e_sop_color; ?>; font-size: 13px; cursor: pointer; background: <?php echo $e_sop_bg; ?>; padding: 6px 14px; border-radius: 10px; border: 1px solid <?php echo $e_sop_border; ?>; display: inline-flex; align-items: center; gap: 7px; transition: 0.2s; box-shadow: 0 1px 3px rgba(124,58,237,0.07); min-width: 70px; justify-content: center;"
+                                                title="Project SOP Checklist">
+                                                <i class="fa fa-check-square-o" style="font-size: 13px;"></i>
+                                                <span><?php echo $emp_sop_done; ?>/<?php echo $emp_sop_total; ?></span>
                                             </button>
                                         </td>
                                         <td style="text-align: center;">
@@ -384,7 +409,7 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
                                 <?php endwhile; ?>
                             <?php else : ?>
                                 <tr>
-                                    <td colspan="7" style="text-align: center; padding: 60px 40px; color: #94a3b8;">
+                                    <td colspan="9" style="text-align: center; padding: 60px 40px; color: #94a3b8;">
                                         <i class="fa fa-folder-open-o" style="font-size: 42px; display: block; margin-bottom: 15px; opacity: 0.5;"></i>
                                         <h4 style="color: #64748b; font-weight: 700; margin-bottom: 5px;">No Projects Assigned</h4>
                                         <p style="font-size: 13px; font-weight: 500;">You are currently not assigned to any projects.</p>
@@ -1200,3 +1225,325 @@ $completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_
         </div>
     </div>
 </div>
+
+<!-- ===================== PROJECT SOP CHECKLIST MODAL (EMP) ===================== -->
+<div class="modal fade" id="projectSopModal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog" role="document" style="max-width: 700px; width: 96%; margin: 30px auto;">
+        <div class="modal-content" style="border-radius: 24px; border: none; overflow: hidden; box-shadow: 0 25px 60px -12px rgba(0,0,0,0.35);">
+            <div class="modal-header" style="background: #FFEAEB; color: #000; padding: 22px 28px; border: none; position: relative;">
+                <button type="button" class="btn-modal-close" data-dismiss="modal" style="z-index: 10;">
+                    <i class="fa fa-times"></i>
+                </button>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 50px; height: 50px; background: #dd2127; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; box-shadow: 0 4px 12px rgba(221, 33, 39, 0.3);">
+                            <i class="fa fa-check-square-o"></i>
+                        </div>
+                        <div>
+                            <h4 class="modal-title" style="font-weight: 800; font-size: 20px; letter-spacing: -0.5px; margin: 0; color: #0f172a;">Project SOP Checklist</h4>
+                            <p id="sop_modal_project_name" style="margin: 4px 0 0 0; font-size: 12px; color: #dd2127; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;"></p>
+                        </div>
+                    </div>
+                    <div style="margin-left: auto; margin-right: 45px; text-align: center;">
+                        <div id="sop_progress_ring_wrap" style="position: relative; width: 64px; height: 64px; margin: 0 auto;">
+                            <svg width="64" height="64" style="transform: rotate(-90deg);">
+                                <circle cx="32" cy="32" r="26" fill="none" stroke="#fecdd3" stroke-width="6" />
+                                <circle id="sop_ring_fill" cx="32" cy="32" r="26" fill="none" stroke="#dd2127" stroke-width="6"
+                                    stroke-dasharray="163.4" stroke-dashoffset="163.4"
+                                    style="transition: stroke-dashoffset 0.6s ease; stroke-linecap: round;" />
+                            </svg>
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 13px; font-weight: 900; color: #dd2127;" id="sop_pct_label">0%</div>
+                        </div>
+                        <div id="sop_counter_label" style="font-size: 11px; font-weight: 700; color: #64748b; margin-top: 4px; white-space: nowrap;">0 / 0 done</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body" style="padding: 0; background: #fff; max-height: 65vh; overflow-y: auto;">
+                <div id="sop_checklist_body" style="padding: 24px 28px;">
+                    <div style="text-align: center; padding: 50px 0; color: #94a3b8;">
+                        <i class="fa fa-spinner fa-spin" style="font-size: 28px;"></i>
+                        <p style="margin-top: 12px; font-weight: 600;">Loading checklist...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 16px 28px; background: #f8fafc; border: none;">
+                <button type="button" class="btn-premium-cancel" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .sop-section-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        margin-top: 8px;
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+    }
+
+    .sop-item-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        margin-bottom: 6px;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        transition: 0.25s;
+        cursor: pointer;
+    }
+
+    .sop-item-row:hover {
+        background: #f5f3ff;
+        border-color: #ede9fe;
+    }
+
+    .sop-item-row.sop-checked {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+    }
+
+    .sop-item-row.sop-checked .sop-item-text {
+        text-decoration: line-through;
+        color: #94a3b8;
+    }
+
+    .sop-checkbox {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        border: 2px solid #cbd5e1;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+        transition: 0.2s;
+    }
+
+    .sop-checked .sop-checkbox {
+        background: #16a34a;
+        border-color: #16a34a;
+    }
+
+    .sop-item-text {
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+        line-height: 1.5;
+        flex: 1;
+    }
+
+    .sop-checked-by {
+        font-size: 10px;
+        color: #94a3b8;
+        font-weight: 600;
+        margin-top: 2px;
+    }
+</style>
+
+<script>
+    var SOP_CAT_CONFIG_EMP = {
+        'SETUP': {
+            color: '#1d4ed8',
+            bg: '#eff6ff',
+            border: '#bfdbfe',
+            icon: 'fa-cog'
+        },
+        'EXECUTION': {
+            color: '#b45309',
+            bg: '#fff7ed',
+            border: '#fed7aa',
+            icon: 'fa-wrench'
+        },
+        'COMPLETION': {
+            color: '#065f46',
+            bg: '#ecfdf5',
+            border: '#a7f3d0',
+            icon: 'fa-flag'
+        },
+        'MARKETING': {
+            color: '#9d174d',
+            bg: '#fdf2f8',
+            border: '#f9a8d4',
+            icon: 'fa-bullhorn'
+        },
+    };
+
+    window.openSopModal = function(projectId, projectName) {
+        $('#sop_modal_project_name').text(projectName);
+        $('#sop_checklist_body').html('<div style="text-align:center;padding:50px 0;color:#94a3b8;"><i class="fa fa-spinner fa-spin" style="font-size:28px;"></i><p style="margin-top:12px;font-weight:600;">Loading checklist...</p></div>');
+        $('#projectSopModal').modal('show');
+        $.ajax({
+            url: '../admin_area/ajax/projects/ajax_get_project_sop.php',
+            method: 'GET',
+            data: {
+                project_id: projectId
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (!res.success) {
+                    $('#sop_checklist_body').html('<p style="color:red;padding:20px;">Error loading checklist.</p>');
+                    return;
+                }
+                _empRenderSop(res);
+            },
+            error: function() {
+                $('#sop_checklist_body').html('<p style="color:red;padding:20px;">Network error.</p>');
+            }
+        });
+    };
+
+    function _empUpdateProgress(done, total) {
+        var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+        var offset = 163.4 - (pct / 100) * 163.4;
+        $('#sop_ring_fill').attr('stroke-dashoffset', offset);
+        var col = (done === total && total > 0) ? '#16a34a' : '#7c3aed';
+        $('#sop_ring_fill').attr('stroke', col);
+        $('#sop_pct_label').css('color', col).text(pct + '%');
+        $('#sop_counter_label').text(done + ' / ' + total + ' done');
+    }
+
+    function _empRenderSop(res) {
+        _empUpdateProgress(res.completed, res.total);
+        var badgeEl = $('#sop_badge_' + res.project_id);
+        if (badgeEl.length) {
+            badgeEl.find('span').text(res.completed + '/' + res.total);
+            var c = (res.completed === res.total && res.total > 0) ? '#16a34a' : (res.completed > 0 ? '#7c3aed' : '#94a3b8');
+            var bg = (res.completed === res.total && res.total > 0) ? '#f0fdf4' : (res.completed > 0 ? '#f5f3ff' : '#f8fafc');
+            var br = (res.completed === res.total && res.total > 0) ? '#bbf7d0' : (res.completed > 0 ? '#ede9fe' : '#e2e8f0');
+            badgeEl.css({
+                color: c,
+                background: bg,
+                'border-color': br
+            });
+        }
+        var html = '';
+        var catOrder = ['SETUP', 'EXECUTION', 'COMPLETION', 'MARKETING'];
+        catOrder.forEach(function(cat) {
+            if (!res.categories[cat] || res.categories[cat].length === 0) return;
+            var cfg = SOP_CAT_CONFIG_EMP[cat] || {
+                color: '#475569',
+                bg: '#f8fafc',
+                border: '#e2e8f0',
+                icon: 'fa-list'
+            };
+            var done = res.categories[cat].filter(function(i) {
+                return i.is_checked;
+            }).length;
+            html += '<div class="sop-section-header" style="background:' + cfg.bg + ';border:1px solid ' + cfg.border + ';color:' + cfg.color + ';">' +
+                '<i class="fa ' + cfg.icon + '"></i><span>' + cat + '</span>' +
+                '<span style="margin-left:auto;font-size:10px;opacity:0.8;">' + done + '/' + res.categories[cat].length + '</span></div>';
+            res.categories[cat].forEach(function(item) {
+                var checked = item.is_checked ? 'sop-checked' : '';
+                var chkIcon = item.is_checked ? '<i class="fa fa-check" style="color:#fff;font-size:11px;"></i>' : '';
+                var byText = item.is_checked && item.checked_by ? '<div class="sop-checked-by"><i class="fa fa-user"></i> ' + $('<div>').text(item.checked_by).html() + '</div>' : '';
+                html += '<div class="sop-item-row ' + checked + '" data-item-id="' + item.id + '" onclick="_empToggleSop(' + res.project_id + ',' + item.id + ',this)">' +
+                    '<div class="sop-checkbox">' + chkIcon + '</div>' +
+                    '<div style="flex:1;"><div class="sop-item-text">' + $('<div>').text(item.text).html() + '</div>' + byText + '</div></div>';
+            });
+            html += '<div style="height:8px;"></div>';
+        });
+        $('#sop_checklist_body').html(html);
+    }
+
+    window._empToggleSop = function(projectId, itemId, el) {
+        var $row = $(el);
+        var isNow = !$row.hasClass('sop-checked') ? 1 : 0;
+        if (isNow) {
+            $row.addClass('sop-checked');
+            $row.find('.sop-checkbox').html('<i class="fa fa-check" style="color:#fff;font-size:11px;"></i>');
+        } else {
+            $row.removeClass('sop-checked').find('.sop-checkbox').html('');
+            $row.find('.sop-checked-by').remove();
+        }
+        $.ajax({
+            url: '../admin_area/ajax/projects/ajax_toggle_sop_item.php',
+            method: 'POST',
+            data: {
+                project_id: projectId,
+                sop_item_id: itemId,
+                is_checked: isNow,
+                portal: 'employee'
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    if (isNow && res.checked_by) {
+                        $row.find('.sop-checked-by').remove();
+                        $row.find('.flex-1, div[style*="flex:1"]').first().append(
+                            '<div class="sop-checked-by"><i class="fa fa-user"></i> ' + $('<div>').text(res.checked_by).html() + '</div>'
+                        );
+                    }
+                    _empUpdateProgress(res.completed, res.total);
+                    var $sec = $row.prevAll('.sop-section-header').first();
+                    if ($sec.length) {
+                        var $items = $sec.nextUntil('.sop-section-header').filter('.sop-item-row');
+                        $sec.find('span').last().text($items.filter('.sop-checked').length + '/' + $items.length);
+                    }
+                    var badgeEl = $('#sop_badge_' + projectId);
+                    if (badgeEl.length) {
+                        badgeEl.find('span').text(res.completed + '/' + res.total);
+                        var c = (res.completed === res.total && res.total > 0) ? '#16a34a' : (res.completed > 0 ? '#7c3aed' : '#94a3b8');
+                        var bg = (res.completed === res.total && res.total > 0) ? '#f0fdf4' : (res.completed > 0 ? '#f5f3ff' : '#f8fafc');
+                        var br = (res.completed === res.total && res.total > 0) ? '#bbf7d0' : (res.completed > 0 ? '#ede9fe' : '#e2e8f0');
+                        badgeEl.css({
+                            color: c,
+                            background: bg,
+                            'border-color': br
+                        });
+                    }
+
+                    // ── Auto-Completed: update status badge + toast ──
+                    if (res.auto_completed) {
+                        // Find the table row containing this project's SOP badge and update its status span
+                        $('tbody tr').each(function() {
+                            if ($(this).find('#sop_badge_' + projectId).length > 0) {
+                                $(this).find('td span').each(function() {
+                                    var t = $(this).text().trim().toLowerCase();
+                                    if (t === 'active' || t === 'pending' || t === 'completed') {
+                                        $(this).text('Completed').css({
+                                            'background': '#ecfdf5',
+                                            'color': '#059669',
+                                            'border': '1px solid #a7f3d0'
+                                        });
+                                    }
+                                });
+                            }
+                        });
+
+                        // Show SweetAlert celebration toast
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '🎉 SOP Complete!',
+                                html: '<b>All checklist items done!</b><br>Project has been automatically set to <b>Completed</b>.',
+                                timer: 4000,
+                                timerProgressBar: true,
+                                showConfirmButton: false,
+                                position: 'top-end',
+                                toast: true
+                            });
+                        }
+
+                        // Refresh employee notification bell
+                        if (typeof loadUserNotifications === 'function') {
+                            setTimeout(function() {
+                                loadUserNotifications();
+                            }, 800);
+                        }
+                    }
+                }
+            }
+        });
+    };
+</script>

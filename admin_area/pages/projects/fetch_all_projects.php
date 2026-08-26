@@ -109,6 +109,27 @@ if (!$run_projects) {
 }
 
 if (mysqli_num_rows($run_projects) > 0) {
+    // Ensure SOP tables exist (auto-create)
+    mysqli_query($con, "CREATE TABLE IF NOT EXISTS `project_sop_items` (
+        `id` INT(11) AUTO_INCREMENT PRIMARY KEY,
+        `category` VARCHAR(100) NOT NULL,
+        `item_text` TEXT NOT NULL,
+        `sort_order` INT(11) DEFAULT 0,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    mysqli_query($con, "CREATE TABLE IF NOT EXISTS `project_sop_checklist` (
+        `id` INT(11) AUTO_INCREMENT PRIMARY KEY,
+        `project_id` INT(11) NOT NULL,
+        `sop_item_id` INT(11) NOT NULL,
+        `is_checked` TINYINT(1) DEFAULT 0,
+        `checked_by` VARCHAR(255) DEFAULT NULL,
+        `checked_at` DATETIME DEFAULT NULL,
+        UNIQUE KEY `unique_project_sop` (`project_id`, `sop_item_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    // Get total SOP items count once
+    $sop_total_res = mysqli_query($con, "SELECT COUNT(*) as t FROM project_sop_items");
+    $sop_total = $sop_total_res ? (int)mysqli_fetch_assoc($sop_total_res)['t'] : 0;
+
     while ($p = mysqli_fetch_assoc($run_projects)) {
         $project_id = $p['id'];
         $project_date = !empty($p['project_date']) ? date('M d, Y', strtotime($p['project_date'])) : 'NA';
@@ -119,6 +140,9 @@ if (mysqli_num_rows($run_projects) > 0) {
         $currency = !empty($p['currency']) ? $p['currency'] : 'INR';
         $symbols = ['INR' => '₹', 'USD' => '$', 'EUR' => '€', 'GBP' => '£', 'AED' => 'د.إ'];
         $sym = isset($symbols[$currency]) ? $symbols[$currency] : '₹';
+        // SOP count for this project
+        $sop_done_res = mysqli_query($con, "SELECT COUNT(*) as d FROM project_sop_checklist WHERE project_id=$project_id AND is_checked=1");
+        $sop_done = $sop_done_res ? (int)mysqli_fetch_assoc($sop_done_res)['d'] : 0;
 ?>
         <tr style="transition: 0.3s;">
             <td style="text-align: center;">
@@ -216,6 +240,23 @@ if (mysqli_num_rows($run_projects) > 0) {
                     <span style="font-weight: 700; color: #94a3b8; font-size: 12px;"><i class="fa fa-lock"></i></span>
                 <?php endif; ?>
             </td>
+            <!-- SOP Checklist Column -->
+            <td style="text-align: center;">
+                <?php
+                $sop_pct = ($sop_total > 0) ? round(($sop_done / $sop_total) * 100) : 0;
+                $sop_color = ($sop_done == $sop_total && $sop_total > 0) ? '#16a34a' : (($sop_done > 0) ? '#7c3aed' : '#94a3b8');
+                $sop_bg    = ($sop_done == $sop_total && $sop_total > 0) ? '#f0fdf4' : (($sop_done > 0) ? '#f5f3ff' : '#f8fafc');
+                $sop_border= ($sop_done == $sop_total && $sop_total > 0) ? '#bbf7d0' : (($sop_done > 0) ? '#ede9fe' : '#e2e8f0');
+                ?>
+                <button type="button"
+                    id="sop_badge_<?php echo $project_id; ?>"
+                    onclick="openSopModal(<?php echo $project_id; ?>, '<?php echo addslashes($p['project_name']); ?>')"
+                    style="font-weight: 800; color: <?php echo $sop_color; ?>; font-size: 13px; cursor: pointer; background: <?php echo $sop_bg; ?>; padding: 6px 14px; border-radius: 10px; border: 1px solid <?php echo $sop_border; ?>; display: inline-flex; align-items: center; gap: 7px; transition: 0.2s; box-shadow: 0 1px 3px rgba(124,58,237,0.07); min-width: 70px; justify-content: center;"
+                    title="Project SOP Checklist">
+                    <i class="fa fa-check-square-o" style="font-size: 13px;"></i>
+                    <span><?php echo $sop_done; ?>/<?php echo $sop_total; ?></span>
+                </button>
+            </td>
             <td style="text-align: center;">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                     <button class="btn-icon-premium btn-icon-folder" onclick="viewDocs(<?php echo $project_id; ?>, 'documents')" title="Artifact Repository">
@@ -264,7 +305,7 @@ if (mysqli_num_rows($run_projects) > 0) {
             </td>
         </tr>
         <tr class="project-detail-row" style="display: none; background: #fff;">
-            <td colspan="<?php echo canAdminAccess('project_source_view') ? '9' : '8'; ?>" style="padding: 0; border: none;">
+            <td colspan="<?php echo canAdminAccess('project_source_view') ? '10' : '9'; ?>" style="padding: 0; border: none;">
                 <div style="padding: 35px 50px; border-top: 1px solid #f1f5f9; background: #fcfdfe;">
                     <div class="row">
                         <div class="col-md-7">

@@ -241,6 +241,7 @@ $run_projects = mysqli_query($con, $get_projects);
                                         <option value="low_to_high" <?php if ($c_filt == 'low_to_high') echo 'selected'; ?>>Low to High</option>
                                     </select>
                                 </th>
+                                <th style="text-align: center;">SOP</th>
                                 <th style="text-align: center;">Files</th>
                                 <th style="text-align: center;">Status</th>
                                 <th style="text-align: center;">Action</th>
@@ -249,7 +250,7 @@ $run_projects = mysqli_query($con, $get_projects);
                         <tbody id="full-projects-container">
                             <!-- Rows will be loaded via AJAX -->
                             <tr>
-                                <td colspan="8" style="padding: 100px 0; text-align: center;">
+                                <td colspan="9" style="padding: 100px 0; text-align: center;">
                                     <div class="spinner-premium" style="margin: 0 auto;"></div>
                                     <p style="margin-top: 20px; color: #64748b; font-weight: 700; font-size: 14px;">Synchronizing workspace...</p>
                                 </td>
@@ -3310,3 +3311,357 @@ $run_projects = mysqli_query($con, $get_projects);
         </div>
     </div>
 </div>
+
+<!-- ===================== PROJECT SOP CHECKLIST MODAL ===================== -->
+<div class="modal fade" id="projectSopModal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog" role="document" style="max-width: 700px; width: 96%; margin: 30px auto;">
+        <div class="modal-content" style="border-radius: 24px; border: none; overflow: hidden; box-shadow: 0 25px 60px -12px rgba(0,0,0,0.35);">
+            <!-- Header -->
+            <div class="modal-header" style="background: #FFEAEB; color: #000; padding: 22px 28px; border: none; position: relative;">
+                <button type="button" class="btn-modal-close" data-dismiss="modal" style="z-index: 10;">
+                    <i class="fa fa-times"></i>
+                </button>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 50px; height: 50px; background: #dd2127; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; box-shadow: 0 4px 12px rgba(221, 33, 39, 0.3);">
+                            <i class="fa fa-check-square-o"></i>
+                        </div>
+                        <div>
+                            <h4 class="modal-title" style="font-weight: 800; font-size: 20px; letter-spacing: -0.5px; margin: 0; color: #0f172a;">Project SOP Checklist</h4>
+                            <p id="sop_modal_project_name" style="margin: 4px 0 0 0; font-size: 12px; color: #dd2127; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;"></p>
+                        </div>
+                    </div>
+                    <div style="margin-left: auto; margin-right: 45px; text-align: center;">
+                        <div id="sop_progress_ring_wrap" style="position: relative; width: 64px; height: 64px; margin: 0 auto;">
+                            <svg width="64" height="64" style="transform: rotate(-90deg);">
+                                <circle cx="32" cy="32" r="26" fill="none" stroke="#fecdd3" stroke-width="6" />
+                                <circle id="sop_ring_fill" cx="32" cy="32" r="26" fill="none" stroke="#dd2127" stroke-width="6"
+                                    stroke-dasharray="163.4" stroke-dashoffset="163.4"
+                                    style="transition: stroke-dashoffset 0.6s ease; stroke-linecap: round;" />
+                            </svg>
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 13px; font-weight: 900; color: #dd2127;" id="sop_pct_label">0%</div>
+                        </div>
+                        <div id="sop_counter_label" style="font-size: 11px; font-weight: 700; color: #64748b; margin-top: 4px; white-space: nowrap;">0 / 0 done</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Body -->
+            <div class="modal-body" style="padding: 0; background: #fff; max-height: 65vh; overflow-y: auto;">
+                <div id="sop_checklist_body" style="padding: 24px 28px;">
+                    <div style="text-align: center; padding: 50px 0; color: #94a3b8;">
+                        <i class="fa fa-spinner fa-spin" style="font-size: 28px;"></i>
+                        <p style="margin-top: 12px; font-weight: 600;">Loading checklist...</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Footer -->
+            <div class="modal-footer" style="padding: 16px 28px; background: #f8fafc; border-top: 1px solid #f1f5f9; border: none;">
+                <button type="button" class="btn-premium-cancel" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* SOP Checklist styles */
+    .sop-section-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        margin-top: 8px;
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+    }
+
+    .sop-item-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        margin-bottom: 6px;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        transition: 0.25s;
+        cursor: pointer;
+    }
+
+    .sop-item-row:hover {
+        background: #f5f3ff;
+        border-color: #ede9fe;
+    }
+
+    .sop-item-row.sop-checked {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+    }
+
+    .sop-item-row.sop-checked .sop-item-text {
+        text-decoration: line-through;
+        color: #94a3b8;
+    }
+
+    .sop-checkbox {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        border: 2px solid #cbd5e1;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+        transition: 0.2s;
+    }
+
+    .sop-checked .sop-checkbox {
+        background: #16a34a;
+        border-color: #16a34a;
+    }
+
+    .sop-item-text {
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+        line-height: 1.5;
+        flex: 1;
+    }
+
+    .sop-checked-by {
+        font-size: 10px;
+        color: #94a3b8;
+        font-weight: 600;
+        margin-top: 2px;
+    }
+</style>
+
+<script>
+    // ── SOP Modal ──────────────────────────────────────────────────────────────
+    let _sopCurrentProjectId = null;
+
+    window.openSopModal = function(projectId, projectName) {
+        _sopCurrentProjectId = projectId;
+        $('#sop_modal_project_name').text(projectName);
+        $('#sop_checklist_body').html(
+            '<div style="text-align:center;padding:50px 0;color:#94a3b8;"><i class="fa fa-spinner fa-spin" style="font-size:28px;"></i><p style="margin-top:12px;font-weight:600;">Loading checklist...</p></div>'
+        );
+        $('#projectSopModal').modal('show');
+        _loadSopChecklist(projectId);
+    };
+
+    function _loadSopChecklist(projectId) {
+        $.ajax({
+            url: 'ajax/projects/ajax_get_project_sop.php',
+            method: 'GET',
+            data: {
+                project_id: projectId
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (!res.success) {
+                    $('#sop_checklist_body').html('<p style="color:red;padding:20px;">Error loading checklist.</p>');
+                    return;
+                }
+                _renderSopChecklist(res);
+            },
+            error: function() {
+                $('#sop_checklist_body').html('<p style="color:red;padding:20px;">Network error.</p>');
+            }
+        });
+    }
+
+    var SOP_CAT_CONFIG = {
+        'SETUP': {
+            color: '#1d4ed8',
+            bg: '#eff6ff',
+            border: '#bfdbfe',
+            icon: 'fa-cog'
+        },
+        'EXECUTION': {
+            color: '#b45309',
+            bg: '#fff7ed',
+            border: '#fed7aa',
+            icon: 'fa-wrench'
+        },
+        'COMPLETION': {
+            color: '#065f46',
+            bg: '#ecfdf5',
+            border: '#a7f3d0',
+            icon: 'fa-flag'
+        },
+        'MARKETING': {
+            color: '#9d174d',
+            bg: '#fdf2f8',
+            border: '#f9a8d4',
+            icon: 'fa-bullhorn'
+        },
+    };
+
+    function _renderSopChecklist(res) {
+        _updateSopProgress(res.completed, res.total);
+        // Update badge in table
+        var badgeEl = $('#sop_badge_' + res.project_id);
+        if (badgeEl.length) {
+            badgeEl.find('span').text(res.completed + '/' + res.total);
+            var c = (res.completed === res.total && res.total > 0) ? '#16a34a' : (res.completed > 0 ? '#7c3aed' : '#94a3b8');
+            var bg = (res.completed === res.total && res.total > 0) ? '#f0fdf4' : (res.completed > 0 ? '#f5f3ff' : '#f8fafc');
+            var br = (res.completed === res.total && res.total > 0) ? '#bbf7d0' : (res.completed > 0 ? '#ede9fe' : '#e2e8f0');
+            badgeEl.css({
+                color: c,
+                background: bg,
+                'border-color': br
+            });
+        }
+
+        var html = '';
+        var catOrder = ['SETUP', 'EXECUTION', 'COMPLETION', 'MARKETING'];
+        catOrder.forEach(function(cat) {
+            if (!res.categories[cat] || res.categories[cat].length === 0) return;
+            var cfg = SOP_CAT_CONFIG[cat] || {
+                color: '#475569',
+                bg: '#f8fafc',
+                border: '#e2e8f0',
+                icon: 'fa-list'
+            };
+            var done = res.categories[cat].filter(function(i) {
+                return i.is_checked;
+            }).length;
+            html += '<div class="sop-section-header" style="background:' + cfg.bg + ';border:1px solid ' + cfg.border + ';color:' + cfg.color + ';">' +
+                '<i class="fa ' + cfg.icon + '"></i><span>' + cat + '</span>' +
+                '<span style="margin-left:auto;font-size:10px;opacity:0.8;">' + done + '/' + res.categories[cat].length + '</span>' +
+                '</div>';
+            res.categories[cat].forEach(function(item) {
+                var checked = item.is_checked ? 'sop-checked' : '';
+                var checkIcon = item.is_checked ? '<i class="fa fa-check" style="color:#fff;font-size:11px;"></i>' : '';
+                var byText = item.is_checked && item.checked_by ? '<div class="sop-checked-by"><i class="fa fa-user"></i> ' + $('<div>').text(item.checked_by).html() + '</div>' : '';
+                html += '<div class="sop-item-row ' + checked + '" data-item-id="' + item.id + '" onclick="_toggleSopItem(' + res.project_id + ',' + item.id + ',this)">' +
+                    '<div class="sop-checkbox">' + checkIcon + '</div>' +
+                    '<div class="flex-1"><div class="sop-item-text">' + $('<div>').text(item.text).html() + '</div>' + byText + '</div>' +
+                    '</div>';
+            });
+            html += '<div style="height:8px;"></div>';
+        });
+        $('#sop_checklist_body').html(html);
+    }
+
+    function _updateSopProgress(done, total) {
+        var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+        var circumference = 163.4;
+        var offset = circumference - (pct / 100) * circumference;
+        $('#sop_ring_fill').attr('stroke-dashoffset', offset);
+        if (done === total && total > 0) {
+            $('#sop_ring_fill').attr('stroke', '#16a34a');
+            $('#sop_pct_label').css('color', '#16a34a');
+        } else {
+            $('#sop_ring_fill').attr('stroke', '#7c3aed');
+            $('#sop_pct_label').css('color', '#7c3aed');
+        }
+        $('#sop_pct_label').text(pct + '%');
+        $('#sop_counter_label').text(done + ' / ' + total + ' done');
+    }
+
+    window._toggleSopItem = function(projectId, itemId, el) {
+        var $row = $(el);
+        var isNowChecked = !$row.hasClass('sop-checked') ? 1 : 0;
+
+        // Optimistic UI
+        if (isNowChecked) {
+            $row.addClass('sop-checked');
+            $row.find('.sop-checkbox').html('<i class="fa fa-check" style="color:#fff;font-size:11px;"></i>');
+        } else {
+            $row.removeClass('sop-checked');
+            $row.find('.sop-checkbox').html('');
+            $row.find('.sop-checked-by').remove();
+        }
+
+        $.ajax({
+            url: 'ajax/projects/ajax_toggle_sop_item.php',
+            method: 'POST',
+            data: {
+                project_id: projectId,
+                sop_item_id: itemId,
+                is_checked: isNowChecked,
+                portal: 'admin'
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    if (isNowChecked && res.checked_by) {
+                        $row.find('.sop-checked-by').remove();
+                        $row.find('.flex-1, div[style*="flex:1"]').first().append(
+                            '<div class="sop-checked-by"><i class="fa fa-user"></i> ' + $('<div>').text(res.checked_by).html() + '</div>'
+                        );
+                    }
+                    _updateSopProgress(res.completed, res.total);
+                    // update section header counts
+                    var $section = $row.prevAll('.sop-section-header').first();
+                    if ($section.length) {
+                        var $items = $section.nextUntil('.sop-section-header, .sop-divider').filter('.sop-item-row');
+                        var sectionDone = $items.filter('.sop-checked').length;
+                        var sectionTotal = $items.length;
+                        $section.find('span').last().text(sectionDone + '/' + sectionTotal);
+                    }
+                    // update table badge
+                    var badgeEl = $('#sop_badge_' + projectId);
+                    if (badgeEl.length) {
+                        badgeEl.find('span').text(res.completed + '/' + res.total);
+                        var c = (res.completed === res.total && res.total > 0) ? '#16a34a' : (res.completed > 0 ? '#7c3aed' : '#94a3b8');
+                        var bg = (res.completed === res.total && res.total > 0) ? '#f0fdf4' : (res.completed > 0 ? '#f5f3ff' : '#f8fafc');
+                        var br = (res.completed === res.total && res.total > 0) ? '#bbf7d0' : (res.completed > 0 ? '#ede9fe' : '#e2e8f0');
+                        badgeEl.css({
+                            color: c,
+                            background: bg,
+                            'border-color': br
+                        });
+                    }
+
+                    // ── Auto-Completed: update status dropdown + toast + notification bell ──
+                    if (res.auto_completed) {
+                        // Update the project-status-select in the table row
+                        var $statusSelect = $('select.project-status-select[data-project-id="' + projectId + '"]');
+                        if ($statusSelect.length) {
+                            $statusSelect.val('Completed');
+                            // Re-style the status select to Completed green
+                            $statusSelect.css({
+                                'background-color': '#eff6ff',
+                                'color': '#2563eb',
+                                'border-color': '#dbeafe'
+                            });
+                        }
+                        // Show SweetAlert toast
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '🎉 Project Completed!',
+                                html: '<b>All SOP items checked!</b><br>Project status has been automatically set to <b>Completed</b>.',
+                                timer: 4000,
+                                timerProgressBar: true,
+                                showConfirmButton: false,
+                                position: 'top-end',
+                                toast: true
+                            });
+                        }
+                        // Refresh admin notification bell
+                        if (typeof loadUserNotifications === 'function') {
+                            setTimeout(function() {
+                                loadUserNotifications();
+                            }, 800);
+                        }
+                        // Reload the projects table so status column reflects change
+                        if (typeof loadProjects === 'function') {
+                            setTimeout(function() {
+                                loadProjects();
+                            }, 1500);
+                        }
+                    }
+                }
+            }
+        });
+    };
+</script>
