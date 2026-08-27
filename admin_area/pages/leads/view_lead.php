@@ -140,6 +140,48 @@ include("leads_logic.php");
                             <th style="border:none; color: #64748b; font-size: 12px; text-transform: uppercase;">Next Follow-up</th>
                             <td style="border:none; font-weight: 700; color: #4f46e5;"><?php echo !empty($row_lead['followup_date']) ? date('d-m-Y', strtotime($row_lead['followup_date'])) : 'Not Scheduled'; ?></td>
                         </tr>
+                        <tr>
+                            <th style="border:none; color: #64748b; font-size: 12px; text-transform: uppercase;">Assigned Team</th>
+                            <td style="border:none;">
+                                <?php
+                                $v_emp_names = [];
+                                $v_emp_ids = !empty($row_lead['assigned_employees']) ? array_filter(array_map('intval', explode(',', $row_lead['assigned_employees']))) : [];
+                                if (!empty($v_emp_ids)) {
+                                    $v_emp_impl = implode(',', $v_emp_ids);
+                                    $r_emps = mysqli_query($con, "SELECT name FROM emp_list WHERE id IN ($v_emp_impl)");
+                                    if ($r_emps) {
+                                        while ($e_r = mysqli_fetch_assoc($r_emps)) {
+                                            $v_emp_names[] = htmlspecialchars($e_r['name']);
+                                        }
+                                    }
+                                }
+                                $v_adm_names = [];
+                                $v_adm_ids = !empty($row_lead['assigned_admins']) ? array_filter(array_map('intval', explode(',', $row_lead['assigned_admins']))) : [];
+                                if (!empty($v_adm_ids)) {
+                                    $v_adm_impl = implode(',', $v_adm_ids);
+                                    $r_adms = mysqli_query($con, "SELECT admin_name FROM admins WHERE admin_id IN ($v_adm_impl)");
+                                    if ($r_adms) {
+                                        while ($a_r = mysqli_fetch_assoc($r_adms)) {
+                                            $v_adm_names[] = htmlspecialchars($a_r['admin_name']);
+                                        }
+                                    }
+                                }
+
+                                if (!empty($v_emp_names) || !empty($v_adm_names)) {
+                                    echo '<div style="display:flex; flex-wrap:wrap; gap:5px;">';
+                                    foreach ($v_emp_names as $en) {
+                                        echo '<span class="label label-info" style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; border-radius:12px; padding:3px 10px; font-size:11px; font-weight:600;"><i class="fa fa-user" style="margin-right:4px;"></i>' . $en . '</span>';
+                                    }
+                                    foreach ($v_adm_names as $an) {
+                                        echo '<span class="label label-warning" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a; border-radius:12px; padding:3px 10px; font-size:11px; font-weight:600;"><i class="fa fa-user-secret" style="margin-right:4px;"></i>' . $an . '</span>';
+                                    }
+                                    echo '</div>';
+                                } else {
+                                    echo '<span style="color:#94a3b8;">Unassigned</span>';
+                                }
+                                ?>
+                            </td>
+                        </tr>
                     </table>
 
                     <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #f1f5f9;">

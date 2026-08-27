@@ -1,3 +1,87 @@
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<style>
+    .select2-container {
+        width: 100% !important;
+    }
+
+    .select2-container--default .select2-selection--single,
+    .select2-container--default .select2-selection--multiple {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        min-height: 48px !important;
+        background-color: #fff !important;
+        display: flex;
+        align-items: center;
+        padding: 0 8px;
+        transition: all 0.3s ease;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #334155 !important;
+        line-height: normal !important;
+        padding-left: 8px;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 46px !important;
+        right: 10px !important;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #eff6ff !important;
+        border: 1px solid #bfdbfe !important;
+        border-radius: 6px !important;
+        color: #1e3a8a !important;
+        padding: 4px 8px 4px 24px !important;
+        margin-top: 6px !important;
+        position: relative !important;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: #1e3a8a !important;
+        border-right: 1px solid rgba(30, 58, 138, 0.2) !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 6px !important;
+        margin: 0 !important;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+        background-color: rgba(30, 58, 138, 0.1) !important;
+        color: #ef4444 !important;
+    }
+
+    .select2-search--inline .select2-search__field {
+        margin-top: 8px !important;
+        font-family: inherit !important;
+        color: #334155 !important;
+    }
+
+    .select2-search--inline .select2-search__field:focus {
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+        background: transparent !important;
+    }
+
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--default.select2-container--focus .select2-selection--multiple,
+    .select2-container--default.select2-container--open .select2-selection--single,
+    .select2-container--default.select2-container--open .select2-selection--multiple {
+        border-color: #dd2127 !important;
+        box-shadow: 0 0 0 3px #ffeaeb !important;
+        outline: none !important;
+    }
+</style>
+
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -45,11 +129,18 @@ if (isset($_GET['edit_lead'])) {
     $c_desc = $row_lead['description'];
     $c_remark = $row_lead['remark'];
     $c_budget = $row_lead['budget'];
-    $c_currency = isset($row_lead['currency']) ? $row_lead['currency'] : 'INR';
     $c_status = $row_lead['status'];
     $c_followup = $row_lead['followup_date'];
     $c_source = explode(', ', $row_lead['lead_source']);
+    $c_assigned_employees = !empty($row_lead['assigned_employees']) ? explode(',', $row_lead['assigned_employees']) : [];
+    $c_assigned_admins = !empty($row_lead['assigned_admins']) ? explode(',', $row_lead['assigned_admins']) : [];
 }
+
+$get_emps = "SELECT id, employee_image, name FROM emp_list WHERE deleted_at IS NULL ORDER BY name ASC";
+$run_emps = mysqli_query($con, $get_emps);
+
+$get_admins = "SELECT admin_id, admin_image, admin_name FROM admins ORDER BY admin_name ASC";
+$run_admins = mysqli_query($con, $get_admins);
 
 if (isset($_POST['update_lead'])) {
     $client_name = isset($_POST['client_name']) ? mysqli_real_escape_string($con, $_POST['client_name']) : '';
@@ -68,6 +159,12 @@ if (isset($_POST['update_lead'])) {
     $lead_sources = isset($_POST['lead_source']) ? $_POST['lead_source'] : [];
     $lead_source_str = implode(', ', $lead_sources);
 
+    $assigned_employees_arr = isset($_POST['assigned_employees']) && is_array($_POST['assigned_employees']) ? $_POST['assigned_employees'] : [];
+    $assigned_employees_str = mysqli_real_escape_string($con, implode(',', $assigned_employees_arr));
+
+    $assigned_admins_arr = isset($_POST['assigned_admins']) && is_array($_POST['assigned_admins']) ? $_POST['assigned_admins'] : [];
+    $assigned_admins_str = mysqli_real_escape_string($con, implode(',', $assigned_admins_arr));
+
     $update_lead = "UPDATE leads SET 
                     client_name='$client_name', 
                     phone='$phone', 
@@ -80,10 +177,21 @@ if (isset($_POST['update_lead'])) {
                     currency='$currency', 
                     lead_source='$lead_source_str', 
                     status='$status', 
+                    assigned_employees='$assigned_employees_str',
+                    assigned_admins='$assigned_admins_str',
                     followup_date='$followup_date' 
                     WHERE id='$edit_id'";
 
     if (mysqli_query($con, $update_lead)) {
+        if (file_exists(__DIR__ . '/../../includes/notification_helper.php')) {
+            require_once __DIR__ . '/../../includes/notification_helper.php';
+            foreach ($assigned_employees_arr as $eid) {
+                $eid = intval($eid);
+                if ($eid > 0) {
+                    addSystemNotification('employee', $eid, "Lead Assignment: $client_name", "You have been assigned to lead '$client_name'.", "index.php?view_lead=$edit_id", 'lead_assigned');
+                }
+            }
+        }
         echo "<style>
             body.swal2-shown:not(.swal2-no-backdrop):not(.swal2-toast-shown) {
                 overflow: hidden !important;
@@ -283,6 +391,51 @@ if (isset($_POST['update_lead'])) {
                                     <small style="color: #94a3b8; font-size: 11px; margin-top: 5px; display: block;">Select all that apply</small>
                                 </div>
                             <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Team Assignment -->
+                <div style="margin: 40px 0 35px 0; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
+                    <h4 style="font-weight: 700; color: #3b82f6; margin: 0;"><i class="fa fa-users"></i> Team Assignment</h4>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="col-md-4 control-label" style="text-align: left; color: #475569; font-weight: 600;">Assign Employees</label>
+                            <div class="col-md-8">
+                                <select id="employeeSelect" name="assigned_employees[]" multiple class="p-input-premium" style="width: 100%;">
+                                    <?php while ($emp = mysqli_fetch_assoc($run_emps)) {
+                                        $emp_img = !empty($emp['employee_image']) ? 'uploads/' . $emp['employee_image'] : 'admin_images/default.png';
+                                        $selected = in_array((string)$emp['id'], $c_assigned_employees) ? 'selected' : '';
+                                    ?>
+                                        <option value="<?php echo $emp['id']; ?>" data-image="<?php echo $emp_img; ?>" <?php echo $selected; ?>>
+                                            <?php echo htmlspecialchars($emp['name']); ?>
+                                        </option>
+                                    <?php } ?>
+                                </select>
+                                <small style="color: #94a3b8; font-size: 11px; margin-top: 5px; display: block;">Select employees to assign to this lead.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="col-md-4 control-label" style="text-align: left; color: #475569; font-weight: 600;">Assign Admin</label>
+                            <div class="col-md-8">
+                                <select id="adminSelect" name="assigned_admins[]" multiple class="p-input-premium" style="width: 100%;">
+                                    <?php while ($adm = mysqli_fetch_assoc($run_admins)) {
+                                        $adm_img = !empty($adm['admin_image']) ? 'admin_images/' . $adm['admin_image'] : 'admin_images/default.png';
+                                        $selected = in_array((string)$adm['admin_id'], $c_assigned_admins) ? 'selected' : '';
+                                    ?>
+                                        <option value="<?php echo $adm['admin_id']; ?>" data-image="<?php echo $adm_img; ?>" <?php echo $selected; ?>>
+                                            <?php echo htmlspecialchars($adm['admin_name']); ?>
+                                        </option>
+                                    <?php } ?>
+                                </select>
+                                <small style="color: #94a3b8; font-size: 11px; margin-top: 5px; display: block;">Select admins to assign to this lead.</small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -531,4 +684,63 @@ if (isset($_POST['update_lead'])) {
             }
         }
     }
+</script>
+<script>
+    $(document).ready(function() {
+        function formatWithImage(item) {
+            if (!item.id) {
+                return item.text;
+            }
+            var image = $(item.element).data('image');
+            if (!image) image = 'admin_images/default.png';
+            var $el = $(
+                '<span style="display:flex;align-items:center;gap:10px;">' +
+                '<img src="' + image + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;flex-shrink:0;" onerror="this.src=\'admin_images/default.png\'"> ' +
+                '<span>' + item.text + '</span>' +
+                '</span>'
+            );
+            return $el;
+        }
+
+        function formatSelectionWithImage(item) {
+            if (!item.id) {
+                return item.text;
+            }
+            var image = $(item.element).data('image');
+            if (!image) image = 'admin_images/default.png';
+            var $el = $(
+                '<span style="display:flex;align-items:center;gap:6px;">' +
+                '<img src="' + image + '" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" onerror="this.src=\'admin_images/default.png\'"> ' +
+                '<span>' + item.text + '</span>' +
+                '</span>'
+            );
+            return $el;
+        }
+
+        if ($.fn.select2) {
+            $('#employeeSelect').select2({
+                placeholder: 'Select employees...',
+                allowClear: true,
+                closeOnSelect: false,
+                templateResult: formatWithImage,
+                templateSelection: formatSelectionWithImage
+            });
+
+            $('#adminSelect').select2({
+                placeholder: 'Select admins...',
+                allowClear: true,
+                closeOnSelect: false,
+                templateResult: formatWithImage,
+                templateSelection: formatSelectionWithImage
+            });
+
+            $('#employeeSelect, #adminSelect').on('select2:select', function (e) {
+                var self = this;
+                setTimeout(function() {
+                    var $search = $(self).data('select2').$container.find('.select2-search__field');
+                    $search.val('').trigger('input');
+                }, 0);
+            });
+        }
+    });
 </script>

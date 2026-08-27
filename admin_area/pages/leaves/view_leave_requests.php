@@ -66,7 +66,7 @@ if (isset($_GET['approve']) || isset($_GET['reject'])) {
                         $current_date = $date->format('Y-m-d');
                         mysqli_query($con, "DELETE FROM attendance WHERE emp_id = '$emp_id' AND attendance_date = '$current_date' AND status = 'leave' AND (check_in_time IS NULL OR check_in_time = '')");
                     }
-                }
+                }   
 
                 // Send notification to employee
                 if ($emp_id > 0 && !empty($from) && !empty($to) && file_exists(__DIR__ . '/../../includes/notification_helper.php')) {

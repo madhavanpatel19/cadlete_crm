@@ -34,10 +34,22 @@ $create_leads = "CREATE TABLE IF NOT EXISTS leads (
     currency VARCHAR(10) DEFAULT 'INR',
     lead_source VARCHAR(255),
     status ENUM('active', 'future', 'expired') DEFAULT 'active',
+    assigned_employees TEXT NULL,
+    assigned_admins TEXT NULL,
     followup_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
 mysqli_query($con, $create_leads);
+
+// Auto-add assigned_employees and assigned_admins if missing
+$check_col = mysqli_query($con, "SHOW COLUMNS FROM leads LIKE 'assigned_employees'");
+if (mysqli_num_rows($check_col) == 0) {
+    mysqli_query($con, "ALTER TABLE leads ADD COLUMN assigned_employees TEXT NULL AFTER status");
+}
+$check_col_admin = mysqli_query($con, "SHOW COLUMNS FROM leads LIKE 'assigned_admins'");
+if (mysqli_num_rows($check_col_admin) == 0) {
+    mysqli_query($con, "ALTER TABLE leads ADD COLUMN assigned_admins TEXT NULL AFTER assigned_employees");
+}
 
 $create_followups = "CREATE TABLE IF NOT EXISTS lead_followups (
     id INT(11) AUTO_INCREMENT PRIMARY KEY,
@@ -89,7 +101,25 @@ $start_from = $offset;
 $where_clause = " WHERE deleted_at IS NULL ";
 if ($status_filter) $where_clause .= " AND status='$status_filter' ";
 if ($source_filter) $where_clause .= " AND lead_source LIKE '%$source_filter%' ";
-if ($search_query) $where_clause .= " AND (client_name LIKE '%$search_query%' OR phone LIKE '%$search_query%') ";
+if ($search_query) {
+    $search_clean = trim($search_query);
+    $emp_id_matches = [];
+    $get_matching_emps = mysqli_query($con, "SELECT id FROM emp_list WHERE name LIKE '%$search_clean%'");
+    if ($get_matching_emps && mysqli_num_rows($get_matching_emps) > 0) {
+        while ($e_row = mysqli_fetch_assoc($get_matching_emps)) {
+            $emp_id_matches[] = (int)$e_row['id'];
+        }
+    }
+    $emp_where = "";
+    if (!empty($emp_id_matches)) {
+        $emp_conditions = [];
+        foreach ($emp_id_matches as $e_id) {
+            $emp_conditions[] = "FIND_IN_SET('$e_id', REPLACE(assigned_employees, ' ', '')) > 0";
+        }
+        $emp_where = " OR " . implode(" OR ", $emp_conditions);
+    }
+    $where_clause .= " AND (client_name LIKE '%$search_clean%' OR phone LIKE '%$search_clean%' OR company_name LIKE '%$search_clean%' OR project_name LIKE '%$search_clean%' $emp_where) ";
+}
 
 // Count total records with filters
 $countSql = "SELECT COUNT(*) as total FROM leads" . $where_clause;
@@ -114,6 +144,122 @@ $get_leads = "SELECT * FROM leads $where_clause $order_by LIMIT $offset, $limit"
 $run_leads = mysqli_query($con, $get_leads);
 
 ?>
+
+<style>
+    .employee-group {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .emp-avatar-item {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: -10px;
+        transition: transform 0.2s ease, z-index 0.2s ease;
+    }
+
+    .emp-avatar-item:first-child {
+        margin-left: 0;
+    }
+
+    .emp-avatar-item:hover {
+        z-index: 10;
+        transform: translateY(-2px);
+    }
+
+    .emp-avatar-item img,
+    .emp-avatar-item .emp-initial {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #fff;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .emp-avatar-item .emp-initial {
+        background: #dee2e6;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .employee-group .more {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        border: 2px solid #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        color: #475569;
+        margin-left: -10px;
+    }
+
+    .employee-group .more:hover {
+        background: #cbd5e1;
+    }
+
+    /* Fast Custom Tooltip */
+    .emp-avatar-item[data-tooltip] {
+        position: relative;
+    }
+
+    .emp-avatar-item[data-tooltip]::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        background: #dd2127;
+        color: #fff;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        z-index: 99999;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .emp-avatar-item[data-tooltip]::before {
+        content: '';
+        position: absolute;
+        bottom: calc(100% + 3px);
+        left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        border-width: 5px 5px 0 5px;
+        border-style: solid;
+        border-color: #dd2127 transparent transparent transparent;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        z-index: 99999;
+    }
+
+    .emp-avatar-item[data-tooltip]:hover::after,
+    .emp-avatar-item[data-tooltip]:hover::before {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+    }
+</style>
 
 <div class="page-wrapper premium-ui-enabled">
     <div class="page-header-premium">
@@ -276,6 +422,7 @@ $run_leads = mysqli_query($con, $get_leads);
                         <th style="width: 80px; text-align: center;">ID</th>
                         <th>Client Info</th>
                         <th>Project Type</th>
+                        <th style="text-align: center; min-width: 130px;">Assigned Emp</th>
                         <?php if (canAdminAccess('project_source_view')): ?>
                             <th style="position: relative; overflow: visible; min-width: 100px; text-align: center;">
                                 <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; font-size: 12px; color: <?php echo !empty($source_filter) ? '#1e293b' : '#64748b'; ?>; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.3s;">
@@ -349,6 +496,84 @@ $run_leads = mysqli_query($con, $get_leads);
                                     </div>
                                 </td>
                                 <td style="font-weight: 500; color: #475569;"><?php echo !empty($project_name) ? $project_name : '-'; ?></td>
+                                <td style="text-align: center;">
+                                    <div class="employee-wrap" style="display:flex; justify-content:center;">
+                                        <?php
+                                        $assigned_team = [];
+
+                                        // 1. Fetch assigned employees
+                                        $emp_ids_str = !empty($row['assigned_employees']) ? $row['assigned_employees'] : '';
+                                        if (!empty($emp_ids_str)) {
+                                            $emp_ids_arr = array_filter(array_map('intval', explode(',', $emp_ids_str)));
+                                            if (!empty($emp_ids_arr)) {
+                                                $ids_impl = implode(',', $emp_ids_arr);
+                                                $run_emps_list = mysqli_query($con, "SELECT name, employee_image FROM emp_list WHERE id IN ($ids_impl)");
+                                                if ($run_emps_list) {
+                                                    while ($e_info = mysqli_fetch_assoc($run_emps_list)) {
+                                                        $assigned_team[] = [
+                                                            'name'  => $e_info['name'],
+                                                            'image' => !empty($e_info['employee_image']) ? 'uploads/' . $e_info['employee_image'] : '',
+                                                            'type'  => 'employee'
+                                                        ];
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // 2. Fetch assigned admins
+                                        $adm_ids_str = !empty($row['assigned_admins']) ? $row['assigned_admins'] : '';
+                                        if (!empty($adm_ids_str)) {
+                                            $adm_ids_arr = array_filter(array_map('intval', explode(',', $adm_ids_str)));
+                                            if (!empty($adm_ids_arr)) {
+                                                $ids_adm_impl = implode(',', $adm_ids_arr);
+                                                $run_adms_list = mysqli_query($con, "SELECT admin_name, admin_image FROM admins WHERE admin_id IN ($ids_adm_impl)");
+                                                if ($run_adms_list) {
+                                                    while ($a_info = mysqli_fetch_assoc($run_adms_list)) {
+                                                        $assigned_team[] = [
+                                                            'name'  => $a_info['admin_name'],
+                                                            'image' => !empty($a_info['admin_image']) ? 'admin_images/' . $a_info['admin_image'] : '',
+                                                            'type'  => 'admin'
+                                                        ];
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (!empty($assigned_team)) {
+                                            echo '<div class="employee-group">';
+                                            $team_limit = 3;
+                                            $t_count = 0;
+
+                                            foreach ($assigned_team as $member) {
+                                                $m_name = htmlspecialchars($member['name']);
+                                                $m_img = $member['image'];
+                                                $isHidden = $t_count >= $team_limit ? 'display: none;' : '';
+                                                $hiddenClass = $t_count >= $team_limit ? 'hidden-employee' : '';
+
+                                                if (!empty($m_img) && file_exists($m_img)) {
+                                                    echo '<span class="emp-avatar-item ' . $hiddenClass . '" data-tooltip="' . $m_name . '" style="' . $isHidden . '">';
+                                                    echo '<img src="' . htmlspecialchars($m_img) . '" alt="' . $m_name . '" onerror="this.src=\'admin_images/default.png\'">';
+                                                    echo '</span>';
+                                                } else {
+                                                    $initial = strtoupper(substr($member['name'], 0, 1));
+                                                    $bg_color = $member['type'] == 'admin' ? '#ef4444' : '#3b82f6';
+                                                    echo '<span class="emp-avatar-item ' . $hiddenClass . '" data-tooltip="' . $m_name . '" style="' . $isHidden . '">';
+                                                    echo '<div class="emp-initial" style="background:' . $bg_color . '; color:#fff;">' . $initial . '</div>';
+                                                    echo '</span>';
+                                                }
+                                                $t_count++;
+                                            }
+
+                                            if ($t_count > $team_limit) {
+                                                echo '<span class="more emp-avatar-item" data-tooltip="Show all" onclick="this.parentElement.querySelectorAll(\'.hidden-employee\').forEach(el => el.style.display = \'inline-flex\'); this.style.display = \'none\';">+' . ($t_count - $team_limit) . '</span>';
+                                            }
+                                            echo '</div>';
+                                        } else {
+                                            echo '<span style="color:#94a3b8; font-size:12px;">Unassigned</span>';
+                                        }
+                                        ?>
+                                    </div>
+                                </td>
                                 <?php if (canAdminAccess('project_source_view')): ?>
                                     <td style="text-align: center;">
                                         <span style="font-size: 12px; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 6px;width: 90px;display: inline-block;white-space: normal;word-wrap: break-word;"><?php echo $source; ?></span>
