@@ -145,6 +145,11 @@ if (!isset($_SESSION['admin_email'])) {
                         <a href="index.php?company_links"><i class="fa fa-link"></i> Company Links</a>
                     </li>
                 <?php endif; ?>
+                <li class="<?php if (isset($_GET['vendors'])) {
+                                echo "active";
+                            } ?>">
+                    <a href="index.php?vendors"><i class="fa fa-truck"></i> Vendors</a>
+                </li>
             </ul>
 
             <h3 class="menu-heading">HR MANAGEMENT</h3>

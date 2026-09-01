@@ -25,20 +25,9 @@ Version : 1.0
 /* Global Styles */
 
 body {
-
-    margin-top: 100px;
-
-}
-
-@media (min-width: 768px) {
-
-    body {
-
-        margin-top: 50px;
-
-    }
-
-
+    margin-top: 0;
+    background-color: #f8fafc;
+    color: #1e293b;
 }
 
 
@@ -79,9 +68,7 @@ body {
 }
 
 .top-nav>li {
-    display: inline-block;
     float: left;
-
 }
 
 .top-nav>li>a {
@@ -408,7 +395,6 @@ hr.dotted {
 .thumb-info .thumb-info-type {
     background-color: #0088cc;
     border-radius: 2px;
-    display: inline-block;
     float: left;
     font-size: 12px;
     font-weight: 400;
@@ -1375,7 +1361,6 @@ input[type="file"].p-input-premium::-webkit-file-upload-button:hover {
     padding: 8px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     transition: all 0.3s ease;
-    group: hover;
 }
 
 .todo-item:last-child {

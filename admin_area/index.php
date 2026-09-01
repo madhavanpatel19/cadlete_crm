@@ -116,7 +116,10 @@ if (!isset($_SESSION['admin_email'])) {
                                 'view_nda' => '<i class="fa fa-shield"></i> NDA Forms',
                                 'edit_nda' => '<i class="fa fa-pencil"></i> Edit NDA',
                                 'team_todo' => '<i class="fa fa-tasks"></i> Team Todo',
-                                'global_team_todos' => '<i class="fa fa-globe"></i> Global Team Todos'
+                                'global_team_todos' => '<i class="fa fa-globe"></i> Global Team Todos',
+                                'vendors' => '<i class="fa fa-truck"></i> Vendors',
+                                'add_vendor' => '<i class="fa fa-plus-circle"></i> Add Vendor',
+                                'edit_vendor' => '<i class="fa fa-pencil"></i> Edit Vendor'
                             ];
                             if (array_key_exists($first_key, $title_map)) {
                                 $page_title = $title_map[$first_key];
@@ -470,6 +473,15 @@ if (!isset($_SESSION['admin_email'])) {
                     if (isset($_GET['delete_lead'])) {
                         requireAdminPermission('lead_delete');
                         include("pages/leads/delete_lead.php");
+                    }
+                    if (isset($_GET['vendors'])) {
+                        include("pages/vendors/vendors.php");
+                    }
+                    if (isset($_GET['add_vendor'])) {
+                        include("pages/vendors/add_vendor.php");
+                    }
+                    if (isset($_GET['edit_vendor'])) {
+                        include("pages/vendors/edit_vendor.php");
                     }
                     if (isset($_GET['projects'])) {
                         requireAdminPermission('project_view');

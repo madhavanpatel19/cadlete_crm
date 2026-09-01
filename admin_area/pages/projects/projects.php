@@ -35,12 +35,22 @@ $source_filter = isset($_GET['source']) ? mysqli_real_escape_string($con, $_GET[
 $search = isset($_GET['search']) ? mysqli_real_escape_string($con, $_GET['search']) : '';
 
 
-// Count projects for Cards (scoped to visible projects)
-$total_projects     = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_projects WHERE deleted_at IS NULL $admin_project_filter"));
-$active_projects    = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_projects WHERE status='Active' AND deleted_at IS NULL $admin_project_filter"));
-$pending_projects   = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_projects WHERE status='Pending' AND deleted_at IS NULL $admin_project_filter"));
-$completed_projects = mysqli_num_rows(mysqli_query($con, "SELECT id FROM client_projects WHERE status='Completed' AND deleted_at IS NULL $admin_project_filter"));
-$employees = mysqli_fetch_assoc(mysqli_query($con, "SELECT assigned_employees from client_projects WHERE deleted_at IS NULL "));
+// Count projects for Cards using single optimized GROUP BY query
+$total_projects     = 0;
+$active_projects    = 0;
+$pending_projects   = 0;
+$completed_projects = 0;
+
+$stat_res = mysqli_query($con, "SELECT status, COUNT(*) as cnt FROM client_projects WHERE deleted_at IS NULL $admin_project_filter GROUP BY status");
+if ($stat_res) {
+    while ($st = mysqli_fetch_assoc($stat_res)) {
+        $cnt = (int)$st['cnt'];
+        $total_projects += $cnt;
+        if ($st['status'] === 'Active') $active_projects = $cnt;
+        elseif ($st['status'] === 'Pending') $pending_projects = $cnt;
+        elseif ($st['status'] === 'Completed') $completed_projects = $cnt;
+    }
+}
 
 /* ==============================
    PAGINATION SETUP & QUERIES
@@ -248,13 +258,7 @@ $run_projects = mysqli_query($con, $get_projects);
                             </tr>
                         </thead>
                         <tbody id="full-projects-container">
-                            <!-- Rows will be loaded via AJAX -->
-                            <tr>
-                                <td colspan="9" style="padding: 100px 0; text-align: center;">
-                                    <div class="spinner-premium" style="margin: 0 auto;"></div>
-                                    <p style="margin-top: 20px; color: #64748b; font-weight: 700; font-size: 14px;">Synchronizing workspace...</p>
-                                </td>
-                            </tr>
+                            <?php include(__DIR__ . '/fetch_all_projects.php'); ?>
                         </tbody>
                     </table>
                 </div>
@@ -1291,8 +1295,6 @@ $run_projects = mysqli_query($con, $get_projects);
             }
         });
 
-        loadProjects();
-
         // Filters change
         $('#status-filter, #source-filter').on('change', function() {
             var s = $('#status-filter').val();
@@ -1356,8 +1358,6 @@ $run_projects = mysqli_query($con, $get_projects);
                 }
             });
         }
-
-        loadProjects();
 
         // Toggle remarks detail row (Triggered only by History Button)
         $(document).on('click', '.btn-toggle-history', function(e) {

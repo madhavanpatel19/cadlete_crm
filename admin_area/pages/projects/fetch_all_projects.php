@@ -101,7 +101,6 @@ if ($run_projects && mysqli_num_rows($run_projects) == 0 && ($search_filter !== 
     $run_projects = mysqli_query($con, $get_projects);
 }
 
-
 if (!$run_projects) {
     die('<div class="alert alert-danger" style="margin: 20px; border-radius: 12px; border: none; background: #fee2e2; color: #991b1b; font-weight: 600;">
             <i class="fa fa-exclamation-triangle"></i> Database Error: ' . mysqli_error($con) . '
@@ -109,40 +108,49 @@ if (!$run_projects) {
 }
 
 if (mysqli_num_rows($run_projects) > 0) {
-    // Ensure SOP tables exist (auto-create)
-    mysqli_query($con, "CREATE TABLE IF NOT EXISTS `project_sop_items` (
-        `id` INT(11) AUTO_INCREMENT PRIMARY KEY,
-        `category` VARCHAR(100) NOT NULL,
-        `item_text` TEXT NOT NULL,
-        `sort_order` INT(11) DEFAULT 0,
-        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-    mysqli_query($con, "CREATE TABLE IF NOT EXISTS `project_sop_checklist` (
-        `id` INT(11) AUTO_INCREMENT PRIMARY KEY,
-        `project_id` INT(11) NOT NULL,
-        `sop_item_id` INT(11) NOT NULL,
-        `is_checked` TINYINT(1) DEFAULT 0,
-        `checked_by` VARCHAR(255) DEFAULT NULL,
-        `checked_at` DATETIME DEFAULT NULL,
-        UNIQUE KEY `unique_project_sop` (`project_id`, `sop_item_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    // Collect all rows first for batch processing
+    $project_list = [];
+    $project_ids = [];
+    while ($r_row = mysqli_fetch_assoc($run_projects)) {
+        $project_list[] = $r_row;
+        $project_ids[] = (int)$r_row['id'];
+    }
+
+    // Pre-fetch all employees in 1 single query to avoid N+1 queries
+    $emp_map = [];
+    $all_emps_res = mysqli_query($con, "SELECT id, name, employee_image FROM emp_list");
+    if ($all_emps_res) {
+        while ($e = mysqli_fetch_assoc($all_emps_res)) {
+            $emp_map[(int)$e['id']] = $e;
+        }
+    }
+
     // Get total SOP items count once
     $sop_total_res = mysqli_query($con, "SELECT COUNT(*) as t FROM project_sop_items");
     $sop_total = $sop_total_res ? (int)mysqli_fetch_assoc($sop_total_res)['t'] : 0;
 
-    while ($p = mysqli_fetch_assoc($run_projects)) {
-        $project_id = $p['id'];
+    // Pre-fetch batch SOP counts for all displayed projects in 1 query
+    $sop_done_map = [];
+    if (!empty($project_ids)) {
+        $p_ids_str = implode(',', $project_ids);
+        $sop_counts_res = mysqli_query($con, "SELECT project_id, COUNT(*) as d FROM project_sop_checklist WHERE project_id IN ($p_ids_str) AND is_checked=1 GROUP BY project_id");
+        if ($sop_counts_res) {
+            while ($sc = mysqli_fetch_assoc($sop_counts_res)) {
+                $sop_done_map[(int)$sc['project_id']] = (int)$sc['d'];
+            }
+        }
+    }
+
+    foreach ($project_list as $p) {
+        $project_id = (int)$p['id'];
         $project_date = !empty($p['project_date']) ? date('M d, Y', strtotime($p['project_date'])) : 'NA';
         $source = isset($p['source']) ? $p['source'] : '';
-        //employee names
         $empIds = explode(",", $p['assigned_employees']);
         $budget = floatval($p['budget']);
         $currency = !empty($p['currency']) ? $p['currency'] : 'INR';
         $symbols = ['INR' => '₹', 'USD' => '$', 'EUR' => '€', 'GBP' => '£', 'AED' => 'د.إ'];
         $sym = isset($symbols[$currency]) ? $symbols[$currency] : '₹';
-        // SOP count for this project
-        $sop_done_res = mysqli_query($con, "SELECT COUNT(*) as d FROM project_sop_checklist WHERE project_id=$project_id AND is_checked=1");
-        $sop_done = $sop_done_res ? (int)mysqli_fetch_assoc($sop_done_res)['d'] : 0;
+        $sop_done = isset($sop_done_map[$project_id]) ? $sop_done_map[$project_id] : 0;
 ?>
         <tr style="transition: 0.3s;">
             <td style="text-align: center;">
@@ -150,12 +158,20 @@ if (mysqli_num_rows($run_projects) > 0) {
             </td>
             <td>
                 <div style="display:flex; align-items:center; gap:12px;">
-                    <?php if (!empty($p['project_image']) && file_exists('../../uploads/project_images/' . $p['project_image'])) { ?>
+                    <?php if (!empty($p['project_image'])) { ?>
                         <img src="uploads/project_images/<?php echo htmlspecialchars($p['project_image']); ?>"
-                            style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid #e2e8f0;">
-                    <?php } else if (!empty($p['image']) && file_exists('../../uploads/client_images/' . $p['image'])) { ?>
+                            style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid #e2e8f0;"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div style="display:none;width:40px;height:40px;border-radius:50%;background:#e2e8f0;align-items:center;justify-content:center;font-weight:600;color:#64748b;">
+                            <?php echo strtoupper(substr($p['project_name'], 0, 1)); ?>
+                        </div>
+                    <?php } else if (!empty($p['image'])) { ?>
                         <img src="uploads/client_images/<?php echo htmlspecialchars($p['image']); ?>"
-                            style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid #e2e8f0;">
+                            style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid #e2e8f0;"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div style="display:none;width:40px;height:40px;border-radius:50%;background:#e2e8f0;align-items:center;justify-content:center;font-weight:600;color:#64748b;">
+                            <?php echo strtoupper(substr($p['project_name'], 0, 1)); ?>
+                        </div>
                     <?php } else { ?>
                         <div style="width:40px;height:40px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-weight:600;color:#64748b;">
                             <?php echo strtoupper(substr($p['project_name'], 0, 1)); ?>
@@ -177,41 +193,37 @@ if (mysqli_num_rows($run_projects) > 0) {
             <td>
                 <div class="employee-wrap">
                     <?php
-                    $limit = 3;
-
+                    $emp_display_limit = 3;
                     $validEmpIds = array_filter($empIds, function ($id) {
                         return !empty(trim($id));
                     });
 
                     echo '<div class="employee-group">';
-
                     $i = 0;
                     foreach ($validEmpIds as $empId) {
-                        $query = mysqli_query($con, "SELECT employee_image,name FROM emp_list WHERE id='" . intval($empId) . "'");
-                        if ($query) {
-                            $emp = mysqli_fetch_assoc($query);
-                            if ($emp) {
-                                $isHidden = $i >= $limit ? 'display: none;' : '';
-                                $hiddenClass = $i >= $limit ? 'hidden-employee' : '';
-                                $empName = htmlspecialchars($emp['name'] ?? '');
+                        $e_id_int = (int)trim($empId);
+                        if (isset($emp_map[$e_id_int])) {
+                            $emp = $emp_map[$e_id_int];
+                            $isHidden = $i >= $emp_display_limit ? 'display: none;' : '';
+                            $hiddenClass = $i >= $emp_display_limit ? 'hidden-employee' : '';
+                            $empName = htmlspecialchars($emp['name'] ?? '');
 
-                                if (!empty($emp['employee_image'])) {
-                                    echo '<span class="emp-avatar-item ' . $hiddenClass . '" data-tooltip="' . $empName . '" style="' . $isHidden . '">';
-                                    echo '<img src="uploads/' . htmlspecialchars($emp['employee_image']) . '">';
-                                    echo '</span>';
-                                } else {
-                                    $initial = strtoupper(substr($emp['name'] ?? 'U', 0, 1));
-                                    echo '<span class="emp-avatar-item ' . $hiddenClass . '" data-tooltip="' . $empName . '" style="' . $isHidden . '">';
-                                    echo '<div class="emp-initial">' . $initial . '</div>';
-                                    echo '</span>';
-                                }
-                                $i++;
+                            if (!empty($emp['employee_image'])) {
+                                echo '<span class="emp-avatar-item ' . $hiddenClass . '" data-tooltip="' . $empName . '" style="' . $isHidden . '">';
+                                echo '<img src="uploads/' . htmlspecialchars($emp['employee_image']) . '">';
+                                echo '</span>';
+                            } else {
+                                $initial = strtoupper(substr($emp['name'] ?? 'U', 0, 1));
+                                echo '<span class="emp-avatar-item ' . $hiddenClass . '" data-tooltip="' . $empName . '" style="' . $isHidden . '">';
+                                echo '<div class="emp-initial">' . $initial . '</div>';
+                                echo '</span>';
                             }
+                            $i++;
                         }
                     }
 
-                    if ($i > $limit) {
-                        echo '<span class="more emp-avatar-item" data-tooltip="Show all" onclick="this.parentElement.querySelectorAll(\'.hidden-employee\').forEach(el => el.style.display = \'inline-flex\'); this.style.display = \'none\';">+' . ($i - $limit) . '</span>';
+                    if ($i > $emp_display_limit) {
+                        echo '<span class="more emp-avatar-item" data-tooltip="Show all" onclick="this.parentElement.querySelectorAll(\'.hidden-employee\').forEach(el => el.style.display = \'inline-flex\'); this.style.display = \'none\';">+' . ($i - $emp_display_limit) . '</span>';
                     }
 
                     echo '</div>';
@@ -243,10 +255,9 @@ if (mysqli_num_rows($run_projects) > 0) {
             <!-- SOP Checklist Column -->
             <td style="text-align: center;">
                 <?php
-                $sop_pct = ($sop_total > 0) ? round(($sop_done / $sop_total) * 100) : 0;
                 $sop_color = ($sop_done == $sop_total && $sop_total > 0) ? '#16a34a' : (($sop_done > 0) ? '#7c3aed' : '#94a3b8');
                 $sop_bg    = ($sop_done == $sop_total && $sop_total > 0) ? '#f0fdf4' : (($sop_done > 0) ? '#f5f3ff' : '#f8fafc');
-                $sop_border= ($sop_done == $sop_total && $sop_total > 0) ? '#bbf7d0' : (($sop_done > 0) ? '#ede9fe' : '#e2e8f0');
+                $sop_border = ($sop_done == $sop_total && $sop_total > 0) ? '#bbf7d0' : (($sop_done > 0) ? '#ede9fe' : '#e2e8f0');
                 ?>
                 <button type="button"
                     id="sop_badge_<?php echo $project_id; ?>"
@@ -298,90 +309,26 @@ if (mysqli_num_rows($run_projects) > 0) {
                     <?php endif; ?>
                     <?php if (canAdminAccess('project_delete')): ?>
                         <button class="btn-icon-premium btn-icon-sm btn-icon-delete" onclick="deleteProject(<?php echo $project_id; ?>, '<?php echo addslashes($p['project_name']); ?>')" title="Delete Project">
-                            <i class="fa fa-trash-o"></i>
+                            <i class="fa fa-trash"></i>
                         </button>
                     <?php endif; ?>
                 </div>
             </td>
         </tr>
-        <tr class="project-detail-row" style="display: none; background: #fff;">
-            <td colspan="<?php echo canAdminAccess('project_source_view') ? '10' : '9'; ?>" style="padding: 0; border: none;">
-                <div style="padding: 35px 50px; border-top: 1px solid #f1f5f9; background: #fcfdfe;">
-                    <div class="row">
-                        <div class="col-md-7">
-                            <div class="timeline-container-premium" style="background: transparent; border: none; padding: 0; margin-bottom: 0;">
-                                <div class="timeline-header-premium" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between;">
-                                    <div style="display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">
-                                        <i class="fa fa-history" style="color: #dd2127; font-size: 14px;"></i>
-                                        <span>Project Activity Timeline</span>
-                                    </div>
-                                    <a href="download_progress_report.php?project_id=<?php echo $project_id; ?>" target="_blank" style="background: #ffeaeb; color: #dd2127; border: 1px solid #ffeaeb; border-radius: 8px; padding: 6px 14px; font-size: 11px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                                        <i class="fa fa-download"></i> Download Progress Report
-                                    </a>
-                                </div>
-                                <div class="timeline-visual-wrapper" style="max-height: 250px; overflow-y: auto; overflow-x: hidden; padding-right: 15px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
-                                    <div class="timeline-vertical-line" style="left: 4px;"></div>
-                                    <div class="remarks-history-premium" style="position: relative; padding-left: 0;">
-                                        <?php
-                                        // Ensure posted_by column exists
-                                        try {
-                                            @mysqli_query($con, "ALTER TABLE client_project_remarks ADD COLUMN posted_by VARCHAR(255) DEFAULT NULL");
-                                        } catch (Exception $e) {
-                                        }
 
-                                        $get_remarks = "SELECT * FROM client_project_remarks WHERE project_id = $project_id ORDER BY created_at DESC";
-                                        $run_remarks = mysqli_query($con, $get_remarks);
-                                        if (mysqli_num_rows($run_remarks) > 0) {
-                                            while ($r = mysqli_fetch_assoc($run_remarks)) {
-                                                $poster = !empty($r['posted_by']) ? htmlspecialchars($r['posted_by']) : '';
-                                                if (empty($poster)) {
-                                                    $poster = (strpos($r['remark'], 'System:') === 0) ? 'System' : 'Team Member';
-                                                }
-                                                $is_sys = (strtolower($poster) === 'system');
-                                                $poster_badge_bg = $is_sys ? '#f1f5f9' : '#ffeaeb';
-                                                $poster_badge_color = $is_sys ? '#64748b' : '#dd2127';
-                                                $poster_icon = $is_sys ? 'fa-cog' : 'fa-user';
-                                        ?>
-                                                <div class="timeline-remark-item" style="margin-bottom: 25px; position: relative; padding-left: 32px; width: 100%;">
-                                                    <div class="timeline-dot" style="left: 0;"></div>
-                                                    <div class="remark-content-box" style="padding-left: 20px;">
-                                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                                                            <span style="font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 6px; background: <?php echo $poster_badge_bg; ?>; color: <?php echo $poster_badge_color; ?>; display: inline-flex; align-items: center; gap: 5px;">
-                                                                <i class="fa <?php echo $poster_icon; ?>"></i> <?php echo $poster; ?>
-                                                            </span>
-                                                            <div class="remark-time-premium" style="margin: 0; font-size: 11px;">
-                                                                <i class="fa fa-clock-o"></i> <?php echo date('d M Y • h:i A', strtotime($r['created_at'])); ?>
-                                                            </div>
-                                                        </div>
-                                                        <div class="remark-text-premium" style="font-size: 13px; color: #334155; font-weight: 600;"><?php echo nl2br(htmlspecialchars($r['remark'])); ?></div>
-                                                    </div>
-                                                </div>
-                                        <?php
-                                            }
-                                        } else {
-                                            echo '<div class="no-remarks-placeholder" style="padding: 40px 0; text-align: center; color: #94a3b8;">
-                                                    <i class="fa fa-commenting-o" style="font-size: 32px; opacity: 0.4; margin-bottom: 10px; display: block;"></i>
-                                                    <p style="font-size: 13px; font-weight: 700;">No activity recorded yet.</p>
-                                                  </div>';
-                                        }
-                                        ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="remark-action-premium glass-card-premium" style="padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08);">
-                                <h4 style="font-size: 11px; font-weight: 950; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                                    <div style="width: 8px; height: 8px; background: #dd2127; border-radius: 50%;"></div>
-                                    Post Progress Update
-                                </h4>
-                                <div class="action-input-wrapper" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
-                                    <textarea class="remark-textarea p-input-premium" style="width: 100%; height: 120px; resize: none; font-size: 14px; box-sizing: border-box;" placeholder="What milestone was achieved today?"></textarea>
-                                    <button type="button" class="add-remark-btn" data-project-id="<?php echo $project_id; ?>" style="width: 100%; height: 48px; font-size: 14px; background: #dd2127; color: #ffffff; border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; font-weight: 700; gap: 8px; box-shadow: 0 4px 12px rgba(221, 33, 39, 0.2); box-sizing: border-box;">
-                                        <i class="fa fa-send"></i> Post Update
-                                    </button>
-                                </div>
-                            </div>
+        <!-- Inline History Drawer Row -->
+        <tr class="history-drawer-row" style="display: none; background: #f8fafc;">
+            <td colspan="10" style="padding: 0; border: none;">
+                <div class="history-drawer-content" style="padding: 20px; border-bottom: 2px solid #e2e8f0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa fa-history" style="color: #6366f1;"></i> Project Activity & Audit History
+                        </h4>
+                        <span style="font-size: 12px; color: #64748b; font-weight: 600;">Project ID #<?php echo str_pad($project_id, 3, '0', STR_PAD_LEFT); ?></span>
+                    </div>
+                    <div class="history-timeline-container" data-project-id="<?php echo $project_id; ?>">
+                        <div style="text-align: center; padding: 20px; color: #94a3b8;">
+                            <i class="fa fa-spinner fa-spin"></i> Loading project history...
                         </div>
                     </div>
                 </div>
@@ -389,5 +336,14 @@ if (mysqli_num_rows($run_projects) > 0) {
         </tr>
 <?php
     }
+} else {
+    echo '<tr>
+            <td colspan="10" style="text-align: center; padding: 60px 20px; color: #64748b;">
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 20px; color: #94a3b8;">
+                    <i class="fa fa-folder-open-o"></i>
+                </div>
+                <h4 style="margin: 0 0 6px; font-weight: 700; color: #1e293b;">No Projects Found</h4>
+                <p style="margin: 0; font-size: 13px;">No projects match your current filter criteria.</p>
+            </td>
+        </tr>';
 }
-?>
