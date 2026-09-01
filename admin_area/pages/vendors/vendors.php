@@ -259,7 +259,7 @@ $first_sec = !empty($db_tab_secs) ? $db_tab_secs[0] : '';
                 section: sec,
                 search: search
             },
-            dataType: 'json',
+            dataType: 'json',  
             success: function(res) {
                 if (res.status === 'success') {
                     renderVendorAccordions(res.grouped, sec);
