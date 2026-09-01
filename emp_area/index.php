@@ -81,6 +81,9 @@ if (!isset($_SESSION['emp_id'])) {
                             $first_key = $keys[0];
                             $title_map = [
                                 'dashboard' => '<i class="fa fa-dashboard"></i> Dashboard',
+                                'projects' => '<i class="fa fa-sitemap"></i> Projects',
+                                'leads' => '<i class="fa fa-bullseye"></i> Leads',
+                                'view_lead' => '<i class="fa fa-bullseye"></i> Lead Details',
                                 'worksheet' => '<i class="fa fa-file-text-o"></i> Worksheet',
                                 'emp_profile' => '<i class="fa fa-user"></i> My Profile',
                                 'leave_application' => '<i class="fa fa-paper-plane-o"></i> Leave Application',
@@ -158,6 +161,11 @@ if (!isset($_SESSION['emp_id'])) {
                         include("pages/dashboard/emp_dashboard.php");
                     } elseif (isset($_GET['projects'])) {
                         include("pages/projects/projects.php");
+                    } elseif (isset($_GET['leads'])) {
+                        include("pages/leads/leads.php");
+                    } elseif (isset($_GET['view_lead'])) {
+                        $_GET['open_lead'] = $_GET['view_lead'];
+                        include("pages/leads/leads.php");
                     } elseif (isset($_GET['team_todo'])) {
                         include("../admin_area/pages/projects/team_todo.php");
                     } elseif (isset($_GET['worksheet'])) {

@@ -106,9 +106,10 @@ $c_desc = '';
 $c_remark = '';
 $c_budget = '';
 $c_currency = 'INR';
-$c_status = '';
 $c_followup = '';
 $c_source = [];
+$c_assigned_employees = [];
+$c_assigned_admins = [];
 
 if (isset($_GET['edit_lead'])) {
     $edit_id = mysqli_real_escape_string($con, $_GET['edit_lead']);
@@ -188,7 +189,7 @@ if (isset($_POST['update_lead'])) {
             foreach ($assigned_employees_arr as $eid) {
                 $eid = intval($eid);
                 if ($eid > 0) {
-                    addSystemNotification('employee', $eid, "Lead Assignment: $client_name", "You have been assigned to lead '$client_name'.", "index.php?view_lead=$edit_id", 'lead_assigned');
+                    addSystemNotification('employee', $eid, "Lead Assignment: $client_name", "You have been assigned to lead '$client_name'.", "index.php?leads&open_lead=$edit_id", 'lead_assigned');
                 }
             }
         }
@@ -448,10 +449,11 @@ if (isset($_POST['update_lead'])) {
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="col-md-4 control-label" style="text-align: left; color: #475569; font-weight: 600;">Description</label>
-                            <div class="col-md-8">
-                                <textarea name="description" class="p-input-premium" style="height: 100px; padding: 12px;" placeholder="Detailed lead requirements..."><?php echo htmlspecialchars($c_desc); ?></textarea>
-                            </div>
+                            <?php
+                            $default_template = "1. Can we do it or not?\n2. Complexity of the project on the scale from 1 to 5 (1 is easy, 5 is complex)\n3. Time required for the project\n4. Reply mail to client about any additional information/suggestions that I can directly forwarded to him";
+                            $display_desc = !empty($c_desc) ? $c_desc : $default_template;
+                            ?>
+                            <textarea name="description" class="p-input-premium" style="height: 140px; padding: 12px; font-family: inherit;" placeholder="Detailed lead requirements..."><?php echo htmlspecialchars($display_desc); ?></textarea>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -734,7 +736,7 @@ if (isset($_POST['update_lead'])) {
                 templateSelection: formatSelectionWithImage
             });
 
-            $('#employeeSelect, #adminSelect').on('select2:select', function (e) {
+            $('#employeeSelect, #adminSelect').on('select2:select', function(e) {
                 var self = this;
                 setTimeout(function() {
                     var $search = $(self).data('select2').$container.find('.select2-search__field');

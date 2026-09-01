@@ -907,7 +907,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
 
         <!-- 2-Column Split Layout (Matching Reference Photo EXACTLY) -->
         <div class="tdm-body">
- 
+
             <!-- LEFT COLUMN (54% Width): Title, Pills & Description -->
             <div class="tdm-left">
                 <!-- Title Row: Check Circle + Large Bold Title Input -->
@@ -1672,11 +1672,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                 `;
             }
 
-            const deleteBtnHtml = isAdmin ? `
-                <div class="td-act-actions">
-                    <button class="td-act-link" onclick="tdDeleteComment(${c.id})">Delete</button>
-                </div>
-            ` : '';
+            const deleteBtnHtml = '';
 
             list.append(`
                 <div class="td-act-item" id="td-comment-${c.id}">

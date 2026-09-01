@@ -1606,15 +1606,54 @@ if ($run_projs) {
     }
 
     function getProjectColorBadge(projName) {
-        const palettes = [
-            { bg: '#e0e7ff', color: '#3730a3', border: '#c7d2fe', icon: 'fa-tasks' },        // Indigo (General Tasks)
-            { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0', icon: 'fa-briefcase' },    // Emerald
-            { bg: '#fef3c7', color: '#92400e', border: '#fde68a', icon: 'fa-folder-open' },  // Amber
-            { bg: '#ffe4e6', color: '#9f1239', border: '#fecdd3', icon: 'fa-rocket' },       // Rose
-            { bg: '#ede9fe', color: '#5b21b6', border: '#ddd6fe', icon: 'fa-layer-group' },  // Violet
-            { bg: '#cffaff', color: '#155e75', border: '#a5f3fc', icon: 'fa-cube' },         // Cyan
-            { bg: '#fce7f3', color: '#9d174d', border: '#fbcfe8', icon: 'fa-chart-pie' },    // Pink
-            { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe', icon: 'fa-code' },         // Blue
+        const palettes = [{
+                bg: '#e0e7ff',
+                color: '#3730a3',
+                border: '#c7d2fe',
+                icon: 'fa-tasks'
+            }, // Indigo (General Tasks)
+            {
+                bg: '#d1fae5',
+                color: '#065f46',
+                border: '#a7f3d0',
+                icon: 'fa-briefcase'
+            }, // Emerald
+            {
+                bg: '#fef3c7',
+                color: '#92400e',
+                border: '#fde68a',
+                icon: 'fa-folder-open'
+            }, // Amber
+            {
+                bg: '#ffe4e6',
+                color: '#9f1239',
+                border: '#fecdd3',
+                icon: 'fa-rocket'
+            }, // Rose
+            {
+                bg: '#ede9fe',
+                color: '#5b21b6',
+                border: '#ddd6fe',
+                icon: 'fa-layer-group'
+            }, // Violet
+            {
+                bg: '#cffaff',
+                color: '#155e75',
+                border: '#a5f3fc',
+                icon: 'fa-cube'
+            }, // Cyan
+            {
+                bg: '#fce7f3',
+                color: '#9d174d',
+                border: '#fbcfe8',
+                icon: 'fa-chart-pie'
+            }, // Pink
+            {
+                bg: '#dbeafe',
+                color: '#1e40af',
+                border: '#bfdbfe',
+                icon: 'fa-code'
+            }, // Blue
         ];
         if (!projName || projName.toLowerCase().includes('general')) {
             return palettes[0];
@@ -2279,11 +2318,7 @@ if ($run_projs) {
                 `;
             }
 
-            const deleteBtnHtml = isAdmin ? `
-                <div class="td-act-actions">
-                    <button class="td-act-link" onclick="tdDeleteComment(${c.id})">Delete</button>
-                </div>
-            ` : '';
+            const deleteBtnHtml = '';
 
             list.append(`
                 <div class="td-act-item" id="td-comment-${c.id}">
