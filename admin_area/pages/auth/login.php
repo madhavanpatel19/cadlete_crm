@@ -166,16 +166,31 @@ if (!isset($con)) {
 <?php
 if (isset($_POST['admin_login'])) {
     $admin_email = mysqli_real_escape_string($con, $_POST['admin_email']);
-    $admin_pass = mysqli_real_escape_string($con, $_POST['admin_pass']);
-    $get_admin = "select * from admins where admin_email='$admin_email' AND admin_pass='$admin_pass'";
+    $raw_pass = $_POST['admin_pass'];
+    $get_admin = "SELECT * FROM admins WHERE admin_email='$admin_email'";
     $run_admin = mysqli_query($con, $get_admin);
 
     if (!$run_admin) {
         die("Database Query Failed: " . mysqli_error($con));
     }
 
-    $count = mysqli_num_rows($run_admin);
-    if ($count == 1) {
+    $login_success = false;
+    if ($run_admin && mysqli_num_rows($run_admin) > 0) {
+        $row_admin = mysqli_fetch_assoc($run_admin);
+        $stored_pass = $row_admin['admin_pass'];
+
+        if (password_verify($raw_pass, $stored_pass) || $stored_pass === $raw_pass) {
+            $login_success = true;
+            // Upgrade legacy plain-text password to hash automatically
+            if (password_get_info($stored_pass)['algo'] === 0) {
+                $new_hash = password_hash($raw_pass, PASSWORD_DEFAULT);
+                $aid = (int)$row_admin['admin_id'];
+                mysqli_query($con, "UPDATE admins SET admin_pass='$new_hash' WHERE admin_id=$aid");
+            }
+        }
+    }
+
+    if ($login_success) {
         $_SESSION['admin_email'] = $admin_email;
         unset($_SESSION['_admin_super'], $_SESSION['_admin_perms']);
         echo "<script>showPremiumAlert('Logged in successfully! Redirecting...', 'success')</script>";

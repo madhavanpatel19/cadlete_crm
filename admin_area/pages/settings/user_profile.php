@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if (!isset($_SESSION['admin_email'])) {
     echo "<script>window.open('../../pages/auth/login.php','_self')</script>";
 } else {
@@ -77,7 +77,12 @@ if (!isset($_SESSION['admin_email'])) {
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Password *</label>
-                                        <input type="password" name="admin_pass" class="p-input-premium" value="<?php echo htmlspecialchars($admin_pass); ?>" required>
+                                        <div style="position: relative;">
+                                            <input type="password" name="admin_pass" id="admin_pass_input" class="p-input-premium" value="<?php echo htmlspecialchars($admin_pass); ?>" required style="padding-right: 45px;">
+                                            <button type="button" onclick="var el = document.getElementById('admin_pass_input'); var eye = document.getElementById('admin_pass_eye'); if (el.type === 'password') { el.type = 'text'; eye.className = 'fa fa-eye-slash'; } else { el.type = 'password'; eye.className = 'fa fa-eye'; } return false;" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; outline: none; cursor: pointer; color: #64748b; font-size: 16px; padding: 4px; display: flex; align-items: center; justify-content: center; z-index: 10;" title="Show/Hide Password">
+                                                <i class="fa fa-eye" id="admin_pass_eye"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -137,13 +142,37 @@ if (!isset($_SESSION['admin_email'])) {
                 reader.readAsDataURL(input.files[0]);
             }
         }
+
+        window.togglePasswordVisibility = function(inputId, eyeId) {
+            var input = document.getElementById(inputId);
+            var eye = document.getElementById(eyeId);
+            if (input) {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    if (eye) {
+                        eye.className = 'fa fa-eye-slash';
+                    }
+                } else {
+                    input.type = 'password';
+                    if (eye) {
+                        eye.className = 'fa fa-eye';
+                    }
+                }
+            }
+        };
     </script>
 
     <?php
     if (isset($_POST['update'])) {
         $admin_name = $_POST['admin_name'];
         $admin_email = $_POST['admin_email'];
-        $admin_pass = $_POST['admin_pass'];
+        $raw_pass = $_POST['admin_pass'];
+        
+        $admin_pass = $raw_pass;
+        if (!empty($raw_pass) && password_get_info($raw_pass)['algo'] === 0) {
+            $admin_pass = password_hash($raw_pass, PASSWORD_DEFAULT);
+        }
+
         $admin_country = $_POST['admin_country'];
         $admin_job = $_POST['admin_job'];
         $admin_contact = $_POST['admin_contact'];

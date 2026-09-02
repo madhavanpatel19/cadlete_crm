@@ -5,9 +5,14 @@ if (!isset($con)) {
     }
 }
 
-// File Upload Function for Clients (Targeting uploads/client_images/)
 if (!function_exists('handleClientImageUpload')) {
-    function handleClientImageUpload($fileArray, $targetDir = "../uploads/client_images/")
+    /**
+     * File Upload Function for Clients (Targeting uploads/client_images/)
+     * @param array|null $fileArray
+     * @param string $targetDir
+     * @return string
+     */
+    function handleClientImageUpload(?array $fileArray, string $targetDir = "../uploads/client_images/"): string
     {
         if (!is_dir($targetDir)) {
             mkdir($targetDir, 0777, true);
@@ -30,6 +35,7 @@ if (!function_exists('handleClientImageUpload')) {
 
 $success = false;
 $error = '';
+$name = '';
 
 if (isset($_POST['submit_client'])) {
     $name = mysqli_real_escape_string($con, $_POST['name']);
@@ -82,12 +88,13 @@ if ($success): ?>
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(4px);
+            background: rgba(15, 23, 42, 0.35);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            z-index: 99999;
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
@@ -99,17 +106,18 @@ if ($success): ?>
         }
 
         .success-modal-content {
-            background: #fff;
+            background: #ffffff;
             border-radius: 20px;
-            padding: 40px;
-            width: 100%;
-            max-width: 450px;
+            padding: 36px 30px 40px;
+            width: 90%;
+            max-width: 440px;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             transform: translateY(20px) scale(0.95);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
             overflow: hidden;
+            border: 1px solid #e2e8f0;
         }
 
         .success-modal-overlay.active .success-modal-content {
@@ -117,17 +125,18 @@ if ($success): ?>
         }
 
         .success-icon-wrapper {
-            width: 80px;
-            height: 80px;
+            width: 72px;
+            height: 72px;
             background: #dcfce7;
-            color: #22c55e;
+            color: #16a34a;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
-            margin: 0 auto 24px;
-            animation: scaleIn 0.5s ease 0.2s both;
+            font-size: 32px;
+            margin: 0 auto 20px;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
+            animation: scaleIn 0.4s ease 0.15s both;
         }
 
         @keyframes scaleIn {
@@ -141,16 +150,17 @@ if ($success): ?>
         }
 
         .success-title {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 800;
             color: #0f172a;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
+            letter-spacing: -0.3px;
         }
 
         .success-message {
-            font-size: 16px;
-            color: #475569;
-            margin-bottom: 30px;
+            font-size: 15px;
+            color: #64748b;
+            margin-bottom: 26px;
             line-height: 1.5;
         }
 
@@ -158,39 +168,44 @@ if ($success): ?>
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 14px 28px;
+            padding: 12px 24px;
             background: #dd2127;
-            color: #fff !important;
+            color: #ffffff !important;
             font-weight: 700;
+            font-size: 14px;
             text-decoration: none !important;
-            border-radius: 12px;
-            transition: 0.3s;
+            border-radius: 10px;
+            box-shadow: 0 4px 14px rgba(221, 33, 39, 0.25);
+            transition: all 0.25s ease;
         }
 
         .btn-success-go:hover {
-            background: #c01d22;
+            background: #b91c1c;
             transform: translateY(-2px);
-            color: #fff !important;
-            text-decoration: none !important;
+            box-shadow: 0 6px 18px rgba(221, 33, 39, 0.35);
+            color: #ffffff !important;
         }
 
         .success-timer-bar {
             position: absolute;
             bottom: 0;
             left: 0;
-            height: 6px;
-            background: #22c55e;
-            width: 100%;
-            animation: timer 4s linear forwards;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #10b981, #059669);
+            transform-origin: left center;
+            animation: timerProgress 3.5s linear forwards;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
         }
 
-        @keyframes timer {
+        @keyframes timerProgress {
             0% {
-                width: 100%;
+                transform: scaleX(1);
             }
 
             100% {
-                width: 0%;
+                transform: scaleX(0);
             }
         }
     </style>
@@ -206,7 +221,7 @@ if ($success): ?>
                     <i class="fa fa-users"></i> Go to Client Directory
                 </a>
             </div>
-            <div class="success-timer-bar" style="animation-duration: 4s;"></div>
+            <div class="success-timer-bar"></div>
         </div>
     </div>
     <script>
@@ -217,13 +232,32 @@ if ($success): ?>
             }, 100);
             setTimeout(() => {
                 window.location.href = 'index.php?client_directory';
-            }, 4000);
+            }, 3500);
         });
     </script>
-<?php exit();
-endif; ?>
+<?php endif; ?>
+
+<!-- intl-tel-input CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
 
 <style>
+    .iti {
+        width: 100% !important;
+    }
+
+    .iti__country-list {
+        z-index: 9999 !important;
+        max-height: 220px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-family: inherit;
+    }
+
+    .p-input-premium.iti__tel-input {
+        width: 100% !important;
+    }
+
     .add-client-wrapper {
         background: #fff;
         border-radius: 12px;
@@ -471,21 +505,21 @@ endif; ?>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <div class="form-group-custom">
-                                <label class="form-label-custom">Email <span class="req">*</span></label>
-                                <input type="email" name="email" class="p-input-premium" placeholder="Enter email address..." required>
+                                <label class="form-label-custom">Email</label>
+                                <input type="email" name="email" class="p-input-premium" placeholder="Enter email address...">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-custom">Mobile / Phone</label>
+                                <input type="tel" name="mobile" id="mobile" class="p-input-premium" placeholder="Enter contact number" style="width: 100%;">
                             </div>
                         </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group-custom">
-                                <label class="form-label-custom">Mobile <span class="req">*</span></label>
-                                <input type="tel" name="mobile" class="p-input-premium" placeholder="Enter mobile number" required maxlength="10" pattern="[0-9]{10}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                            </div>
-                        </div>
                         <div class="col-md-6">
                             <div class="form-group-custom">
                                 <label class="form-label-custom">Country <span class="req">*</span></label>
@@ -499,26 +533,26 @@ endif; ?>
                                 </select>
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-custom">Website</label>
+                                <input type="url" name="website" class="p-input-premium" placeholder="Enter website (e.g. https://example.com)">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group-custom">
-                        <label class="form-label-custom">Website</label>
-                        <input type="url" name="website" class="p-input-premium" placeholder="Enter website (e.g. https://example.com)">
-                    </div>
-                </div>
-                <div class="col-md-6">
+            <div class="row" style="margin-top: 15px;">
+                <div class="col-md-12">
                     <div class="form-group-custom">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <label class="form-label-custom" style="margin: 0;">Industry</label>
-                            <button type="button" class="btn btn-xs btn-success" data-toggle="modal" data-target="#addIndustryModal" style="border-radius: 6px; padding: 2px 8px; font-size: 10px; font-weight: 700; background: #10b981; border: none; box-shadow: 0 2px 4px rgba(16,185,129,0.2);">
+                            <button type="button" class="btn btn-xs btn-success" data-toggle="modal" data-target="#addIndustryModal" style="border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; background: #10b981; border: none; box-shadow: 0 2px 4px rgba(16,185,129,0.2);">
                                 <i class="fa fa-plus"></i> New
                             </button>
                         </div>
-                        <div style="background: #fff; padding: 10px; border-radius: 8px; border: 1.5px solid #e2e8f0; min-height: 48px; max-height: 150px; overflow-y: auto;" id="industry_checkbox_container">
+                        <div style="background: #fff; padding: 12px 16px; border-radius: 10px; border: 1.5px solid #e2e8f0; min-height: 52px; max-height: 160px; overflow-y: auto;" id="industry_checkbox_container">
                             <?php
                             $get_industries = "SELECT * FROM client_industries WHERE deleted_at IS NULL ORDER BY industry_name ASC";
                             $run_industries = mysqli_query($con, $get_industries);
@@ -527,9 +561,9 @@ endif; ?>
                                     $i_name = $row_i['industry_name'];
                                     $i_id = $row_i['id'];
                             ?>
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                         <label style="font-weight: 500; color: #475569; cursor: pointer; margin: 0; font-size: 13px;">
-                                            <input type="checkbox" name="industry[]" value="<?php echo htmlspecialchars($i_name); ?>" style="margin-right: 8px; width: 14px; height: 14px; vertical-align: middle; accent-color: #DD2127;"> <?php echo htmlspecialchars($i_name); ?>
+                                            <input type="checkbox" name="industry[]" value="<?php echo htmlspecialchars($i_name); ?>" style="margin-right: 8px; width: 15px; height: 15px; vertical-align: middle; accent-color: #DD2127;"> <?php echo htmlspecialchars($i_name); ?>
                                         </label>
                                         <i class="fa fa-trash" style="color: #ef4444; cursor: pointer; font-size: 13px;" onclick="deleteIndustry(<?php echo $i_id; ?>, this)"></i>
                                     </div>
@@ -538,7 +572,7 @@ endif; ?>
                             }
                             ?>
                         </div>
-                        <small style="color:#64748b; font-size:12px; margin-top:4px; display:block;">Select all that apply</small>
+                        <small style="color:#64748b; font-size:12px; margin-top:6px; display:block;">Select all that apply</small>
                     </div>
                 </div>
             </div>
@@ -758,4 +792,44 @@ endif; ?>
             }
         }
     }
+</script>
+
+<!-- intl-tel-input JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var mobileInput = document.querySelector("#mobile");
+        if (mobileInput && window.intlTelInput) {
+            var iti = window.intlTelInput(mobileInput, {
+                initialCountry: "auto",
+                geoIpLookup: function(success, failure) {
+                    fetch("https://ipapi.co/json/")
+                        .then(function(res) {
+                            return res.json();
+                        })
+                        .then(function(data) {
+                            success(data.country_code);
+                        })
+                        .catch(function() {
+                            success("in");
+                        });
+                },
+                preferredCountries: ["in", "us", "gb", "ae", "ca", "de", "au"],
+                separateDialCode: true,
+                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
+            });
+
+            var form = mobileInput.closest("form");
+            if (form) {
+                form.addEventListener("submit", function() {
+                    if (mobileInput.value.trim()) {
+                        var fullNum = iti.getNumber();
+                        if (fullNum) {
+                            mobileInput.value = fullNum;
+                        }
+                    }
+                });
+            }
+        }
+    });
 </script>

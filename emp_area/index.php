@@ -566,6 +566,24 @@ if (!isset($_SESSION['emp_id'])) {
             $(document).ajaxComplete(function() {
                 setTimeout(initGlobalFlatpickr, 100);
             });
+
+            window.togglePasswordVisibility = function(inputId, eyeId) {
+                var input = document.getElementById(inputId);
+                var eye = document.getElementById(eyeId);
+                if (input) {
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        if (eye) {
+                            eye.className = 'fa fa-eye-slash';
+                        }
+                    } else {
+                        input.type = 'password';
+                        if (eye) {
+                            eye.className = 'fa fa-eye';
+                        }
+                    }
+                }
+            };
         </script>
     </body>
 

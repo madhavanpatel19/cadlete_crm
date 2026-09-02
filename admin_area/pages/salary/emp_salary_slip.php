@@ -22,50 +22,50 @@ if (!isset($_SESSION['emp_id'])) {
 }
 
 // ------------------ HELPERS ------------------ //
-function format_money($n)
+function format_money(float|int|string $n): string
 {
     return number_format((float)$n, 2);
 }
 
-function format_money_with_symbol($n, $currency_symbol)
+function format_money_with_symbol(float|int|string $n, string $currency_symbol): string
 {
     return '<span class="currency-symbol">' . $currency_symbol . '</span>' . format_money($n);
 }
 
 // Convert number to words
-function number_to_words($number)
+function number_to_words(float|int|string $number): string
 {
-    $no = floor($number);
-    $decimal = round(($number - $no) * 100);
+    $no = floor((float)$number);
+    $decimal = round(((float)$number - $no) * 100);
     $words = array(
-        '0' => 'Zero',
-        '1' => 'One',
-        '2' => 'Two',
-        '3' => 'Three',
-        '4' => 'Four',
-        '5' => 'Five',
-        '6' => 'Six',
-        '7' => 'Seven',
-        '8' => 'Eight',
-        '9' => 'Nine',
-        '10' => 'Ten',
-        '11' => 'Eleven',
-        '12' => 'Twelve',
-        '13' => 'Thirteen',
-        '14' => 'Fourteen',
-        '15' => 'Fifteen',
-        '16' => 'Sixteen',
-        '17' => 'Seventeen',
-        '18' => 'Eighteen',
-        '19' => 'Nineteen',
-        '20' => 'Twenty',
-        '30' => 'Thirty',
-        '40' => 'Forty',
-        '50' => 'Fifty',
-        '60' => 'Sixty',
-        '70' => 'Seventy',
-        '80' => 'Eighty',
-        '90' => 'Ninety'
+        0 => 'Zero',
+        1 => 'One',
+        2 => 'Two',
+        3 => 'Three',
+        4 => 'Four',
+        5 => 'Five',
+        6 => 'Six',
+        7 => 'Seven',
+        8 => 'Eight',
+        9 => 'Nine',
+        10 => 'Ten',
+        11 => 'Eleven',
+        12 => 'Twelve',
+        13 => 'Thirteen',
+        14 => 'Fourteen',
+        15 => 'Fifteen',
+        16 => 'Sixteen',
+        17 => 'Seventeen',
+        18 => 'Eighteen',
+        19 => 'Nineteen',
+        20 => 'Twenty',
+        30 => 'Thirty',
+        40 => 'Forty',
+        50 => 'Fifty',
+        60 => 'Sixty',
+        70 => 'Seventy',
+        80 => 'Eighty',
+        90 => 'Ninety'
     );
 
     if ($no == 0) {
@@ -75,10 +75,10 @@ function number_to_words($number)
         $units = array('', 'Thousand', 'Million', 'Billion');
         $i = 0;
         while ($no > 0) {
-            $chunk = $no % 1000;
+            $chunk = (int)fmod($no, 1000);
             if ($chunk) {
-                $hundreds = floor($chunk / 100);
-                $remainder = $chunk % 100;
+                $hundreds = (int)floor($chunk / 100);
+                $remainder = (int)($chunk % 100);
                 $str = '';
                 if ($hundreds) {
                     $str .= $words[$hundreds] . ' Hundred';
@@ -88,8 +88,8 @@ function number_to_words($number)
                     if ($remainder < 21) {
                         $str .= $words[$remainder];
                     } else {
-                        $tens = floor($remainder / 10) * 10;
-                        $ones = $remainder % 10;
+                        $tens = (int)floor($remainder / 10) * 10;
+                        $ones = (int)($remainder % 10);
                         $str .= $words[$tens];
                         if ($ones) $str .= ' ' . $words[$ones];
                     }
@@ -177,7 +177,7 @@ if (isset($_GET['ajax']) && isset($_GET['view']) && $employee) {
         <div class="employee-info clearfix">
             <div class="emp-left">
                 <p><strong>Employee Name:</strong> <?php echo htmlspecialchars($emp_name); ?></p>
-                <p><strong>Employee ID:</strong> <?php echo (int)$emp_id; ?></p>
+                <p><strong>Employee ID:</strong> <?php echo format_emp_id($emp_id); ?></p>
             </div>
             <div class="emp-right">
                 <p><strong>Pay Date:</strong> <?php echo date('t M Y', strtotime($selected_month . '-01')); ?></p>

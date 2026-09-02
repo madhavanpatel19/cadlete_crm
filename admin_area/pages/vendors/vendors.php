@@ -12,6 +12,7 @@ if (!isset($_SESSION['admin_email'])) {
     exit;
 }
 
+
 // Fetch all distinct category sections from database
 $db_tab_secs_res = mysqli_query($con, "SELECT DISTINCT category_section FROM vendors WHERE deleted_at IS NULL AND category_section != '' ORDER BY category_section ASC");
 $db_tab_secs = [];
@@ -22,65 +23,6 @@ if ($db_tab_secs_res) {
 }
 $first_sec = !empty($db_tab_secs) ? $db_tab_secs[0] : '';
 ?>
-
-<div class="page-wrapper premium-ui-enabled">
-    <!-- Top Action Card Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; background: #fff; border-radius: 14px; padding: 14px 20px; border: 1px solid #f1f5f9; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-        <div>
-            <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.3px;">Vendor Management</h2>
-        </div>
-
-        <!-- Top Right Action Controls -->
-        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <div style="position: relative; width: 230px;">
-                <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px; z-index: 1;"></i>
-                <input type="text" id="vendorSearchInput" onkeyup="handleVendorSearch()" placeholder="Search vendor..." style="width: 100%; border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 14px 9px 38px; font-size: 13px; outline: none; background: #f8fafc; color: #1e293b; transition: all 0.2s ease;" onfocus="this.style.background='#fff'; this.style.borderColor='#dd2127';" onblur="this.style.background='#f8fafc'; this.style.borderColor='#e2e8f0';">
-            </div>
-            <a href="index.php?add_vendor" class="btn-premium-add">
-                <i class="fa fa-plus"></i> Add New Vendor
-            </a>
-        </div>
-    </div>
-
-    <?php if (!empty($db_tab_secs)): ?>
-        <!-- Section Category Tabs Bar -->
-        <div style="background: #fff; border-radius: 14px; border: 1px solid #f1f5f9; padding: 6px 10px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); overflow-x: auto;">
-            <div id="vendor-category-tabs" style="display: flex; gap: 6px; min-width: max-content;">
-                <?php
-                $is_first_tab = true;
-                foreach ($db_tab_secs as $t_sec) {
-                    $act_cls = $is_first_tab ? 'active' : '';
-                    echo "<button class='v-tab-btn $act_cls' data-sec='" . htmlspecialchars($t_sec) . "' onclick=\"switchVendorSection('" . htmlspecialchars(addslashes($t_sec)) . "', this)\">";
-                    echo "<i class='fa fa-tags' style='color: #dd2127;'></i> " . htmlspecialchars($t_sec);
-                    echo "</button>";
-                    $is_first_tab = false;
-                }
-                ?>
-            </div>
-        </div>
-
-        <!-- Main Vendors Accordion Container -->
-        <div id="vendor-accordions-container">
-            <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
-                <i class="fa fa-spinner fa-spin fa-2x"></i>
-                <p style="margin-top: 10px; font-size: 14px;">Loading vendors...</p>
-            </div>
-        </div>
-    <?php else: ?>
-        <!-- Empty State when no vendor categories exist -->
-        <div style="background: #fff; border-radius: 16px; border: 1px solid #f1f5f9; padding: 60px 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-top: 20px;">
-            <div style="width: 64px; height: 64px; border-radius: 50%; background: #ffeaeb; color: #dd2127; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 18px;">
-                <i class="fa fa-truck"></i>
-            </div>
-            <h3 style="margin: 0 0 8px; font-size: 20px; font-weight: 800; color: #0f172a;">No Vendors or Category Sections Yet</h3>
-            <p style="margin: 0 0 24px; font-size: 14px; color: #64748b;">Add your first vendor to create a category section and organize your vendor directory.</p>
-            <a href="index.php?add_vendor" class="btn-premium-add">
-                <i class="fa fa-plus"></i> Add New Vendor
-            </a>
-        </div>
-    <?php endif; ?>
-</div>
-
 <style>
     .v-tab-btn {
         background: transparent;
@@ -222,6 +164,65 @@ $first_sec = !empty($db_tab_secs) ? $db_tab_secs[0] : '';
         background: #f8fafc;
     }
 </style>
+<div class="page-wrapper premium-ui-enabled">
+    <!-- Top Action Card Header -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; background: #fff; border-radius: 14px; padding: 14px 20px; border: 1px solid #f1f5f9; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+        <div>
+            <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.3px;">Vendor Management</h2>
+        </div>
+
+        <!-- Top Right Action Controls -->
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <div style="position: relative; width: 230px;">
+                <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px; z-index: 1;"></i>
+                <input type="text" id="vendorSearchInput" onkeyup="handleVendorSearch()" placeholder="Search vendor..." style="width: 100%; border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 14px 9px 38px; font-size: 13px; outline: none; background: #f8fafc; color: #1e293b; transition: all 0.2s ease;" onfocus="this.style.background='#fff'; this.style.borderColor='#dd2127';" onblur="this.style.background='#f8fafc'; this.style.borderColor='#e2e8f0';">
+            </div>
+            <a href="index.php?add_vendor" class="btn-premium-add">
+                <i class="fa fa-plus"></i> Add New Vendor
+            </a>
+        </div>
+    </div>
+
+    <?php if (!empty($db_tab_secs)): ?>
+        <!-- Section Category Tabs Bar -->
+        <div style="background: #fff; border-radius: 14px; border: 1px solid #f1f5f9; padding: 6px 10px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); overflow-x: auto;">
+            <div id="vendor-category-tabs" style="display: flex; gap: 6px; min-width: max-content;">
+                <?php
+                $is_first_tab = true;
+                foreach ($db_tab_secs as $t_sec) {
+                    $act_cls = $is_first_tab ? 'active' : '';
+                    echo "<button class='v-tab-btn $act_cls' data-sec='" . htmlspecialchars($t_sec) . "' onclick=\"switchVendorSection('" . htmlspecialchars(addslashes($t_sec)) . "', this)\">";
+                    echo "<i class='fa fa-tags' style='color: #dd2127;'></i> " . htmlspecialchars($t_sec);
+                    echo "</button>";
+                    $is_first_tab = false;
+                }
+                ?>
+            </div>
+        </div>
+
+        <!-- Main Vendors Accordion Container -->
+        <div id="vendor-accordions-container">
+            <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+                <i class="fa fa-spinner fa-spin fa-2x"></i>
+                <p style="margin-top: 10px; font-size: 14px;">Loading vendors...</p>
+            </div>
+        </div>
+    <?php else: ?>
+        <!-- Empty State when no vendor categories exist -->
+        <div style="background: #fff; border-radius: 16px; border: 1px solid #f1f5f9; padding: 60px 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-top: 20px;">
+            <div style="width: 64px; height: 64px; border-radius: 50%; background: #ffeaeb; color: #dd2127; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 18px;">
+                <i class="fa fa-truck"></i>
+            </div>
+            <h3 style="margin: 0 0 8px; font-size: 20px; font-weight: 800; color: #0f172a;">No Vendors or Category Sections Yet</h3>
+            <p style="margin: 0 0 24px; font-size: 14px; color: #64748b;">Add your first vendor to create a category section and organize your vendor directory.</p>
+            <a href="index.php?add_vendor" class="btn-premium-add">
+                <i class="fa fa-plus"></i> Add New Vendor
+            </a>
+        </div>
+    <?php endif; ?>
+</div>
+
+
 
 <script>
     let currentVendorSection = '<?php echo !empty($first_sec) ? htmlspecialchars(addslashes($first_sec)) : ''; ?>';
@@ -259,7 +260,7 @@ $first_sec = !empty($db_tab_secs) ? $db_tab_secs[0] : '';
                 section: sec,
                 search: search
             },
-            dataType: 'json',  
+            dataType: 'json',
             success: function(res) {
                 if (res.status === 'success') {
                     renderVendorAccordions(res.grouped, sec);

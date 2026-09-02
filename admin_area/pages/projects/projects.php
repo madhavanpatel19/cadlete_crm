@@ -209,20 +209,52 @@ $run_projects = mysqli_query($con, $get_projects);
                                 <th>Project Name</th>
                                 <th>Team Members</th>
                                 <?php if (canAdminAccess('project_source_view')): ?>
-                                    <th style="position: relative; overflow: visible; min-width: 100px; padding: 15px 10px !important;">
-                                        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; font-size: 12px; color: <?php echo !empty($_GET['source']) ? '#1e293b' : '#64748b'; ?>; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.3s;">
+                                    <th style="position: relative; overflow: visible; min-width: 110px; padding: 15px 10px !important;">
+                                        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; font-size: 12px; color: <?php echo !empty($_GET['source']) ? '#4f46e5' : '#64748b'; ?>; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.3s;">
                                             <?php echo !empty($_GET['source']) ? htmlspecialchars($_GET['source']) : 'Source'; ?>
-                                            <i class="fa fa-filter" style="font-size: 11px; color: <?php echo !empty($_GET['source']) ? '#4f46e5' : '#94a3b8'; ?>;"></i>
+                                            <?php if (!empty($_GET['source'])): ?>
+                                                <i class="fa fa-times-circle" style="font-size: 13px; color: #ef4444; cursor: pointer; z-index: 20; position: relative;" title="Clear Source Filter" onclick="event.stopPropagation(); applySourceFilter('');"></i>
+                                            <?php else: ?>
+                                                <i class="fa fa-filter" style="font-size: 11px; color: #94a3b8;"></i>
+                                            <?php endif; ?>
                                         </div>
                                         <select id="sourceSelect" onchange="applySourceFilter(this.value)"
-                                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;">
+                                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;" title="Filter by Source">
+                                            <option value="" <?php if (empty($source_filter)) echo 'selected'; ?>>All Sources (Clear Filter)</option>
                                             <?php
-                                            $source_filter = isset($_GET['source']) ? $_GET['source'] : '';
-                                            $get_all_sources = "SELECT * FROM lead_sources WHERE deleted_at IS NULL ORDER BY source_name ASC";
-                                            $run_all_sources = mysqli_query($con, $get_all_sources);
-                                            while ($s_row = mysqli_fetch_array($run_all_sources)) {
-                                                $s_name = $s_row['source_name'];
-                                                $selected = ($source_filter == $s_name) ? 'selected' : '';
+                                            $source_filter = isset($_GET['source']) ? trim($_GET['source']) : '';
+                                            $all_sources_map = [];
+
+                                            // 1. Fetch from lead_sources table
+                                            $get_ls = mysqli_query($con, "SELECT source_name FROM lead_sources WHERE deleted_at IS NULL");
+                                            if ($get_ls) {
+                                                while ($ls_row = mysqli_fetch_assoc($get_ls)) {
+                                                    $sn = trim($ls_row['source_name'] ?? '');
+                                                    if (!empty($sn)) {
+                                                        $all_sources_map[mb_strtolower($sn)] = $sn;
+                                                    }
+                                                }
+                                            }
+
+                                            // 2. Fetch from client_projects table and split comma-separated sources (e.g. "BNI, Civil" -> "BNI" & "Civil")
+                                            $get_cp_src = mysqli_query($con, "SELECT DISTINCT source FROM client_projects WHERE source IS NOT NULL AND source != '' AND deleted_at IS NULL");
+                                            if ($get_cp_src) {
+                                                while ($cp_row = mysqli_fetch_assoc($get_cp_src)) {
+                                                    $parts = explode(',', $cp_row['source'] ?? '');
+                                                    foreach ($parts as $p) {
+                                                        $sn = trim($p);
+                                                        if (!empty($sn)) {
+                                                            $all_sources_map[mb_strtolower($sn)] = $sn;
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // Sort sources alphabetically
+                                            ksort($all_sources_map);
+
+                                            foreach ($all_sources_map as $s_name) {
+                                                $selected = (strcasecmp($source_filter, $s_name) === 0) ? 'selected' : '';
                                                 echo "<option value='" . htmlspecialchars($s_name) . "' $selected>" . htmlspecialchars($s_name) . "</option>";
                                             }
                                             ?>

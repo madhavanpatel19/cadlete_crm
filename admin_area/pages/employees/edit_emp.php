@@ -206,7 +206,8 @@ function edit_user($con, $employee)
     $passwordResetMsg = '';
     $newPassword      = trim($_POST['edit_emp_password'] ?? '');
     if (!empty($newPassword)) {
-        $safeNewPassword = mysqli_real_escape_string($con, $newPassword);
+        $hashedNewPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        $safeNewPassword = mysqli_real_escape_string($con, $hashedNewPassword);
         $q_extra .= ", password = '$safeNewPassword'";
         $passwordResetMsg = $newPassword; // Store for success message display
     }
@@ -376,7 +377,10 @@ sort($existing_desigs);
 
 <div class="page-wrapper premium-ui-enabled">
     <div class="page-header-premium">
-        <h1></h1>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #1e293b;"><i class="fa fa-pencil-square-o" style="color: #dd2127;"></i> Edit Employee</h1>
+            <span style="background: #e2e8f0; color: #1e293b; font-size: 13px; font-weight: 800; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.5px;">ID: <?php echo format_emp_id($employee['id']); ?></span>
+        </div>
         <div class="header-actions-premium">
             <a href="index.php?emp_directory" class="btn-premium-cancel">
                 <i class="fa fa-arrow-left"></i> Back to Directory
@@ -389,11 +393,16 @@ sort($existing_desigs);
 
         <!-- 1. Personal Information -->
         <div class="premium-card" style="margin: 0 30px 30px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: #fff;">
-            <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">1</div>
-                <div>
-                    <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #1e293b;">Personal Information</h3>
-                    <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Basic details and identity</p>
+            <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 32px; height: 32px; background: #dd2127; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">1</div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #1e293b;">Personal Information</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Basic details and identity</p>
+                    </div>
+                </div>
+                <div style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 800; color: #334155;">
+                    <i class="fa fa-id-card-o" style="color: #64748b; margin-right: 6px;"></i> Employee ID: <span style="color: #dd2127;"><?php echo format_emp_id($employee['id']); ?></span>
                 </div>
             </div>
             <div style="padding: 30px;">
@@ -811,7 +820,10 @@ sort($existing_desigs);
                         <div class="form-group">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                                 <label style="font-weight: 600; color: #475569; margin: 0;">Designation *</label>
-                                <button type="button" class="btn btn-sm btn-success" style="padding: 2px 10px; font-size: 11px; border-radius: 6px; font-weight: 700; background: #059669; border: none; cursor: pointer;" onclick="addNewDesignation()"><i class="fa fa-plus"></i> New</button>
+                                <div style="display: flex; gap: 6px;">
+                                    <button type="button" class="btn btn-sm btn-success" style="padding: 2px 10px; font-size: 11px; border-radius: 6px; font-weight: 700; background: #059669; border: none; cursor: pointer;" onclick="addNewDesignation()"><i class="fa fa-plus"></i> New</button>
+                                    <button type="button" class="btn btn-sm btn-danger" style="padding: 2px 10px; font-size: 11px; border-radius: 6px; font-weight: 700; background: #ef4444; border: none; cursor: pointer;" onclick="deleteDesignationOption()"><i class="fa fa-trash"></i> Delete</button>
+                                </div>
                             </div>
                             <?php
                             $cur_desig = trim($employee['designation'] ?? '');
@@ -832,7 +844,10 @@ sort($existing_desigs);
                         <div class="form-group">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                                 <label style="font-weight: 600; color: #475569; margin: 0;">Department *</label>
-                                <button type="button" class="btn btn-sm btn-success" style="padding: 2px 10px; font-size: 11px; border-radius: 6px; font-weight: 700; background: #059669; border: none; cursor: pointer;" onclick="addNewDepartment()"><i class="fa fa-plus"></i> New</button>
+                                <div style="display: flex; gap: 6px;">
+                                    <button type="button" class="btn btn-sm btn-success" style="padding: 2px 10px; font-size: 11px; border-radius: 6px; font-weight: 700; background: #059669; border: none; cursor: pointer;" onclick="addNewDepartment()"><i class="fa fa-plus"></i> New</button>
+                                    <button type="button" class="btn btn-sm btn-danger" style="padding: 2px 10px; font-size: 11px; border-radius: 6px; font-weight: 700; background: #ef4444; border: none; cursor: pointer;" onclick="deleteDepartmentOption()"><i class="fa fa-trash"></i> Delete</button>
+                                </div>
                             </div>
                             <?php
                             $cur_dept = trim($employee['department'] ?? '');
@@ -1247,13 +1262,7 @@ sort($existing_desigs);
                         opt.selected = true;
                         select.appendChild(opt);
                     }
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Department Added',
-                        text: `"${newDept}" has been added and selected.`,
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
+                    showPremiumAlert(`"${newDept}" added and selected`);
                 }
             });
         } else {
@@ -1275,6 +1284,7 @@ sort($existing_desigs);
                     opt.selected = true;
                     select.appendChild(opt);
                 }
+                showPremiumAlert(`"${val}" added and selected`);
             }
         }
     }
@@ -1315,13 +1325,7 @@ sort($existing_desigs);
                         opt.selected = true;
                         select.appendChild(opt);
                     }
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Function / Designation Added',
-                        text: `"${newDesig}" has been added and selected.`,
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
+                    showPremiumAlert(`"${newDesig}" added and selected`);
                 }
             });
         } else {
@@ -1343,7 +1347,316 @@ sort($existing_desigs);
                     opt.selected = true;
                     select.appendChild(opt);
                 }
+                showPremiumAlert(`"${val}" added and selected`);
             }
         }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    function showPremiumAlert(message, type = 'success') {
+        let container = document.getElementById('toast-container-custom');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container-custom';
+            container.style.position = 'fixed';
+            container.style.bottom = '20px';
+            container.style.right = '20px';
+            container.style.zIndex = '999999';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '10px';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.style.background = '#1e293b';
+        toast.style.color = '#fff';
+        toast.style.padding = '14px 22px';
+        toast.style.borderRadius = '12px';
+        toast.style.boxShadow = '0 10px 25px -3px rgba(0,0,0,0.25)';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '12px';
+        toast.style.fontSize = '14px';
+        toast.style.fontWeight = '600';
+        toast.style.transform = 'translateY(80px) scale(0.9)';
+        toast.style.opacity = '0';
+        toast.style.transition = 'all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
+        const isError = (type === 'error' || type === 'delete');
+        const iconBg = isError ? '#ef4444' : '#10b981';
+        const iconClass = isError ? 'fa-trash' : 'fa-check';
+
+        toast.innerHTML = `
+            <div style="width: 26px; height: 26px; background: ${iconBg}; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i class="fa ${iconClass}" style="font-size: 13px;"></i>
+            </div>
+            <span>${message}</span>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateY(0) scale(1)';
+            toast.style.opacity = '1';
+        }, 10);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateY(20px) scale(0.9)';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 350);
+        }, 3000);
+    }
+
+    function deleteDesignationOption(selectId = 'emp_designation') {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        const options = [];
+        for (let i = 0; i < select.options.length; i++) {
+            const val = select.options[i].value;
+            if (val && val.trim() !== '') {
+                options.push({
+                    text: select.options[i].text,
+                    value: val
+                });
+            }
+        }
+
+        if (options.length === 0) {
+            showPremiumAlert('There are no designation options available to manage.', 'error');
+            return;
+        }
+
+        let listHtml = '<div style="max-height: 280px; overflow-y: auto; text-align: left; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">';
+        options.forEach((opt, idx) => {
+            const safeVal = opt.value.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            listHtml += `
+                <div id="desig-item-${idx}" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #1e293b; background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                    <span class="desig-name-text" style="font-size: 13.5px;"><i class="fa fa-briefcase" style="color: #64748b; margin-right: 8px;"></i> ${escapeHtml(opt.text)}</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button type="button" onclick="editDesignationInSelect('${selectId}', ${idx}, '${safeVal}')" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s;" title="Edit option">
+                            <i class="fa fa-pencil"></i> Edit
+                        </button>
+                        <button type="button" onclick="removeDesignationFromSelect('${selectId}', ${idx}, '${safeVal}')" style="background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s;" title="Delete option">
+                            <i class="fa fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        listHtml += '</div>';
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: '<div style="font-weight: 800; font-size: 18px; color: #0f172a;">Manage Designation Options</div>',
+                html: listHtml,
+                showConfirmButton: false,
+                showCloseButton: true,
+                width: '480px'
+            });
+        }
+    }
+
+    function editDesignationInSelect(selectId, index, oldVal) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Edit Designation Name',
+                input: 'text',
+                inputValue: oldVal,
+                showCancelButton: true,
+                confirmButtonText: 'Save Changes',
+                confirmButtonColor: '#059669',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'Designation name cannot be empty!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    const newVal = result.value.trim();
+                    const select = document.getElementById(selectId);
+                    if (select) {
+                        for (let i = 0; i < select.options.length; i++) {
+                            if (select.options[i].value === oldVal) {
+                                select.options[i].value = newVal;
+                                select.options[i].text = newVal;
+                                break;
+                            }
+                        }
+                    }
+                    const nameSpan = document.querySelector(`#desig-item-${index} .desig-name-text`);
+                    if (nameSpan) {
+                        nameSpan.innerHTML = `<i class="fa fa-briefcase" style="color: #64748b; margin-right: 8px;"></i> ${escapeHtml(newVal)}`;
+                    }
+                    showPremiumAlert(`"${newVal}" updated successfully`);
+                }
+            });
+        } else {
+            const newVal = prompt('Edit Designation Name:', oldVal);
+            if (newVal && newVal.trim()) {
+                const val = newVal.trim();
+                const select = document.getElementById(selectId);
+                if (select) {
+                    for (let i = 0; i < select.options.length; i++) {
+                        if (select.options[i].value === oldVal) {
+                            select.options[i].value = val;
+                            select.options[i].text = val;
+                            break;
+                        }
+                    }
+                }
+                showPremiumAlert(`"${val}" updated successfully`);
+            }
+        }
+    }
+
+    function removeDesignationFromSelect(selectId, index, val) {
+        const select = document.getElementById(selectId);
+        if (select) {
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === val) {
+                    select.remove(i);
+                    break;
+                }
+            }
+        }
+
+        const row = document.getElementById(`desig-item-${index}`);
+        if (row) {
+            row.style.background = '#fee2e2';
+            row.style.opacity = '0.4';
+            setTimeout(() => row.remove(), 200);
+        }
+
+        showPremiumAlert(`"${val}" deleted successfully`, 'delete');
+    }
+
+    function deleteDepartmentOption(selectId = 'emp_department') {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        const options = [];
+        for (let i = 0; i < select.options.length; i++) {
+            const val = select.options[i].value;
+            if (val && val.trim() !== '') {
+                options.push({
+                    text: select.options[i].text,
+                    value: val
+                });
+            }
+        }
+
+        if (options.length === 0) {
+            showPremiumAlert('There are no department options available to manage.', 'error');
+            return;
+        }
+
+        let listHtml = '<div style="max-height: 280px; overflow-y: auto; text-align: left; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">';
+        options.forEach((opt, idx) => {
+            const safeVal = opt.value.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            listHtml += `
+                <div id="dept-item-${idx}" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #1e293b; background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                    <span class="dept-name-text" style="font-size: 13.5px;"><i class="fa fa-building" style="color: #64748b; margin-right: 8px;"></i> ${escapeHtml(opt.text)}</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button type="button" onclick="editDepartmentInSelect('${selectId}', ${idx}, '${safeVal}')" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s;" title="Edit option">
+                            <i class="fa fa-pencil"></i> Edit
+                        </button>
+                        <button type="button" onclick="removeDepartmentFromSelect('${selectId}', ${idx}, '${safeVal}')" style="background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s;" title="Delete option">
+                            <i class="fa fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        listHtml += '</div>';
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: '<div style="font-weight: 800; font-size: 18px; color: #0f172a;">Manage Department Options</div>',
+                html: listHtml,
+                showConfirmButton: false,
+                showCloseButton: true,
+                width: '480px'
+            });
+        }
+    }
+
+    function editDepartmentInSelect(selectId, index, oldVal) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Edit Department Name',
+                input: 'text',
+                inputValue: oldVal,
+                showCancelButton: true,
+                confirmButtonText: 'Save Changes',
+                confirmButtonColor: '#059669',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'Department name cannot be empty!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    const newVal = result.value.trim();
+                    const select = document.getElementById(selectId);
+                    if (select) {
+                        for (let i = 0; i < select.options.length; i++) {
+                            if (select.options[i].value === oldVal) {
+                                select.options[i].value = newVal;
+                                select.options[i].text = newVal;
+                                break;
+                            }
+                        }
+                    }
+                    const nameSpan = document.querySelector(`#dept-item-${index} .dept-name-text`);
+                    if (nameSpan) {
+                        nameSpan.innerHTML = `<i class="fa fa-building" style="color: #64748b; margin-right: 8px;"></i> ${escapeHtml(newVal)}`;
+                    }
+                    showPremiumAlert(`"${newVal}" updated successfully`);
+                }
+            });
+        } else {
+            const newVal = prompt('Edit Department Name:', oldVal);
+            if (newVal && newVal.trim()) {
+                const val = newVal.trim();
+                const select = document.getElementById(selectId);
+                if (select) {
+                    for (let i = 0; i < select.options.length; i++) {
+                        if (select.options[i].value === oldVal) {
+                            select.options[i].value = val;
+                            select.options[i].text = val;
+                            break;
+                        }
+                    }
+                }
+                showPremiumAlert(`"${val}" updated successfully`);
+            }
+        }
+    }
+
+    function removeDepartmentFromSelect(selectId, index, val) {
+        const select = document.getElementById(selectId);
+        if (select) {
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === val) {
+                    select.remove(i);
+                    break;
+                }
+            }
+        }
+
+        const row = document.getElementById(`dept-item-${index}`);
+        if (row) {
+            row.style.background = '#fee2e2';
+            row.style.opacity = '0.4';
+            setTimeout(() => row.remove(), 200);
+        }
+
+        showPremiumAlert(`"${val}" deleted successfully`, 'delete');
     }
 </script>

@@ -199,7 +199,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         align-items: center !important;
         gap: 12px !important;
         padding: 12px 0 !important;
-        border-bottom: 1px solid #f1f5f9 !important;
+        border-bottom: 1px solid #686868ff !important;
         transition: 0.2s !important;
     }
 
@@ -835,16 +835,29 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
 
                 $emp_name = htmlspecialchars($emp['name']);
                 $emp_job = htmlspecialchars(!empty($emp['department']) ? $emp['department'] : (!empty($emp['designation']) ? $emp['designation'] : 'Employee'));
-                $emp_img = !empty($emp['employee_image']) ? 'uploads/' . htmlspecialchars($emp['employee_image']) : null;
+
+                $raw_img = trim($emp['employee_image'] ?? $emp['image'] ?? $emp['admin_image'] ?? '');
+                $emp_photo = null;
+                if (!empty($raw_img)) {
+                    if (file_exists(__DIR__ . '/../../uploads/' . $raw_img)) {
+                        $emp_photo = 'uploads/' . htmlspecialchars($raw_img);
+                    } elseif (file_exists(__DIR__ . '/../../../uploads/' . $raw_img)) {
+                        $emp_photo = '../uploads/' . htmlspecialchars($raw_img);
+                    } elseif (file_exists(__DIR__ . '/../../admin_images/' . $raw_img)) {
+                        $emp_photo = 'admin_images/' . htmlspecialchars($raw_img);
+                    } elseif (file_exists(__DIR__ . '/../../../admin_images/' . $raw_img)) {
+                        $emp_photo = '../admin_images/' . htmlspecialchars($raw_img);
+                    }
+                }
                 $c_theme = $module_colors[$emp_idx % count($module_colors)];
         ?>
                 <div class="todo-column" data-emp-id="<?php echo $emp_id; ?>" style="border-left: 4px solid <?php echo $c_theme['border']; ?>;">
                     <div class="todo-col-header" style="border-left: none;">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <?php if ($emp_img && file_exists('../../' . $emp_img)) { ?>
-                                <img src="<?php echo $emp_img; ?>" class="emp-avatar" style="border: 2px solid <?php echo $c_theme['border']; ?>;">
+                            <?php if (!empty($emp_photo)) { ?>
+                                <img src="<?php echo $emp_photo; ?>" class="emp-avatar" style="border: 2px solid <?php echo $c_theme['border']; ?>;">
                             <?php } else { ?>
-                                <div class="emp-avatar-fallback" style="background: <?php echo $c_theme['bg']; ?>; color: <?php echo $c_theme['color']; ?>; border: 2px solid <?php echo $c_theme['badge_border']; ?>;"><?php echo strtoupper(substr($emp_name, 0, 1)); ?></div>
+                                <div class="emp-avatar-fallback" style="background: <?php echo $c_theme['bg']; ?>; color: <?php echo $c_theme['color']; ?>; border: 2px solid <?php echo $c_theme['badge_border']; ?>;"><?php echo strtoupper(substr(trim($emp['name'] ?? 'E'), 0, 1)); ?></div>
                             <?php } ?>
                             <div>
                                 <div class="emp-name"><?php echo $emp_name; ?></div>
@@ -1102,6 +1115,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
     const projectId = <?php echo $project_id; ?>;
     const _isEmpPortal = <?php echo $is_employee_portal ? 'true' : 'false'; ?>;
     const _ajaxBaseUrl = _isEmpPortal ? '../admin_area/ajax/projects/' : 'ajax/projects/';
+    const canTodoDelete = <?php echo (!$is_employee_portal && (function_exists('canAdminAccess') && (canAdminAccess('todo_delete') || canAdminAccess('project_assign_task')))) ? 'true' : 'false'; ?>;
 
     $(document).ready(function() {
         // Load tasks for all columns
@@ -1216,12 +1230,14 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                         <div class="task-meta">
                             ${priorityHtml}
                             ${dateBadge}
+                            ${canTodoDelete ? `
                             <div class="dropdown">
                                 <button class="icon-btn" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i></button>
                                 <ul class="dropdown-menu dropdown-menu-right" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
                                     <li><a href="#" onclick="deleteTask(${task.id}, ${empId}); return false;" style="color: #ef4444; font-weight: 600; padding: 10px 20px;"><i class="fa fa-trash-o" style="margin-right: 8px;"></i> Delete</a></li>
                                 </ul>
                             </div>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -1359,7 +1375,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                     $('#td-priority').prop('disabled', false).css('background', '#ffffff');
                     $('#td-desc-upload-btn-wrap').show();
                 } else {
-                    $('#td-title').prop('readonly', true).css({
+                    $('#td-title').prop(    'readonly', true).css({
                         'pointer-events': 'none',
                         'border-bottom-color': 'transparent'
                     });

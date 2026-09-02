@@ -12,7 +12,7 @@ if ($report_type === 'daily' && !$single_date) {
 }
 
 // Fetch all employees
-function get_all_employees($con)
+function get_all_employees(mysqli $con): array
 {
     $arr = array();
     $q = "SELECT id, name FROM emp_list ORDER BY name ASC";
@@ -24,7 +24,7 @@ function get_all_employees($con)
 }
 
 // Fetch attendance for date range
-function get_attendance_range($con, $from_date, $to_date)
+function get_attendance_range(mysqli $con, string $from_date, string $to_date): array
 {
     $ret = array();
     $from = mysqli_real_escape_string($con, $from_date);
@@ -44,7 +44,7 @@ function get_attendance_range($con, $from_date, $to_date)
 }
 
 // Count attendance status for a date range
-function count_status_in_range($con, $emp_id, $from_date, $to_date, $status)
+function count_status_in_range(mysqli $con, int $emp_id, string $from_date, string $to_date, string $status): int
 {
     $emp_id = (int)$emp_id;
     $from = mysqli_real_escape_string($con, $from_date);
@@ -89,7 +89,7 @@ if ($report_type === 'daily' && $single_date) {
     }
 }
 
-function generate_attendance_pdf($con, $employees, $report_data, $from_date, $to_date, $report_type = 'range')
+function generate_attendance_pdf(mysqli $con, array $employees, array $report_data, string $from_date, string $to_date, string $report_type = 'range'): void
 {
     // Generate downloadable HTML file as PDF alternative
     $from_label = date('d-m-y', strtotime($from_date));
@@ -168,6 +168,10 @@ function generate_attendance_pdf($con, $employees, $report_data, $from_date, $to
     echo '</thead>';
     echo '<tbody>';
 
+    $total_present = 0;
+    $total_absent = 0;
+    $total_leave = 0;
+
     if ($report_type === 'daily') {
         // Daily report with remarks + times
         foreach ($employees as $emp) {
@@ -216,7 +220,7 @@ function generate_attendance_pdf($con, $employees, $report_data, $from_date, $to
             }
 
             echo '<tr>';
-            echo '<td>' . $emp_id . '</td>';
+            echo '<td>' . format_emp_id($emp_id) . '</td>';
             echo '<td>' . htmlspecialchars($emp['name']) . '</td>';
             echo '<td>' . htmlspecialchars($check_in) . '</td>';
             echo '<td>' . htmlspecialchars($check_out) . '</td>';
@@ -262,7 +266,7 @@ function generate_attendance_pdf($con, $employees, $report_data, $from_date, $to
             }
 
             echo '<tr>';
-            echo '<td>' . $emp_id . '</td>';
+            echo '<td>' . format_emp_id($emp_id) . '</td>';
             echo '<td>' . htmlspecialchars($emp['name']) . '</td>';
             echo '<td class="status-present">' . $present . '</td>';
             echo '<td class="status-absent">' . $absent . '</td>';
@@ -724,7 +728,7 @@ function generate_attendance_pdf($con, $employees, $report_data, $from_date, $to
                                     }
 
                                     echo '<tr>';
-                                    echo '<td style="white-space: nowrap;">' . $emp_id . '</td>';
+                                    echo '<td style="white-space: nowrap;">' . format_emp_id($emp_id) . '</td>';
                                     echo '<td style="white-space: nowrap;">' . htmlspecialchars($emp['name']) . '</td>';
                                     echo '<td style="white-space: nowrap;">' . htmlspecialchars($check_in) . '</td>';
                                     echo '<td style="white-space: nowrap;">' . htmlspecialchars($check_out) . '</td>';
@@ -765,7 +769,7 @@ function generate_attendance_pdf($con, $employees, $report_data, $from_date, $to
                                     }
 
                                     echo '<tr>';
-                                    echo '<td style="white-space: nowrap;">' . $emp_id . '</td>';
+                                    echo '<td style="white-space: nowrap;">' . format_emp_id($emp_id) . '</td>';
                                     echo '<td style="white-space: nowrap;">' . htmlspecialchars($emp['name']) . '</td>';
                                     echo '<td style="text-align:center; color:#27ae60; font-weight:bold; white-space: nowrap;">' . $present . '</td>';
                                     echo '<td style="text-align:center; color:#e74c3c; font-weight:bold; white-space: nowrap;">' . $absent . '</td>';

@@ -125,6 +125,10 @@ if (mysqli_num_rows($run_projects) > 0) {
         }
     }
 
+    // SOP counts – ensure tables exist and get totals
+    mysqli_query($con, "CREATE TABLE IF NOT EXISTS `project_sop_items` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY, `category` VARCHAR(100) NOT NULL, `item_text` TEXT NOT NULL, `sort_order` INT(11) DEFAULT 0, `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    mysqli_query($con, "CREATE TABLE IF NOT EXISTS `project_sop_checklist` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY, `project_id` INT(11) NOT NULL, `sop_item_id` INT(11) NOT NULL, `is_checked` TINYINT(1) DEFAULT 0, `checked_by` VARCHAR(255) DEFAULT NULL, `checked_at` DATETIME DEFAULT NULL, UNIQUE KEY `unique_project_sop` (`project_id`, `sop_item_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
     // Get total SOP items count once
     $sop_total_res = mysqli_query($con, "SELECT COUNT(*) as t FROM project_sop_items");
     $sop_total = $sop_total_res ? (int)mysqli_fetch_assoc($sop_total_res)['t'] : 0;

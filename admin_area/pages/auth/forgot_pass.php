@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -142,9 +142,10 @@ if (isset($_POST['reset_password'])) {
                 $error = "This OTP has expired (15-minute limit). Please click 'Resend OTP' below.";
                 $currentState = 'otp';
             } else {
-                // Success! Reset password
-                // Note: Using plain text as requested by user
-                mysqli_query($con, "UPDATE emp_list SET password='$newpass', otp='', otp_expire=NULL WHERE email='$email'");
+                // Success! Reset password securely
+                $newpass_hash = mysqli_real_escape_string($con, password_hash($newpass, PASSWORD_DEFAULT));
+                mysqli_query($con, "UPDATE emp_list SET password='$newpass_hash', otp='', otp_expire=NULL WHERE email='$email'");
+                mysqli_query($con, "UPDATE admins SET admin_pass='$newpass_hash' WHERE admin_email='$email'");
 
                 // Clean up session
                 unset($_SESSION['reset_email']);
@@ -252,12 +253,14 @@ if (isset($_POST['reset_password'])) {
 
                     <div class="login-input-wrap">
                         <i class="fa fa-lock input-icon"></i>
-                        <input type="password" name="newpass" class="form-control" placeholder="New Password" required>
+                        <input type="password" name="newpass" id="newpass_input" class="form-control" placeholder="New Password" required>
+                        <i class="fa fa-eye toggle-password" id="newpass_eye" style="cursor:pointer" onclick="togglePasswordVisibility('newpass_input', 'newpass_eye')"></i>
                     </div>
 
                     <div class="login-input-wrap">
                         <i class="fa fa-lock input-icon"></i>
-                        <input type="password" name="confpass" class="form-control" placeholder="Confirm Password" required>
+                        <input type="password" name="confpass" id="confpass_input" class="form-control" placeholder="Confirm Password" required>
+                        <i class="fa fa-eye toggle-password" id="confpass_eye" style="cursor:pointer" onclick="togglePasswordVisibility('confpass_input', 'confpass_eye')"></i>
                     </div>
 
                     <button type="submit" name="reset_password" class="btn-login" style="margin-top: 15px;">
@@ -279,6 +282,22 @@ if (isset($_POST['reset_password'])) {
             <?php } ?>
         </div>
     </div>
+    <script>
+        function togglePasswordVisibility(inputId, eyeId) {
+            var input = document.getElementById(inputId);
+            var eye = document.getElementById(eyeId);
+            if (!input || !eye) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.classList.remove('fa-eye');
+                eye.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                eye.classList.remove('fa-eye-slash');
+                eye.classList.add('fa-eye');
+            }
+        }
+    </script>
 </body>
 
 </html>

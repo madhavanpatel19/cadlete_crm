@@ -1233,7 +1233,7 @@ if ($usedLeavesQuery && mysqli_num_rows($usedLeavesQuery) > 0) {
                         $rowStyle = ($status === 'Inactive') ? 'background: #fef2f2; opacity: 0.85;' : '';
                 ?>
                         <tr style="<?php echo $rowStyle; ?>">
-                            <td class="text-center" style="font-weight: 700; color: #64748b; text-align: center;"><?php echo $pk; ?></td>
+                            <td class="text-center" style="font-weight: 700; color: #64748b; text-align: center;"><?php echo format_emp_id($pk); ?></td>
                             <td class="text-center" style="text-align: center;">
                                 <div style="position: relative; display: inline-block;">
                                     <img src="<?php echo $img; ?>" class="emp-table-img <?php echo ($status === 'Inactive') ? 'grayscale-img' : ''; ?>" alt="Profile"

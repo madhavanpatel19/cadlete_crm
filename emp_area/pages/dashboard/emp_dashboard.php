@@ -1126,7 +1126,6 @@ function getResourceTypePhp(string $url)
                             <div class="p-av"><?php echo $init; ?></div>
                             <div class="p-info">
                                 <h4><?php echo htmlspecialchars($proj['project_name']); ?></h4>
-                                <small><?php echo htmlspecialchars($proj['client_name'] ?? 'Client'); ?></small>
                             </div>
                             <div class="p-dl"><?php echo $dl; ?></div>
                         </div>
@@ -1285,15 +1284,18 @@ function getResourceTypePhp(string $url)
 
         window.parseWorkDetails = function(text) {
             text = text || '';
-            var progress = '', planning = '', issues = '', help = '';
+            var progress = '',
+                planning = '',
+                issues = '',
+                help = '';
 
             function cleanHeaders(s) {
                 if (!s) return '';
                 return s.replace(/^Today[’']s Progress:\s*/gi, '')
-                        .replace(/^Planning for Tomorrow:\s*/gi, '')
-                        .replace(/^Issues:\s*/gi, '')
-                        .replace(/^Need any Help\??:\s*/gi, '')
-                        .trim();
+                    .replace(/^Planning for Tomorrow:\s*/gi, '')
+                    .replace(/^Issues:\s*/gi, '')
+                    .replace(/^Need any Help\??:\s*/gi, '')
+                    .trim();
             }
 
             var headersPattern = /(?:Today[’']s Progress:|Planning for Tomorrow:|Issues:|Need any Help\?:?)/i;

@@ -901,6 +901,24 @@ if (!isset($_SESSION['admin_email'])) {
                     }
                 }
             });
+
+            window.togglePasswordVisibility = function(inputId, eyeId) {
+                var input = document.getElementById(inputId);
+                var eye = document.getElementById(eyeId);
+                if (input) {
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        if (eye) {
+                            eye.className = 'fa fa-eye-slash';
+                        }
+                    } else {
+                        input.type = 'password';
+                        if (eye) {
+                            eye.className = 'fa fa-eye';
+                        }
+                    }
+                }
+            };
         </script>
     </body>
 

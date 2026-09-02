@@ -54,8 +54,9 @@ if (isset($_POST['submit'])) {
     $is_super = (isset($_POST['is_super_admin']) && $_POST['is_super_admin'] == '1') ? 1 : 0;
     $perm_esc = mysqli_real_escape_string($con, $permissions);
     $dept_esc = mysqli_real_escape_string($con, $admin_dept);
+    $pass_hashed = password_hash($admin_pass, PASSWORD_DEFAULT);
 
-    $insert_admin = "INSERT INTO admins (admin_name,admin_email,admin_pass,admin_image,admin_contact,admin_country,admin_job,department,admin_about,permissions,is_super_admin) VALUES ('" . mysqli_real_escape_string($con, $admin_name) . "','" . mysqli_real_escape_string($con, $admin_email) . "','" . mysqli_real_escape_string($con, $admin_pass) . "','" . mysqli_real_escape_string($con, $admin_image) . "','" . mysqli_real_escape_string($con, $admin_contact) . "','" . mysqli_real_escape_string($con, $admin_country) . "','" . mysqli_real_escape_string($con, $admin_job) . "','" . $dept_esc . "','" . mysqli_real_escape_string($con, $admin_about) . "','$perm_esc','$is_super')";
+    $insert_admin = "INSERT INTO admins (admin_name,admin_email,admin_pass,admin_image,admin_contact,admin_country,admin_job,department,admin_about,permissions,is_super_admin) VALUES ('" . mysqli_real_escape_string($con, $admin_name) . "','" . mysqli_real_escape_string($con, $admin_email) . "','" . mysqli_real_escape_string($con, $pass_hashed) . "','" . mysqli_real_escape_string($con, $admin_image) . "','" . mysqli_real_escape_string($con, $admin_contact) . "','" . mysqli_real_escape_string($con, $admin_country) . "','" . mysqli_real_escape_string($con, $admin_job) . "','" . $dept_esc . "','" . mysqli_real_escape_string($con, $admin_about) . "','$perm_esc','$is_super')";
 
     $run_admin = mysqli_query($con, $insert_admin);
     if ($run_admin) {
@@ -163,7 +164,12 @@ sort($user_desigs);
                             <div class="col-md-6">
                                 <div class="form-group" style="margin-bottom: 20px;">
                                     <label class="premium-label" style="font-size: 14px; color: #334155;">Admin Password <span style="color: #ef4444;">*</span></label>
-                                    <input type="password" name="admin_pass" class="p-input-premium" style="height: 48px; width:100%; border-radius:8px; border:1px solid #e2e8f0; padding:0 15px;" placeholder="••••••••" value="" required>
+                                    <div style="position: relative;">
+                                        <input type="password" name="admin_pass" id="insert_admin_pass_input" class="p-input-premium" style="height: 48px; width:100%; border-radius:8px; border:1px solid #e2e8f0; padding:0 45px 0 15px;" placeholder="••••••••" value="" required>
+                                        <button type="button" onclick="var el = document.getElementById('insert_admin_pass_input'); var eye = document.getElementById('insert_admin_pass_eye'); if (el.type === 'password') { el.type = 'text'; eye.className = 'fa fa-eye-slash'; } else { el.type = 'password'; eye.className = 'fa fa-eye'; } return false;" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; outline: none; cursor: pointer; color: #64748b; font-size: 16px; padding: 4px; display: flex; align-items: center; justify-content: center; z-index: 10;" title="Show/Hide Password">
+                                            <i class="fa fa-eye" id="insert_admin_pass_eye"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -180,7 +186,7 @@ sort($user_desigs);
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="premium-label" style="font-size: 14px; color: #334155;">Contact Number <span style="color: #ef4444;">*</span></label>
-                            <input type="tel" name="admin_contact" class="p-input-premium" style="height: 48px; width:100%; border-radius: 8px; border: 1px solid #e2e8f0; padding:0 15px;" maxlength="10" placeholder="10-digit mobile" value="" required>
+                            <input type="tel" name="admin_contact" class="p-input-premium" style="height: 48px; width:100%; border-radius: 8px; border: 1px solid #e2e8f0; padding:0 15px;" placeholder="e.g. +1 (201) 555-0123" value="" required>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -571,28 +577,42 @@ sort($user_desigs);
                     select.appendChild(opt);
                 }
             }
+
+            function togglePasswordVisibility(inputId, eyeId) {
+                var input = document.getElementById(inputId);
+                var eye = document.getElementById(eyeId);
+                if (!input || !eye) return;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    eye.classList.remove('fa-eye');
+                    eye.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    eye.classList.remove('fa-eye-slash');
+                    eye.classList.add('fa-eye');
+                }
+            }
         }
-    }
 </script>
 
 <?php if (isset($insert_success) && $insert_success): ?>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            title: 'User Created Successfully!',
-            text: 'The new admin user has been added to the system.',
-            icon: 'success',
-            confirmButtonColor: '#dd2127',
-            confirmButtonText: 'OK',
-            allowOutsideClick: false
-        }).then(() => {
-            window.location.href = 'index.php?view_users';
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'User Created Successfully!',
+                    text: 'The new admin user has been added to the system.',
+                    icon: 'success',
+                    confirmButtonColor: '#dd2127',
+                    confirmButtonText: 'OK',
+                    allowOutsideClick: false
+                }).then(() => {
+                    window.location.href = 'index.php?view_users';
+                });
+            } else {
+                alert('User Created Successfully!');
+                window.location.href = 'index.php?view_users';
+            }
         });
-    } else {
-        alert('User Created Successfully!');
-        window.location.href = 'index.php?view_users';
-    }
-});
-</script>
+    </script>
 <?php endif; ?>

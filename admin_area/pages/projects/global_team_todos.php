@@ -371,7 +371,7 @@ if ($run_projs) {
         display: flex;
         flex-direction: column;
         padding: 12px 0;
-        border-bottom: 1px solid #f8fafc;
+        border-bottom: 1px solid #686868ff;
         transition: background 0.15s ease;
         width: 100%;
     }
@@ -1116,7 +1116,19 @@ if ($run_projs) {
                     $emp_name = htmlspecialchars($emp['name']);
                     $emp_dept = !empty($emp['department']) ? $emp['department'] : (!empty($emp['designation']) ? $emp['designation'] : 'Employee');
                     $emp_job = htmlspecialchars($emp_dept);
-                    $emp_img = !empty($emp['employee_image']) ? 'uploads/' . htmlspecialchars($emp['employee_image']) : null;
+                    $raw_img = trim($emp['employee_image'] ?? $emp['image'] ?? $emp['admin_image'] ?? '');
+                    $emp_photo = null;
+                    if (!empty($raw_img)) {
+                        if (file_exists(__DIR__ . '/../../uploads/' . $raw_img)) {
+                            $emp_photo = 'uploads/' . htmlspecialchars($raw_img);
+                        } elseif (file_exists(__DIR__ . '/../../../uploads/' . $raw_img)) {
+                            $emp_photo = '../uploads/' . htmlspecialchars($raw_img);
+                        } elseif (file_exists(__DIR__ . '/../../admin_images/' . $raw_img)) {
+                            $emp_photo = 'admin_images/' . htmlspecialchars($raw_img);
+                        } elseif (file_exists(__DIR__ . '/../../../admin_images/' . $raw_img)) {
+                            $emp_photo = '../admin_images/' . htmlspecialchars($raw_img);
+                        }
+                    }
 
                     // Pick distinct color theme for this employee column
                     $c_theme = $module_colors[$emp_idx % count($module_colors)];
@@ -1124,10 +1136,10 @@ if ($run_projs) {
                     <div class="todo-column" data-emp-id="<?php echo $emp_id; ?>" data-dept="<?php echo htmlspecialchars($emp['department'] ?? 'Not Assigned'); ?>">
                         <div class="todo-col-header" style="border-left: 4px solid <?php echo $c_theme['border']; ?>;">
                             <div style="display: flex; align-items: center; gap: 12px;">
-                                <?php if ($emp_img && file_exists('../../' . $emp_img)) { ?>
-                                    <img src="<?php echo $emp_img; ?>" class="emp-avatar" style="border: 2px solid <?php echo $c_theme['border']; ?>;">
+                                <?php if (!empty($emp_photo)) { ?>
+                                    <img src="<?php echo $emp_photo; ?>" class="emp-avatar" style="border: 2px solid <?php echo $c_theme['border']; ?>;">
                                 <?php } else { ?>
-                                    <div class="emp-avatar-fallback" style="background: <?php echo $c_theme['bg']; ?>; color: <?php echo $c_theme['color']; ?>; border: 2px solid <?php echo $c_theme['badge_border']; ?>;"><?php echo strtoupper(substr($emp_name, 0, 1)); ?></div>
+                                    <div class="emp-avatar-fallback" style="background: <?php echo $c_theme['bg']; ?>; color: <?php echo $c_theme['color']; ?>; border: 2px solid <?php echo $c_theme['badge_border']; ?>;"><?php echo strtoupper(substr(trim($emp['name'] ?? 'E'), 0, 1)); ?></div>
                                 <?php } ?>
                                 <div>
                                     <div class="emp-name"><?php echo $emp_name; ?></div>
@@ -1356,7 +1368,7 @@ if ($run_projs) {
 
 <script>
     const ajaxBaseUrl = '<?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'emp_area') !== false || (isset($_SESSION['emp_id']) && !isset($_SESSION['admin_email']))) ? '../admin_area/ajax/projects/' : 'ajax/projects/'; ?>';
-    const canTodoDelete = <?php echo ($is_employee_portal || (function_exists('canAdminAccess') && (canAdminAccess('todo_delete') || canAdminAccess('project_assign_task')))) ? 'true' : 'false'; ?>;
+    const canTodoDelete = <?php echo (!$is_employee_portal && (function_exists('canAdminAccess') && (canAdminAccess('todo_delete') || canAdminAccess('project_assign_task')))) ? 'true' : 'false'; ?>;
     const canTodoUpdate = <?php echo ($is_employee_portal || (function_exists('canAdminAccess') && (canAdminAccess('todo_update') || canAdminAccess('project_assign_task')))) ? 'true' : 'false'; ?>;
 </script>
 <script>

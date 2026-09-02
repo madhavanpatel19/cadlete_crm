@@ -432,7 +432,7 @@ if ($run_stats) {
                             }
 
                             $emp_img = !empty($row['employee_image']) ? "uploads/" . $row['employee_image'] : "admin_images/default.png";
-                            $emp_id_formatted = "EMP" . str_pad($row['emp_list_id'], 3, "0", STR_PAD_LEFT);
+                            $emp_id_formatted = format_emp_id($row['emp_list_id']);
                     ?>
                             <tr>
                                 <td class="text-center" style="font-weight: 700; color: #64748b;"><?php echo $i; ?></td>

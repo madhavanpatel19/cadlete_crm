@@ -107,7 +107,7 @@ if (!$table_exists) {
 
 // ------------ HELPER FUNCTIONS ------------
 
-function get_employees($con)
+function get_employees(mysqli $con): array
 {
     $arr = array();
     $q = "SELECT id, name FROM emp_list ORDER BY name ASC";
@@ -118,7 +118,7 @@ function get_employees($con)
     return $arr;
 }
 
-function get_employee($con, $emp_id)
+function get_employee(mysqli $con, int $emp_id): ?array
 {
     $emp_id = (int)$emp_id;
     $q = "SELECT id, name FROM emp_list WHERE id='$emp_id' LIMIT 1";
@@ -126,7 +126,7 @@ function get_employee($con, $emp_id)
     return mysqli_num_rows($r) ? mysqli_fetch_assoc($r) : null;
 }
 
-function get_attendance_month($con, $emp_id, $month, $year)
+function get_attendance_month(mysqli $con, int $emp_id, int $month, int $year): array
 {
     $ret   = array();
     $emp_id = (int)$emp_id;
@@ -143,7 +143,7 @@ function get_attendance_month($con, $emp_id, $month, $year)
     return $ret;
 }
 
-function get_daily_attendance($con, $date)
+function get_daily_attendance(mysqli $con, string $date): array
 {
     $ret  = array();
     $date = mysqli_real_escape_string($con, $date);
@@ -156,7 +156,7 @@ function get_daily_attendance($con, $date)
 }
 
 // Normalize check-in time to 24-hour format (HH:MM:SS) to avoid AM/PM misreads
-function normalize_checkin_time($raw)
+function normalize_checkin_time(?string $raw): ?string
 {
     if ($raw === null) return null;
     $raw = trim($raw);
@@ -178,7 +178,7 @@ function normalize_checkin_time($raw)
     return null;
 }
 
-function save_attendance_record($con, $emp_id, $attendance_date, $status, $remarks = '', $check_in_time = null, $check_out_time = null, $performance = null)
+function save_attendance_record(mysqli $con, int $emp_id, string $attendance_date, string $status, string $remarks = '', ?string $check_in_time = null, ?string $check_out_time = null, mixed $performance = null): bool
 {
     global $db;
     $eid  = (int)$emp_id;
@@ -238,7 +238,7 @@ function save_attendance_record($con, $emp_id, $attendance_date, $status, $remar
         }
         $update .= " 
                    WHERE emp_id='$eid' AND attendance_date='$date'";
-        $ok = mysqli_query($con, $update);
+        $ok = (bool)mysqli_query($con, $update);
     } else {
         if (!canAdminAccess('attendance_insert')) return false;
 
@@ -253,18 +253,16 @@ function save_attendance_record($con, $emp_id, $attendance_date, $status, $remar
             $insert .= ", '$perf_val'";
         }
         $insert .= ", NOW())";
-        $ok = mysqli_query($con, $insert);
+        $ok = (bool)mysqli_query($con, $insert);
         if ($ok) {
             $row_id = (int)mysqli_insert_id($con);
         }
     }
 
-
-
     return $ok;
 }
 
-function save_daily_attendance_batch($con, $date, $emp_ids, $statuses, $remarks_arr, $checkins_arr, $checkouts_arr = array(), $perf_arr = array())
+function save_daily_attendance_batch(mysqli $con, string $date, array $emp_ids, array $statuses, array $remarks_arr, array $checkins_arr, array $checkouts_arr = array(), array $perf_arr = array()): bool
 {
     if (!$date || !is_array($emp_ids)) return false;
     foreach ($emp_ids as $idx => $e) {
@@ -431,11 +429,11 @@ $showDataScreen      = ($is_daily && $selected_date) || ($selected_emp_id > 0);
                     <!-- Employee Selector -->
                     <div class="selection-control" id="empControl">
                         <label for="empSelectInitial" style="font-weight: 700; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; display: block;">Employee</label>
-                        <select id="empSelectInitial" name="emp_id" class="p-input-premium" style="appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right%2015px%20top%2050%25; background-size: 12px%20auto;">
+                        <select id="empSelectInitial" name="emp_id" class="p-input-premium" style="appearance: none; background-repeat: no-repeat; background-position: right 15px center; background-size: 12px auto;">
                             <option value="">--Select Employee--</option>
                             <?php foreach ($employees_array as $emp): ?>
                                 <option value="<?php echo $emp['id']; ?>">
-                                    <?php echo htmlspecialchars($emp['name']); ?>
+                                    <?php echo format_emp_id($emp['id']) . ' - ' . htmlspecialchars($emp['name']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -622,7 +620,7 @@ $showDataScreen      = ($is_daily && $selected_date) || ($selected_emp_id > 0);
                                 <tr>
                                     <td class="hidden-xs"><?php echo $i + 1; ?></td>
                                     <td class="hidden-xs">
-                                        <?php echo $eid; ?>
+                                        <?php echo format_emp_id($eid); ?>
                                         <input type="hidden" name="emp_id[]" value="<?php echo $eid; ?>">
                                     </td>
                                     <td>

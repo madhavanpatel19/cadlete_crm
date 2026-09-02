@@ -22,34 +22,47 @@ $login_status = "";
 //   - Returns status: 'success' | 'error' | 'inactive'
 // Called when: $_POST['login'] is set
 // =============================================================
+/**
+ * Login user
+ * @param mysqli $con
+ * @return string
+ */
 function login_user($con)
 {
     // -- Sanitize inputs --
     $email    = mysqli_real_escape_string($con, $_POST['email']);
-    $password = $_POST['password']; // Plain text comparison (same as existing)
+    $raw_pass = $_POST['password'];
 
-    // -- Query emp_list for matching credentials (ONLY Company Email is accepted for login) --
-    $query = mysqli_query($con, "SELECT * FROM emp_list WHERE (company_email='$email' OR ((company_email IS NULL OR company_email='') AND email='$email')) AND password='$password'");
+    // -- Query emp_list for matching credentials by email --
+    $query = mysqli_query($con, "SELECT * FROM emp_list WHERE (company_email='$email' OR ((company_email IS NULL OR company_email='') AND email='$email'))");
 
     if ($query && mysqli_num_rows($query) > 0) {
-        $user = mysqli_fetch_assoc($query);
-
-        // -- Check if account is active --
-        if (isset($user['status']) && $user['status'] === 'Inactive') {
-            return "inactive";
-        } else {
-            // -- Start session and set session variables --
-            if (session_status() == PHP_SESSION_NONE) {
-                session_start();
+        while ($user = mysqli_fetch_assoc($query)) {
+            $stored_pass = $user['password'];
+            $is_valid = password_verify($raw_pass, $stored_pass) || ($stored_pass === $raw_pass);
+            if ($is_valid) {
+                // Auto-upgrade plain text to password_hash
+                if (password_get_info($stored_pass)['algo'] === 0) {
+                    $new_hash = password_hash($raw_pass, PASSWORD_DEFAULT);
+                    $eid = (int)$user['id'];
+                    mysqli_query($con, "UPDATE emp_list SET password='$new_hash' WHERE id=$eid");
+                }
+                // -- Check if account is active --
+                if (isset($user['status']) && $user['status'] === 'Inactive') {
+                    return "inactive";
+                } else {
+                    if (session_status() == PHP_SESSION_NONE) {
+                        session_start();
+                    }
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['emp_id']  = $user['id'];
+                    $_SESSION['emp_name'] = $user['name'];
+                    return "success";
+                }
             }
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['emp_id']  = $user['id'];
-            $_SESSION['emp_name'] = $user['name'];
-            return "success";
         }
-    } else {
-        return "error";
     }
+    return "error";
 } // end login_user()
 
 // -- Trigger login_user() on form submit --
