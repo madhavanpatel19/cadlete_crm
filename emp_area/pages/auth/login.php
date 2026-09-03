@@ -39,13 +39,13 @@ function login_user($con)
     if ($query && mysqli_num_rows($query) > 0) {
         while ($user = mysqli_fetch_assoc($query)) {
             $stored_pass = $user['password'];
-            $is_valid = password_verify($raw_pass, $stored_pass) || ($stored_pass === $raw_pass);
+            $is_valid = verify_secure_password($raw_pass, $stored_pass);
             if ($is_valid) {
-                // Auto-upgrade plain text to password_hash
-                if (password_get_info($stored_pass)['algo'] === 0) {
-                    $new_hash = password_hash($raw_pass, PASSWORD_DEFAULT);
+                // Auto-upgrade to ENC if needed
+                if (strpos($stored_pass, 'ENC:') !== 0) {
+                    $new_enc = encrypt_password($raw_pass);
                     $eid = (int)$user['id'];
-                    mysqli_query($con, "UPDATE emp_list SET password='$new_hash' WHERE id=$eid");
+                    mysqli_query($con, "UPDATE emp_list SET password='$new_enc' WHERE id=$eid");
                 }
                 // -- Check if account is active --
                 if (isset($user['status']) && $user['status'] === 'Inactive') {

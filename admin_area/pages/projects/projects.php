@@ -1396,7 +1396,7 @@ $run_projects = mysqli_query($con, $get_projects);
             e.preventDefault();
 
             const row = $(this).closest('tr');
-            const detailRow = row.next('.project-detail-row');
+            const detailRow = row.next('.project-detail-row, .history-drawer-row');
             const icon = $(this).find('.history-toggle-icon');
 
             detailRow.toggle();
@@ -1463,8 +1463,11 @@ $run_projects = mysqli_query($con, $get_projects);
         $(document).on('click', '.add-remark-btn', function() {
             const btn = $(this);
             const projectId = btn.data('project-id');
-            const container = btn.closest('.project-detail-row').find('.remarks-history-premium');
-            const remarkInput = btn.siblings('.remark-textarea');
+            const detailRow = btn.closest('.project-detail-row, .history-drawer-row');
+            const container = detailRow.find('.remarks-history-premium');
+            const remarkInput = btn.siblings('.remark-textarea').length ?
+                btn.siblings('.remark-textarea') :
+                btn.closest('.action-input-wrapper').find('.remark-textarea');
             const remarkText = remarkInput.val().trim();
 
             if (!remarkText) {

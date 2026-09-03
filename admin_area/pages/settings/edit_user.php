@@ -32,7 +32,7 @@ $row_admin = mysqli_fetch_assoc($run_admin);
 $admin_id = $row_admin['admin_id'];
 $admin_name = $row_admin['admin_name'];
 $admin_email = $row_admin['admin_email'];
-$admin_pass = $row_admin['admin_pass'];
+$admin_pass = decrypt_password($row_admin['admin_pass']);
 $admin_image = $row_admin['admin_image'];
 $new_admin_image = $row_admin['admin_image'];
 $admin_country = $row_admin['admin_country'];
@@ -87,12 +87,9 @@ if (isset($_POST['update'])) {
     $name_esc = mysqli_real_escape_string($con, $admin_name);
     $email_esc = mysqli_real_escape_string($con, $admin_email);
 
-    // Hash password if updated or unhashed
-    $pass_to_store = $admin_pass;
-    if (!empty($admin_pass) && password_get_info($admin_pass)['algo'] === 0) {
-        $pass_to_store = password_hash($admin_pass, PASSWORD_DEFAULT);
-    }
-    $pass_esc = mysqli_real_escape_string($con, $pass_to_store);
+    $raw_admin_pass = trim($_POST['admin_pass'] ?? '');
+    $enc_pass = encrypt_password($raw_admin_pass);
+    $pass_esc = mysqli_real_escape_string($con, $enc_pass);
 
     $img_esc = mysqli_real_escape_string($con, $admin_image);
     $contact_esc = mysqli_real_escape_string($con, $admin_contact);
@@ -215,10 +212,15 @@ sort($user_desigs);
                             <div class="col-md-6">
                                 <div class="form-group" style="margin-bottom: 20px;">
                                     <label class="premium-label" style="font-size: 14px; color: #334155;">Admin Password <span style="color: #ef4444;">*</span></label>
-                                    <div style="position: relative;">
-                                        <input type="password" name="admin_pass" id="edit_admin_pass_input" class="p-input-premium" style="height: 48px; width:100%; border-radius:8px; border:1px solid #e2e8f0; padding:0 45px 0 15px;" placeholder="••••••••" value="<?php echo htmlspecialchars($admin_pass); ?>" required>
-                                        <button type="button" onclick="var el = document.getElementById('edit_admin_pass_input'); var eye = document.getElementById('edit_admin_pass_eye'); if (el.type === 'password') { el.type = 'text'; eye.className = 'fa fa-eye-slash'; } else { el.type = 'password'; eye.className = 'fa fa-eye'; } return false;" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; outline: none; cursor: pointer; color: #64748b; font-size: 16px; padding: 4px; display: flex; align-items: center; justify-content: center; z-index: 10;" title="Show/Hide Password">
-                                            <i class="fa fa-eye" id="edit_admin_pass_eye"></i>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <div style="position: relative; flex: 1;">
+                                            <input type="password" name="admin_pass" id="edit_admin_pass_input" class="p-input-premium" style="height: 48px; width:100%; border-radius:8px; border:1px solid #e2e8f0; padding:0 45px 0 15px;" placeholder="••••••••" value="<?php echo htmlspecialchars($admin_pass); ?>" required autocomplete="current-password">
+                                            <button type="button" onclick="togglePasswordVisibility('edit_admin_pass_input', 'edit_admin_pass_eye'); return false;" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; outline: none; cursor: pointer; color: #64748b; font-size: 16px; padding: 4px; display: flex; align-items: center; justify-content: center; z-index: 10;" title="Show/Hide Password">
+                                                <i class="fa fa-eye" id="edit_admin_pass_eye"></i>
+                                            </button>
+                                        </div>
+                                        <button type="button" onclick="generateEditAdminPassword(); return false;" style="white-space: nowrap; height: 48px; background: #f1f5f9; color: #334155; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0 14px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px;" title="Generate Strong Password">
+                                            <i class="fa fa-refresh"></i> Generate
                                         </button>
                                     </div>
                                 </div>
@@ -649,6 +651,23 @@ sort($user_desigs);
                     input.type = 'password';
                     eye.classList.remove('fa-eye-slash');
                     eye.classList.add('fa-eye');
+                }
+            }
+
+            function generateEditAdminPassword() {
+                const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%';
+                let pass = '';
+                for (let i = 0; i < 10; i++) {
+                    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                const input = document.getElementById('edit_admin_pass_input');
+                const eye = document.getElementById('edit_admin_pass_eye');
+                if (input) {
+                    input.value = pass;
+                    input.type = 'text';
+                    if (eye) {
+                        eye.className = 'fa fa-eye-slash';
+                    }
                 }
             }
         }

@@ -184,8 +184,8 @@ function add_user($con)
         $plainPassword = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%'), 0, 8);
     }
 
-    $hashedPassword = password_hash($plainPassword, PASSWORD_DEFAULT);
-    $passEscaped = mysqli_real_escape_string($con, $hashedPassword);
+    $encPassword = encrypt_password($plainPassword);
+    $passEscaped = mysqli_real_escape_string($con, $encPassword);
 
     // -- Insert employee record into DB --
     $query = "INSERT INTO emp_list

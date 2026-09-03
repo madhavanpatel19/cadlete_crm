@@ -206,8 +206,8 @@ function edit_user($con, $employee)
     $passwordResetMsg = '';
     $newPassword      = trim($_POST['edit_emp_password'] ?? '');
     if (!empty($newPassword)) {
-        $hashedNewPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-        $safeNewPassword = mysqli_real_escape_string($con, $hashedNewPassword);
+        $encNewPassword = encrypt_password($newPassword);
+        $safeNewPassword = mysqli_real_escape_string($con, $encNewPassword);
         $q_extra .= ", password = '$safeNewPassword'";
         $passwordResetMsg = $newPassword; // Store for success message display
     }
@@ -545,16 +545,17 @@ sort($existing_desigs);
                         <div class="form-group">
                             <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">
                                 <i class="fa fa-key" style="color:#dd2127;"></i> Login Password
-                                <span style="font-weight:400; color:#64748b; font-size:12px; margin-left:8px;">(Current password shown — edit to change, or click Generate New Password)</span>
+                                <span style="font-weight:400; color:#64748b; font-size:12px; margin-left:8px;">(Current password shown — click eye to view, edit to change, or click Generate New Password)</span>
                             </label>
                             <div style="display: flex; gap: 10px; align-items: center;">
                                 <div style="position: relative; flex: 1;">
                                     <i class="fa fa-lock" style="position: absolute; left: 15px; top: 16px; color: #64748b; font-size: 14px;"></i>
-                                    <input type="text" name="edit_emp_password" id="edit_emp_password_field"
+                                    <input type="password" name="edit_emp_password" id="edit_emp_password_field"
                                         class="p-input-premium"
-                                        value="<?php echo htmlspecialchars($employee['password'] ?? ''); ?>"
+                                        value="<?php echo htmlspecialchars(decrypt_password($employee['password'] ?? '')); ?>"
                                         placeholder="Current password"
-                                        style="padding-left: 40px; font-family: monospace; letter-spacing: 1px;">
+                                        style="padding-left: 40px; font-family: monospace; letter-spacing: 1px;"
+                                        autocomplete="current-password">
                                 </div>
                                 <button type="button" onclick="generateEditPassword()"
                                     style="white-space:nowrap; background: linear-gradient(135deg,#dd2127,#ff6b6b); color:#fff; border:none; border-radius:8px; padding:12px 20px; font-weight:600; cursor:pointer; font-size:13px; transition:0.3s;">

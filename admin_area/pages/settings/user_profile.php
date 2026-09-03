@@ -10,7 +10,7 @@ if (!isset($_SESSION['admin_email'])) {
         $admin_id = $row_admin['admin_id'];
         $admin_name = $row_admin['admin_name'];
         $admin_email = $row_admin['admin_email'];
-        $admin_pass = $row_admin['admin_pass'];
+        $admin_pass = decrypt_password($row_admin['admin_pass']);
         $admin_image = $row_admin['admin_image'];
         $new_admin_image = $row_admin['admin_image'];
         $admin_country = $row_admin['admin_country'];
@@ -75,11 +75,13 @@ if (!isset($_SESSION['admin_email'])) {
                             </div>
                             <div class="row" style="margin-top: 15px;">
                                 <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">Password *</label>
+                                     <div class="form-group">
+                                        <label style="font-weight: 600; color: #475569; margin-bottom: 8px; display: block;">
+                                            Password <span style="color: #ef4444;">*</span>
+                                        </label>
                                         <div style="position: relative;">
-                                            <input type="password" name="admin_pass" id="admin_pass_input" class="p-input-premium" value="<?php echo htmlspecialchars($admin_pass); ?>" required style="padding-right: 45px;">
-                                            <button type="button" onclick="var el = document.getElementById('admin_pass_input'); var eye = document.getElementById('admin_pass_eye'); if (el.type === 'password') { el.type = 'text'; eye.className = 'fa fa-eye-slash'; } else { el.type = 'password'; eye.className = 'fa fa-eye'; } return false;" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; outline: none; cursor: pointer; color: #64748b; font-size: 16px; padding: 4px; display: flex; align-items: center; justify-content: center; z-index: 10;" title="Show/Hide Password">
+                                            <input type="password" name="admin_pass" id="admin_pass_input" class="p-input-premium" value="<?php echo htmlspecialchars($admin_pass); ?>" required style="padding-right: 45px;" autocomplete="current-password">
+                                            <button type="button" onclick="window.togglePasswordVisibility('admin_pass_input', 'admin_pass_eye'); return false;" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; outline: none; cursor: pointer; color: #64748b; font-size: 16px; padding: 4px; display: flex; align-items: center; justify-content: center; z-index: 10;" title="Show/Hide Password">
                                                 <i class="fa fa-eye" id="admin_pass_eye"></i>
                                             </button>
                                         </div>
@@ -164,36 +166,33 @@ if (!isset($_SESSION['admin_email'])) {
 
     <?php
     if (isset($_POST['update'])) {
-        $admin_name = $_POST['admin_name'];
-        $admin_email = $_POST['admin_email'];
-        $raw_pass = $_POST['admin_pass'];
-        
-        $admin_pass = $raw_pass;
-        if (!empty($raw_pass) && password_get_info($raw_pass)['algo'] === 0) {
-            $admin_pass = password_hash($raw_pass, PASSWORD_DEFAULT);
-        }
+        $admin_name = mysqli_real_escape_string($con, $_POST['admin_name']);
+        $admin_email = mysqli_real_escape_string($con, $_POST['admin_email']);
+        $raw_pass = trim($_POST['admin_pass'] ?? '');
+        $enc_pass = encrypt_password($raw_pass);
+        $pass_esc = mysqli_real_escape_string($con, $enc_pass);
 
-        $admin_country = $_POST['admin_country'];
-        $admin_job = $_POST['admin_job'];
-        $admin_contact = $_POST['admin_contact'];
-        $admin_about = $_POST['admin_about'];
+        $admin_country = mysqli_real_escape_string($con, $_POST['admin_country']);
+        $admin_job = mysqli_real_escape_string($con, $_POST['admin_job']);
+        $admin_contact = mysqli_real_escape_string($con, $_POST['admin_contact']);
+        $admin_about = mysqli_real_escape_string($con, $_POST['admin_about']);
 
         $admin_image = $_FILES['admin_image']['name'];
         $temp_admin_image = $_FILES['admin_image']['tmp_name'];
 
         if (!empty($admin_image)) {
+            $admin_image = mysqli_real_escape_string($con, $admin_image);
             move_uploaded_file($temp_admin_image, __DIR__ . "/../../admin_images/$admin_image");
         } else {
-            $admin_image = $new_admin_image;
+            $admin_image = mysqli_real_escape_string($con, $new_admin_image);
         }
 
-        $update_admin = "update admins set admin_name='$admin_name',admin_email='$admin_email',admin_pass='$admin_pass',admin_image='$admin_image',admin_contact='$admin_contact',admin_country='$admin_country',admin_job='$admin_job',admin_about='$admin_about' where admin_id='$admin_id'";
+        $update_admin = "update admins set admin_name='$admin_name',admin_email='$admin_email',admin_pass='$pass_esc',admin_image='$admin_image',admin_contact='$admin_contact',admin_country='$admin_country',admin_job='$admin_job',admin_about='$admin_about' where admin_id='$admin_id'";
         $run_admin = mysqli_query($con, $update_admin);
 
         if ($run_admin) {
-            echo "<script>Swal.fire({title: 'Notification', text: 'Your profile has been updated successfully. Please login again to see changes.', icon: 'success'});</script>";
-            echo "<script>window.open('pages/auth/login.php','_self')</script>";
-            session_destroy();
+            $_SESSION['admin_email'] = $admin_email;
+            echo "<script>Swal.fire({title: 'Notification', text: 'Your profile has been updated successfully.', icon: 'success'}).then(() => { window.location.href='index.php?dashboard'; });</script>";
         }
     }
     ?>

@@ -125,14 +125,14 @@ if (mysqli_num_rows($run_projects) > 0) {
         }
     }
 
-    // SOP counts – ensure tables exist and get totals
+    // SOP counts x– ensure tables exist and get totals
     mysqli_query($con, "CREATE TABLE IF NOT EXISTS `project_sop_items` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY, `category` VARCHAR(100) NOT NULL, `item_text` TEXT NOT NULL, `sort_order` INT(11) DEFAULT 0, `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
     mysqli_query($con, "CREATE TABLE IF NOT EXISTS `project_sop_checklist` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY, `project_id` INT(11) NOT NULL, `sop_item_id` INT(11) NOT NULL, `is_checked` TINYINT(1) DEFAULT 0, `checked_by` VARCHAR(255) DEFAULT NULL, `checked_at` DATETIME DEFAULT NULL, UNIQUE KEY `unique_project_sop` (`project_id`, `sop_item_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
     // Get total SOP items count once
     $sop_total_res = mysqli_query($con, "SELECT COUNT(*) as t FROM project_sop_items");
     $sop_total = $sop_total_res ? (int)mysqli_fetch_assoc($sop_total_res)['t'] : 0;
-
+    
     // Pre-fetch batch SOP counts for all displayed projects in 1 query
     $sop_done_map = [];
     if (!empty($project_ids)) {
@@ -321,18 +321,78 @@ if (mysqli_num_rows($run_projects) > 0) {
         </tr>
 
         <!-- Inline History Drawer Row -->
-        <tr class="history-drawer-row" style="display: none; background: #f8fafc;">
+        <tr class="project-detail-row history-drawer-row" style="display: none; background: #fff;">
             <td colspan="10" style="padding: 0; border: none;">
-                <div class="history-drawer-content" style="padding: 20px; border-bottom: 2px solid #e2e8f0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa fa-history" style="color: #6366f1;"></i> Project Activity & Audit History
-                        </h4>
-                        <span style="font-size: 12px; color: #64748b; font-weight: 600;">Project ID #<?php echo str_pad($project_id, 3, '0', STR_PAD_LEFT); ?></span>
-                    </div>
-                    <div class="history-timeline-container" data-project-id="<?php echo $project_id; ?>">
-                        <div style="text-align: center; padding: 20px; color: #94a3b8;">
-                            <i class="fa fa-spinner fa-spin"></i> Loading project history...
+                <div style="padding: 30px 40px; border-top: 1px solid #f1f5f9; background: #fcfdfe;">
+                    <div class="row">
+                        <div class="col-md-7">
+                            <div class="timeline-container-premium" style="background: transparent; border: none; padding: 0; margin-bottom: 0;">
+                                <div class="timeline-header-premium" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">
+                                        <i class="fa fa-history" style="color: #dd2127; font-size: 14px;"></i>
+                                        <span>Project Activity Timeline</span>
+                                    </div>
+                                    <a href="download_progress_report.php?project_id=<?php echo $project_id; ?>" target="_blank" style="background: #ffeaeb; color: #dd2127; border: 1px solid #ffeaeb; border-radius: 8px; padding: 6px 14px; font-size: 11px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                        <i class="fa fa-download"></i> Download Progress Report
+                                    </a>
+                                </div>
+                                <div class="timeline-visual-wrapper" style="max-height: 250px; overflow-y: auto; overflow-x: hidden; padding-right: 15px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
+                                    <div class="timeline-vertical-line" style="left: 4px;"></div>
+                                    <div class="remarks-history-premium" style="position: relative; padding-left: 0;">
+                                        <?php
+                                        $get_remarks = "SELECT * FROM client_project_remarks WHERE project_id = $project_id ORDER BY created_at DESC";
+                                        $run_remarks = mysqli_query($con, $get_remarks);
+                                        if ($run_remarks && mysqli_num_rows($run_remarks) > 0) {
+                                            while ($r = mysqli_fetch_assoc($run_remarks)) {
+                                                $poster = !empty($r['posted_by']) ? htmlspecialchars($r['posted_by']) : '';
+                                                if (empty($poster)) {
+                                                    $poster = (strpos($r['remark'], 'System:') === 0) ? 'System' : 'Team Member';
+                                                }
+                                                $is_sys = (strtolower($poster) === 'system');
+                                                $poster_badge_bg = $is_sys ? '#f1f5f9' : '#ffeaeb';
+                                                $poster_badge_color = $is_sys ? '#64748b' : '#dd2127';
+                                                $poster_icon = $is_sys ? 'fa-cog' : 'fa-user';
+                                        ?>
+                                                <div class="timeline-remark-item" style="margin-bottom: 25px; position: relative; padding-left: 32px; width: 100%;">
+                                                    <div class="timeline-dot" style="left: 0;"></div>
+                                                    <div class="remark-content-box" style="padding-left: 20px;">
+                                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                                            <span style="font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 6px; background: <?php echo $poster_badge_bg; ?>; color: <?php echo $poster_badge_color; ?>; display: inline-flex; align-items: center; gap: 5px;">
+                                                                <i class="fa <?php echo $poster_icon; ?>"></i> <?php echo $poster; ?>
+                                                            </span>
+                                                            <div class="remark-time-premium" style="margin: 0; font-size: 11px;">
+                                                                <i class="fa fa-clock-o"></i> <?php echo date('d M Y • h:i A', strtotime($r['created_at'])); ?>
+                                                            </div>
+                                                        </div>
+                                                        <div class="remark-text-premium" style="font-size: 13px; color: #334155; font-weight: 600;"><?php echo nl2br(htmlspecialchars($r['remark'])); ?></div>
+                                                    </div>
+                                                </div>
+                                        <?php
+                                            }
+                                        } else {
+                                            echo '<div class="no-remarks-placeholder" style="padding: 40px 0; text-align: center; color: #94a3b8;">
+                                                    <i class="fa fa-commenting-o" style="font-size: 32px; opacity: 0.4; margin-bottom: 10px; display: block;"></i>
+                                                    <p style="font-size: 13px; font-weight: 700;">No activity recorded yet.</p>
+                                                  </div>';
+                                        }
+                                        ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="remark-action-premium glass-card-premium" style="padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08); background: #fff; border: 1px solid #f1f5f9;">
+                                <h4 style="font-size: 11px; font-weight: 950; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 8px; height: 8px; background: #dd2127; border-radius: 50%;"></div>
+                                    Post Progress Update
+                                </h4>
+                                <div class="action-input-wrapper" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+                                    <textarea class="remark-textarea p-input-premium" style="width: 100%; height: 110px; resize: none; font-size: 13px; box-sizing: border-box; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0;" placeholder="What milestone was achieved today?"></textarea>
+                                    <button type="button" class="add-remark-btn" data-project-id="<?php echo $project_id; ?>" style="width: 100%; height: 44px; font-size: 13px; background: #dd2127; color: #ffffff; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; font-weight: 700; gap: 8px; box-shadow: 0 4px 12px rgba(221, 33, 39, 0.2); box-sizing: border-box;">
+                                        <i class="fa fa-send"></i> Post Update
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
