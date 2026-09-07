@@ -27,7 +27,7 @@ if ($action === 'get_vendors') {
         $where .= " AND category_section = '$section' ";
     }
     if (!empty($search)) {
-        $where .= " AND (company_name LIKE '%$search%' OR contact_person LIKE '%$search%' OR vendor_custom_id LIKE '%$search%' OR city LIKE '%$search%' OR phone LIKE '%$search%' OR email LIKE '%$search%' OR notes LIKE '%$search%') ";
+        $where .= " AND (company_name LIKE '%$search%' OR contact_person LIKE '%$search%' OR vendor_custom_id LIKE '%$search%' OR city LIKE '%$search%' OR phone LIKE '%$search%' OR email LIKE '%$search%' OR project_name LIKE '%$search%' OR notes LIKE '%$search%') ";
     }
     if (!empty($city)) {
         $where .= " AND city = '$city' ";
@@ -57,7 +57,7 @@ if ($action === 'get_vendors') {
                 'email' => $row['email'] ?? '',
                 'city' => $row['city'] ?? '',
                 'address' => $row['address'] ?? '',
-                'projects_count' => (int)$row['projects_count'],
+                'project_name' => $row['project_name'] ?? '',
                 'notes' => $row['notes'] ?? ''
             ];
         }
@@ -98,7 +98,7 @@ if ($action === 'add_vendor') {
     $email            = mysqli_real_escape_string($con, trim($_POST['email'] ?? ''));
     $city             = mysqli_real_escape_string($con, trim($_POST['city'] ?? ''));
     $address          = mysqli_real_escape_string($con, trim($_POST['address'] ?? ''));
-    $projects_count   = (int)($_POST['projects_count'] ?? 0);
+    $project_name     = mysqli_real_escape_string($con, trim($_POST['project_name'] ?? ''));
     $notes            = mysqli_real_escape_string($con, trim($_POST['notes'] ?? ''));
 
     if (empty($vendor_custom_id)) {
@@ -119,8 +119,8 @@ if ($action === 'add_vendor') {
         exit;
     }
 
-    $insert = "INSERT INTO vendors (vendor_custom_id, category_section, sub_group, company_name, contact_person, phone, email, city, address, projects_count, notes) 
-               VALUES ('$vendor_custom_id', '$category_section', '$sub_group', '$company_name', '$contact_person', '$phone', '$email', '$city', '$address', '$projects_count', '$notes')";
+    $insert = "INSERT INTO vendors (vendor_custom_id, category_section, sub_group, company_name, contact_person, phone, email, city, address, project_name, projects_count, notes) 
+               VALUES ('$vendor_custom_id', '$category_section', '$sub_group', '$company_name', '$contact_person', '$phone', '$email', '$city', '$address', '$project_name', 0, '$notes')";
 
     if (mysqli_query($con, $insert)) {
         echo json_encode(['status' => 'success', 'message' => 'Vendor added successfully']);
@@ -142,7 +142,7 @@ if ($action === 'update_vendor') {
     $email            = mysqli_real_escape_string($con, trim($_POST['email'] ?? ''));
     $city             = mysqli_real_escape_string($con, trim($_POST['city'] ?? ''));
     $address          = mysqli_real_escape_string($con, trim($_POST['address'] ?? ''));
-    $projects_count   = (int)($_POST['projects_count'] ?? 0);
+    $project_name     = mysqli_real_escape_string($con, trim($_POST['project_name'] ?? ''));
     $notes            = mysqli_real_escape_string($con, trim($_POST['notes'] ?? ''));
 
     if ($id <= 0 || empty($company_name)) {
@@ -160,7 +160,7 @@ if ($action === 'update_vendor') {
                email = '$email',
                city = '$city',
                address = '$address',
-               projects_count = '$projects_count',
+               project_name = '$project_name',
                notes = '$notes'
                WHERE id = '$id'";
 

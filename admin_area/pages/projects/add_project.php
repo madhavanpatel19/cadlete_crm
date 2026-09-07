@@ -456,9 +456,9 @@ $run_admins = mysqli_query($con, $get_admins);
                         <!-- Assign Employees -->
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label class="premium-label" style="font-size:14px; color:#334155;">
-                                Assign Employees <span style="color:#ef4444;">*</span>
+                                Assign Employees
                             </label>
-                            <select id="employeeSelect" name="assigned_employees[]" multiple required>
+                            <select id="employeeSelect" name="assigned_employees[]" multiple>
                                 <?php while ($emp = mysqli_fetch_assoc($run_emps)) {
                                     $emp_img = !empty($emp['employee_image']) ? 'uploads/' . $emp['employee_image'] : 'admin_images/default.png';
                                 ?>

@@ -396,7 +396,7 @@ if (isset($_GET['ajax']) && isset($_GET['view']) && $employee) {
                                     <td style="text-align: center; font-weight: 700; color: #64748b;"><?php echo $idx++; ?></td>
                                     <td>
                                         <div style="font-weight: 700; color: #1e293b;"><?php echo htmlspecialchars($emp_name); ?></div>
-                                        <div style="font-size: 11px; color: #64748b;">ID: <?php echo (int)$emp_id; ?></div>
+                                        <div style="font-size: 11px; color: #64748b;">ID: <?php echo format_emp_id($emp_id); ?></div>
                                     </td>
                                     <td style="font-weight: 600; color: #4b5563;"><?php echo htmlspecialchars($m_label); ?></td>
                                     <td style="text-align: center; font-weight: 800; color: #4b5563; font-size: 15px;">

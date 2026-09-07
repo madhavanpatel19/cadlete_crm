@@ -700,7 +700,7 @@ $showDataScreen      = ($is_daily && $selected_date) || ($selected_emp_id > 0);
             <!-- MONTHLY VIEW -->
         <?php elseif ($selected_emp_id > 0 && $employee_data): ?>
             <div style="margin: 15px 24px; padding: 15px 20px; background: #f8fafc; border-left: 4px solid #4338ca; border-radius: 6px;">
-                <h3 style="margin: 0; font-size: 15px; color: #1e293b;"><i class="fa fa-user" style="color: #64748b; margin-right: 5px;"></i> <?php echo htmlspecialchars($employee_data['name']); ?> <span style="font-size: 13px; font-weight: normal; color: #475569; margin-left: 10px;">(ID: <?php echo $selected_emp_id; ?>)</span></h3>
+                <h3 style="margin: 0; font-size: 15px; color: #1e293b;"><i class="fa fa-user" style="color: #64748b; margin-right: 5px;"></i> <?php echo htmlspecialchars($employee_data['name']); ?> <span style="font-size: 13px; font-weight: normal; color: #475569; margin-left: 10px;">(ID: <?php echo format_emp_id($selected_emp_id); ?>)</span></h3>
             </div>
 
             <div class="attendance-table-wrapper">

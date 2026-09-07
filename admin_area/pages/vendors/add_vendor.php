@@ -35,12 +35,12 @@ if (isset($_POST['save_vendor'])) {
     $email          = mysqli_real_escape_string($con, trim($_POST['email'] ?? ''));
     $city           = mysqli_real_escape_string($con, trim($_POST['city'] ?? ''));
     $address        = mysqli_real_escape_string($con, trim($_POST['address'] ?? ''));
-    $projects_count = (int)($_POST['projects_count'] ?? 0);
+    $project_name   = mysqli_real_escape_string($con, trim($_POST['project_name'] ?? ''));
     $notes          = mysqli_real_escape_string($con, trim($_POST['notes'] ?? ''));
 
     if (!empty($company_name)) {
-        $insert = "INSERT INTO vendors (vendor_custom_id, category_section, sub_group, company_name, contact_person, phone, email, city, address, projects_count, notes) 
-                   VALUES ('$vendor_custom_id', '$category_section', '$sub_group', '$company_name', '$contact_person', '$phone', '$email', '$city', '$address', '$projects_count', '$notes')";
+        $insert = "INSERT INTO vendors (vendor_custom_id, category_section, sub_group, company_name, contact_person, phone, email, city, address, project_name, projects_count, notes) 
+                   VALUES ('$vendor_custom_id', '$category_section', '$sub_group', '$company_name', '$contact_person', '$phone', '$email', '$city', '$address', '$project_name', 0, '$notes')";
 
         if (mysqli_query($con, $insert)) {
             echo "<script>
@@ -208,9 +208,19 @@ if (isset($_POST['save_vendor'])) {
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="col-md-4 control-label" style="text-align: left; color: #475569; font-weight: 600;">Projects Count</label>
+                            <label class="col-md-4 control-label" style="text-align: left; color: #475569; font-weight: 600;">Project Name</label>
                             <div class="col-md-8">
-                                <input type="number" name="projects_count" value="0" min="0" class="p-input-premium">
+                                <input type="text" name="project_name" list="project_list" class="p-input-premium" placeholder="e.g. 8dots CRM / Project Alpha">
+                                <datalist id="project_list">
+                                    <?php
+                                    $proj_res = mysqli_query($con, "SELECT DISTINCT project_name FROM client_projects WHERE deleted_at IS NULL AND project_name != '' ORDER BY project_name ASC");
+                                    if ($proj_res) {
+                                        while ($pr = mysqli_fetch_assoc($proj_res)) {
+                                            echo "<option value=\"" . htmlspecialchars($pr['project_name']) . "\">";
+                                        }
+                                    }
+                                    ?>
+                                </datalist>
                             </div>
                         </div>
                     </div>

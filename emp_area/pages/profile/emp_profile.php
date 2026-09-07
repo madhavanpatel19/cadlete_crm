@@ -57,7 +57,7 @@ if (!isset($_SESSION['emp_id'])) {
                             <div style="position: absolute; bottom: 5px; right: 5px; width: 22px; height: 22px; background: #10b981; border: 3px solid #fff; border-radius: 50%;"></div>
                         </div>
                         <h2 style="margin: 15px 0 5px 0; font-size: 20px; font-weight: 800; color: #1e293b;"><?php echo htmlspecialchars($emp_name); ?></h2>
-                        <p style="color: #64748b; font-size: 14px; margin-bottom: 20px; font-weight: 600;"><?php echo htmlspecialchars($emp_designation); ?> (ID: #<?php echo $emp_id; ?>)</p>
+                        <p style="color: #64748b; font-size: 14px; margin-bottom: 20px; font-weight: 600;"><?php echo htmlspecialchars($emp_designation); ?> (ID: <?php echo format_emp_id($emp_id); ?>)</p>
 
                         <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; display: flex; flex-direction: column; gap: 15px; text-align: left;">
                             <div style="display: flex; align-items: center; gap: 12px;">

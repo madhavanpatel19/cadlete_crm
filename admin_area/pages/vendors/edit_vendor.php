@@ -31,7 +31,7 @@ if (isset($_POST['update_vendor'])) {
     $email          = mysqli_real_escape_string($con, trim($_POST['email'] ?? ''));
     $city           = mysqli_real_escape_string($con, trim($_POST['city'] ?? ''));
     $address        = mysqli_real_escape_string($con, trim($_POST['address'] ?? ''));
-    $projects_count = (int)($_POST['projects_count'] ?? 0);
+    $project_name   = mysqli_real_escape_string($con, trim($_POST['project_name'] ?? ''));
     $notes          = mysqli_real_escape_string($con, trim($_POST['notes'] ?? ''));
 
     if (!empty($company_name)) {
@@ -44,7 +44,7 @@ if (isset($_POST['update_vendor'])) {
                    email = '$email',
                    city = '$city',
                    address = '$address',
-                   projects_count = '$projects_count',
+                   project_name = '$project_name',
                    notes = '$notes'
                    WHERE id = '$edit_id'";
 
@@ -220,9 +220,19 @@ if (isset($_POST['update_vendor'])) {
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="col-md-4 control-label" style="text-align: left; color: #475569; font-weight: 600;">Projects Count</label>
+                            <label class="col-md-4 control-label" style="text-align: left; color: #475569; font-weight: 600;">Project Name</label>
                             <div class="col-md-8">
-                                <input type="number" name="projects_count" value="<?php echo (int)$v['projects_count']; ?>" min="0" class="p-input-premium">
+                                <input type="text" name="project_name" list="project_list" value="<?php echo htmlspecialchars($v['project_name'] ?? ''); ?>" class="p-input-premium" placeholder="e.g. 8dots CRM / Project Alpha">
+                                <datalist id="project_list">
+                                    <?php
+                                    $proj_res = mysqli_query($con, "SELECT DISTINCT project_name FROM client_projects WHERE deleted_at IS NULL AND project_name != '' ORDER BY project_name ASC");
+                                    if ($proj_res) {
+                                        while ($pr = mysqli_fetch_assoc($proj_res)) {
+                                            echo "<option value=\"" . htmlspecialchars($pr['project_name']) . "\">";
+                                        }
+                                    }
+                                    ?>
+                                </datalist>
                             </div>
                         </div>
                     </div>

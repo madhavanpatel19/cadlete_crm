@@ -346,7 +346,7 @@ $first_sec = !empty($db_tab_secs) ? $db_tab_secs[0] : '';
                                     <th style="width: 180px; text-align: center;">Email</th>
                                     <th style="width: 110px; text-align: center;">City</th>
                                     <th style="width: 160px; text-align: center;">Address</th>
-                                    <th style="width: 90px; text-align: center;">Projects</th>
+                                    <th style="width: 140px; text-align: center;">Project Name</th>
                                     <th style="width: 140px; text-align: center;">Notes</th>
                                     <th style="width: 100px; text-align: center;">Action</th>
                                 </tr>
@@ -405,7 +405,7 @@ $first_sec = !empty($db_tab_secs) ? $db_tab_secs[0] : '';
                     <td style="word-break: break-all; text-align: center;">${escapeHtml(v.email || '-')}</td>
                     <td style="text-align: center;">${escapeHtml(v.city || '-')}</td>
                     <td style="font-size: 12px; color: #64748b; line-height: 1.4; text-align: center;">${escapeHtml(v.address || '-')}</td>
-                    <td style="text-align: center; font-weight: 700;">${v.projects_count}</td>
+                    <td style="text-align: center; font-weight: 600; color: #1e293b;">${escapeHtml(v.project_name || '-')}</td>
                     <td style="font-size: 12.5px; color: #64748b; text-align: center;">${escapeHtml(v.notes || '-')}</td>
                     <td style="text-align: center;">
                         <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">

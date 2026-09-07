@@ -544,6 +544,7 @@ $tables = array(
   `email` VARCHAR(150) DEFAULT NULL,
   `city` VARCHAR(100) DEFAULT NULL,
   `address` TEXT DEFAULT NULL,
+  `project_name` VARCHAR(255) DEFAULT NULL,
   `projects_count` INT(11) DEFAULT 0,
   `notes` TEXT DEFAULT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -659,6 +660,10 @@ if ($emps_res) {
 @mysqli_query($con, "ALTER TABLE admins MODIFY admin_contact VARCHAR(50)");
 @mysqli_query($con, "ALTER TABLE vendors MODIFY phone VARCHAR(50)");
 @mysqli_query($con, "ALTER TABLE leads MODIFY phone VARCHAR(50)");
+$chk_v_proj = mysqli_query($con, "SHOW COLUMNS FROM `vendors` LIKE 'project_name'");
+if ($chk_v_proj && mysqli_num_rows($chk_v_proj) == 0) {
+  @mysqli_query($con, "ALTER TABLE `vendors` ADD COLUMN `project_name` VARCHAR(255) NULL DEFAULT NULL AFTER `address`");
+}
 
 // Auto-sync any other existing DB tables into migrations table
 $db_tables_res = mysqli_query($con, "SHOW TABLES");
