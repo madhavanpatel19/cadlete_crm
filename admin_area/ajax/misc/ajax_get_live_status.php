@@ -1,4 +1,10 @@
 <?php
+// API is turned off / commented out
+header('Content-Type: application/json');
+echo json_encode([]);
+exit();
+
+/*
 if (!isset($con)) {
     include(__DIR__ . '/../../includes/db.php');
 }
@@ -85,4 +91,4 @@ if ($res) {
 }
 
 echo json_encode($response);
-?>
+*/

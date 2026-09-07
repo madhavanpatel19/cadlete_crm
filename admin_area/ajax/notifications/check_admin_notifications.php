@@ -1,4 +1,10 @@
 <?php
+// API is turned off / commented out
+header('Content-Type: application/json');
+echo json_encode(["status" => "none"]);
+exit();
+
+/*
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -139,3 +145,4 @@ if (mysqli_num_rows($run) > 0) {
 // Leads follow-ups are now shown in the top right red notification bell dropdown.
 
 echo json_encode(["status" => "none"]);
+*/

@@ -1,10 +1,13 @@
 <?php
 // =============================================================
 // emp_area/pages/announcements/check_announcement.php
-// AJAX endpoint – checks for new announcements for employee.
-// Moved from: admin_area/pages/announcements/check_announcement.php
-// Path updated: db.php include now uses emp_area/includes/db.php
+// API is turned off / commented out
 // =============================================================
+header('Content-Type: application/json');
+echo json_encode(["status" => "none"]);
+exit();
+
+/*
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -47,3 +50,4 @@ if ($run && mysqli_num_rows($run) > 0) {
 } else {
     echo json_encode(["status" => "none"]);
 }
+*/

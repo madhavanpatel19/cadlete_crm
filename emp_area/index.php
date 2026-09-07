@@ -214,9 +214,9 @@ if (!isset($_SESSION['emp_id'])) {
                 }
 
                 /* check announcement every 1.5 seconds */
-                setInterval(checkAnnouncement, 1500);
-                setInterval(fetchLiveNotifications, 1500);
-                fetchLiveNotifications();
+                // setInterval(checkAnnouncement, 1500);
+                // setInterval(fetchLiveNotifications, 1500);
+                // fetchLiveNotifications();
             });
 
             /* notification popup */
@@ -276,6 +276,8 @@ if (!isset($_SESSION['emp_id'])) {
             let _lastEmpSeenNotifId = 0;
 
             function fetchLiveNotifications() {
+                // Notification check disabled
+                return;
                 const endpoint = '../admin_area/ajax/notifications/ajax_get_user_notifications.php?portal=employee';
                 const markReadEndpoint = '../admin_area/ajax/notifications/ajax_mark_notification_read.php?portal=employee';
 
@@ -497,6 +499,8 @@ if (!isset($_SESSION['emp_id'])) {
 
             /* ajax check announcements */
             function checkAnnouncement() {
+                // Notification check disabled
+                return;
                 fetch("pages/announcements/check_announcement.php")
                     .then(response => response.json())
                     .then(data => {

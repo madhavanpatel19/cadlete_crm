@@ -657,6 +657,8 @@ if ($res && mysqli_num_rows($res) > 0) {
         }
 
         function syncLiveStatus() {
+            // Notification check disabled
+            return;
             $.ajax({
                 url: 'ajax/misc/ajax_get_live_status.php',
                 type: 'GET',
@@ -741,9 +743,9 @@ if ($res && mysqli_num_rows($res) > 0) {
         setInterval(updateLiveTimers, 1000);
 
         // Sync status from server every 3 seconds for instant real-time updates
-        setInterval(syncLiveStatus, 3000);
+        // setInterval(syncLiveStatus, 3000);
 
         updateLiveTimers();
-        syncLiveStatus();
+        // syncLiveStatus();
     });
 </script>

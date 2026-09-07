@@ -534,9 +534,9 @@ if (!isset($_SESSION['admin_email'])) {
                 }
 
                 /* check admin notifications every 1.5 seconds */
-                setInterval(checkAdminNotifications, 1500);
-                setInterval(fetchLiveNotifications, 1500);
-                fetchLiveNotifications();
+                // setInterval(checkAdminNotifications, 1500);
+                // setInterval(fetchLiveNotifications, 1500);
+                // fetchLiveNotifications();
             });
 
             function showAnnouncementNotification(title, message) {
@@ -599,6 +599,8 @@ if (!isset($_SESSION['admin_email'])) {
             let _lastSeenNotifId = 0;
 
             function fetchLiveNotifications() {
+                // Notification check disabled
+                return;
                 const isEmp = (window.location.pathname.indexOf('emp_area') !== -1);
                 const endpoint = isEmp ? '../admin_area/ajax/notifications/ajax_get_user_notifications.php?portal=employee' : 'ajax/notifications/ajax_get_user_notifications.php?portal=admin';
                 const markReadEndpoint = isEmp ? '../admin_area/ajax/notifications/ajax_mark_notification_read.php?portal=employee' : 'ajax/notifications/ajax_mark_notification_read.php?portal=admin';
@@ -820,6 +822,8 @@ if (!isset($_SESSION['admin_email'])) {
             }
 
             function checkAdminNotifications() {
+                // Notification check disabled
+                return;
                 fetch("ajax/notifications/check_admin_notifications.php")
                     .then(response => response.json())
                     .then(data => {
@@ -828,7 +832,7 @@ if (!isset($_SESSION['admin_email'])) {
                         }
                     })
                     .catch(error => console.log('Error checking admin notifications:', error));
-                fetchLiveNotifications();
+                // fetchLiveNotifications();
             }
 
             // Automatically convert all input[type="date"] & input[type="datetime-local"] to display dd-mm-yyyy format

@@ -1,4 +1,14 @@
 <?php
+// API is turned off / commented out
+header('Content-Type: application/json');
+echo json_encode([
+    'success' => true,
+    'unread_count' => 0,
+    'notifications' => []
+]);
+exit();
+
+/*
 ob_start();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -84,3 +94,4 @@ echo json_encode([
     'unread_count' => $unread_count,
     'notifications' => $notifications
 ]);
+*/
