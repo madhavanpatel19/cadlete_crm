@@ -643,6 +643,28 @@ CREATE TABLE `project_links` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `project_media_assets`
+--
+
+CREATE TABLE `project_media_assets` (
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `project_id` int(11) NOT NULL,
+  `category` varchar(50) NOT NULL,
+  `asset_name` varchar(255) NOT NULL,
+  `dimension_spec` varchar(100) DEFAULT NULL,
+  `file_path` text DEFAULT NULL,
+  `link_url` text DEFAULT NULL,
+  `file_type` varchar(50) DEFAULT 'image',
+  `original_file_name` varchar(255) DEFAULT NULL,
+  `uploaded_by` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` datetime DEFAULT NULL,
+  KEY `idx_proj_cat` (`project_id`, `category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `project_phase_payments`
 --
 

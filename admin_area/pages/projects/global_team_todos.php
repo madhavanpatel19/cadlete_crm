@@ -1043,7 +1043,7 @@ if ($run_projs) {
             // 2: Amber / Golden Orange
             ['primary' => '#d97706', 'border' => '#f59e0b', 'bg' => '#fef3c7', 'color' => '#92400e', 'icon' => 'fa-folder-open', 'badge_bg' => '#fef3c7', 'badge_border' => '#fde68a'],
             // 3: Rose / Coral Pink
-            ['primary' => '#e11d48', 'border' => '#f43f5e', 'bg' => '#ffe4e6', 'color' => '#9f1239', 'icon' => 'fa-rocket', 'badge_bg' => '#ffe4e6', 'badge_border' => '#fecdd3'],
+            ['primary' => '#e11d48', 'border' => '#dd2127', 'bg' => '#ffe4e6', 'color' => '#9f1239', 'icon' => 'fa-rocket', 'badge_bg' => '#ffe4e6', 'badge_border' => '#fecdd3'],
             // 4: Purple / Violet
             ['primary' => '#7c3aed', 'border' => '#8b5cf6', 'bg' => '#ede9fe', 'color' => '#5b21b6', 'icon' => 'fa-layer-group', 'badge_bg' => '#ede9fe', 'badge_border' => '#ddd6fe'],
             // 5: Cyan / Sky Blue

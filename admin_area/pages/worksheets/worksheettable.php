@@ -354,7 +354,7 @@ $result = mysqli_query($con, $sql);
                 </button>
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <div style="width: 50px; height: 50px; border-radius: 16px; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                        <i class="fa fa-picture-o" style="font-size: 24px; color: #f43f5e;"></i>
+                        <i class="fa fa-picture-o" style="font-size: 24px; color: #dd2127;"></i>
                     </div>
                     <div>
                         <h4 class="modal-title" style="font-weight: 800; font-size: 20px; margin: 0; letter-spacing: -0.5px;">Work Details</h4>

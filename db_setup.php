@@ -568,6 +568,21 @@ $tables = array(
   `checked_at` DATETIME DEFAULT NULL,
   UNIQUE KEY `unique_project_sop` (`project_id`, `sop_item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci',
+  'project_media_assets' => 'CREATE TABLE IF NOT EXISTS `project_media_assets` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `project_id` INT NOT NULL,
+  `category` VARCHAR(50) NOT NULL,
+  `asset_name` VARCHAR(255) NOT NULL,
+  `dimension_spec` VARCHAR(100) DEFAULT NULL,
+  `file_path` TEXT DEFAULT NULL,
+  `link_url` TEXT DEFAULT NULL,
+  `file_type` VARCHAR(50) DEFAULT \'image\',
+  `original_file_name` VARCHAR(255) DEFAULT NULL,
+  `uploaded_by` VARCHAR(100) DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `deleted_at` DATETIME DEFAULT NULL,
+  KEY `idx_proj_cat` (`project_id`, `category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci',
 );
 
 foreach ($tables as $name => $sql) {

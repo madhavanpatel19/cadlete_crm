@@ -824,18 +824,85 @@ $emp_sop_total = $emp_sop_total_res ? (int)mysqli_fetch_assoc($emp_sop_total_res
     let currentProjectIdRepo = 0;
     let currentRepoTab = 'documents';
 
+    const mediaDefinitions = {
+        project_images: [{
+                name: '3D CAD Images and Line Drawings',
+                spec: 'From Drive'
+            },
+            {
+                name: 'Final Product',
+                spec: 'High Resolution'
+            },
+            {
+                name: 'Photorealistic Renders from AI',
+                spec: 'AI Renders'
+            },
+            {
+                name: 'Work in Progress Images + Team photo with Final Product',
+                spec: 'WIP + Team Photo'
+            }
+        ],
+        social_media: [{
+                name: 'Case Study Image/Portfolio Image',
+                spec: '3840x2560'
+            },
+            {
+                name: 'Cover Page Image for Instagram',
+                spec: '4:5 Ratio'
+            },
+            {
+                name: 'Carousel Images for Insta/Linkedin',
+                spec: '4:5 Ratio'
+            },
+            {
+                name: 'Square Portfolio Image',
+                spec: '1:1 Ratio'
+            },
+            {
+                name: 'Horizontal Portfolio Image',
+                spec: '3403x1914'
+            },
+            {
+                name: 'Cover Image for Portfolio',
+                spec: '1280x769'
+            },
+            {
+                name: 'Product Reel - 1 (Detailed)',
+                spec: 'Instagram Reel'
+            },
+            {
+                name: 'Product Reel - 1 (Very Short)',
+                spec: 'Instagram Reel'
+            }
+        ]
+    };
+
+    window.populateMediaAssetSelect = function(category, selectedName = '') {
+        const select = $('#media_asset_select');
+        select.empty();
+        const list = mediaDefinitions[category] || [];
+        list.forEach(function(item) {
+            const isSelected = (selectedName && selectedName.trim().toLowerCase() === item.name.trim().toLowerCase()) ? 'selected' : '';
+            select.append(`<option value="${item.name}" data-spec="${item.spec}" ${isSelected}>${item.name} (${item.spec})</option>`);
+        });
+        syncMediaSpecFromOption(select[0]);
+    };
+
+    window.syncMediaSpecFromOption = function(selectEl) {
+        const selectedOpt = $(selectEl).find('option:selected');
+        const spec = selectedOpt.data('spec') || '';
+        $('#media_dimension_spec_unified').val(spec);
+    };
+
     window.switchRepoTab = function(tabName) {
         currentRepoTab = tabName;
         $('.repo-tab').removeClass('active');
         $(`#tab-${tabName}`).addClass('active');
 
-        if (tabName === 'documents') {
-            $('#btn-add-artifact').show();
-            $('#btn-add-link').hide();
-        } else {
-            $('#btn-add-artifact').hide();
-            $('#btn-add-link').show();
-        }
+        $('#btn-add-artifact').toggle(tabName === 'documents');
+        $('#btn-add-link').toggle(tabName === 'links');
+        $('#btn-add-project-image').toggle(tabName === 'project_images');
+        $('#btn-add-social-post').toggle(tabName === 'social_media');
 
         $('#resource-forms-container').hide();
         refreshRepoContent();
@@ -845,6 +912,7 @@ $emp_sop_total = $emp_sop_total_res ? (int)mysqli_fetch_assoc($emp_sop_total_res
         const container = $('#resource-forms-container');
         const formDoc = $('#add-document-form-unified');
         const formLink = $('#add-link-form-unified');
+        const formMedia = $('#add-media-form-unified');
 
         if (container.is(':visible')) {
             container.slideUp(300);
@@ -852,6 +920,12 @@ $emp_sop_total = $emp_sop_total_res ? (int)mysqli_fetch_assoc($emp_sop_total_res
             $('.resource-form').hide();
             if (type === 'link' || currentRepoTab === 'links') {
                 formLink.show();
+            } else if (type === 'project_images' || type === 'social_media' || currentRepoTab === 'project_images' || currentRepoTab === 'social_media') {
+                const cat = (type === 'project_images' || type === 'social_media') ? type : currentRepoTab;
+                $('#media_project_id_unified').val(currentProjectIdRepo);
+                $('#media_category_unified').val(cat);
+                populateMediaAssetSelect(cat);
+                formMedia.show();
             } else {
                 formDoc.show();
             }
@@ -859,27 +933,169 @@ $emp_sop_total = $emp_sop_total_res ? (int)mysqli_fetch_assoc($emp_sop_total_res
         }
     };
 
+    window.openMediaUploadModal = function(category, slotName = '', spec = '') {
+        currentRepoTab = category;
+        $('.repo-tab').removeClass('active');
+        $(`#tab-${category}`).addClass('active');
+
+        $('#media_project_id_unified').val(currentProjectIdRepo);
+        $('#media_category_unified').val(category);
+        populateMediaAssetSelect(category, slotName);
+
+        if (spec) {
+            $('#media_dimension_spec_unified').val(spec);
+        }
+
+        $('.resource-form').hide();
+        $('#add-media-form-unified').show();
+        $('#resource-forms-container').slideDown(300);
+
+        $('#btn-add-artifact').hide();
+        $('#btn-add-link').hide();
+        $('#btn-add-project-image').toggle(category === 'project_images');
+        $('#btn-add-social-post').toggle(category === 'social_media');
+    };
+
     function refreshRepoContent() {
         $('#docs-list-container').html('<div class="spinner-premium" style="margin: 30px auto;"></div>');
-        const url = currentRepoTab === 'documents' ? '../admin_area/ajax/projects/ajax_view_project_documents.php' : '../admin_area/ajax/projects/ajax_view_project_links.php';
+        let url = '';
+        let data = {
+            project_id: currentProjectIdRepo,
+            user_type: 'employee'
+        };
+
+        if (currentRepoTab === 'documents') {
+            url = '../admin_area/ajax/projects/ajax_view_project_documents.php';
+        } else if (currentRepoTab === 'links') {
+            url = '../admin_area/ajax/projects/ajax_view_project_links.php';
+        } else if (currentRepoTab === 'project_images' || currentRepoTab === 'social_media') {
+            url = '../admin_area/ajax/projects/ajax_view_project_media.php';
+            data.category = currentRepoTab;
+        }
 
         $.ajax({
             url: url,
             method: 'GET',
-            data: {
-                project_id: currentProjectIdRepo,
-                user_type: 'employee'
-            },
+            data: data,
             success: function(response) {
                 $('#docs-list-container').html(response);
+            },
+            error: function() {
+                $('#docs-list-container').html('<div style="text-align:center; padding:30px; color:#ef4444;">Failed to load resources.</div>');
             }
         });
     }
+
+    $(document).ready(function() {
+        // Document Submission
+        $('#add-document-form-unified').submit(function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const submitBtn = $(this).find('button[type="submit"]');
+            submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Uploading...');
+
+            $.ajax({
+                url: '../admin_area/ajax/projects/ajax_add_project_document.php',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    submitBtn.prop('disabled', false).html('Add Document');
+                    if (response.success) {
+                        $('#resource-forms-container').slideUp(300);
+                        $('#add-document-form-unified')[0].reset();
+                        $('#file-name-label-unified').text('Choose file...');
+                        refreshRepoContent();
+                        showPremiumAlert('Document archived');
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Error', response.message, 'error');
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    }
+                }
+            });
+        });
+
+        // Link Submission
+        $('#add-link-form-unified').submit(function(e) {
+            e.preventDefault();
+            const formData = $(this).serialize();
+            const submitBtn = $(this).find('button[type="submit"]');
+            const originalText = submitBtn.html();
+            submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
+
+            $.ajax({
+                url: '../admin_area/ajax/projects/ajax_add_project_link.php',
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    submitBtn.prop('disabled', false).html(originalText);
+                    if (response.success) {
+                        $('#resource-forms-container').slideUp(300);
+                        $('#add-link-form-unified')[0].reset();
+                        refreshRepoContent();
+                        showPremiumAlert('Link saved to repository');
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Error', response.message, 'error');
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    }
+                }
+            });
+        });
+
+        // Media Asset Submission
+        $('#add-media-form-unified').submit(function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const submitBtn = $(this).find('button[type="submit"]');
+            const originalText = submitBtn.html();
+            submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
+
+            $.ajax({
+                url: '../admin_area/ajax/projects/ajax_add_project_media.php',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    submitBtn.prop('disabled', false).html(originalText);
+                    if (response.success) {
+                        $('#resource-forms-container').slideUp(300);
+                        $('#add-media-form-unified')[0].reset();
+                        $('#media-file-name-label').text('Choose file...');
+                        refreshRepoContent();
+                        showPremiumAlert(response.message || 'Media asset saved');
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Error', response.message, 'error');
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    }
+                },
+                error: function() {
+                    submitBtn.prop('disabled', false).html(originalText);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Error', 'Failed to save media asset', 'error');
+                    } else {
+                        alert('Failed to save media asset');
+                    }
+                }
+            });
+        });
+    });
 
     window.viewDocs = function(id, initialTab = 'documents') {
         currentProjectIdRepo = id;
         $('#doc_project_id_unified').val(id);
         $('#link_project_id_unified').val(id);
+        $('#media_project_id_unified').val(id);
         switchRepoTab(initialTab);
         $('#viewDocumentsModal').modal('show');
     };
@@ -900,11 +1116,7 @@ $emp_sop_total = $emp_sop_total_res ? (int)mysqli_fetch_assoc($emp_sop_total_res
                 success: function(response) {
                     if (response.success) {
                         refreshRepoContent();
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire('Deleted', 'Resource removed', 'success');
-                        } else {
-                            alert('Resource removed');
-                        }
+                        showPremiumAlert('Resource removed');
                     } else {
                         if (typeof Swal !== 'undefined') {
                             Swal.fire('Error', response.message, 'error');
@@ -935,13 +1147,227 @@ $emp_sop_total = $emp_sop_total_res ? (int)mysqli_fetch_assoc($emp_sop_total_res
             }
         }
     };
+
+    window.deleteMediaAsset = function(assetId) {
+        const doDeleteMedia = function() {
+            $.ajax({
+                url: '../admin_area/ajax/projects/ajax_delete_project_media.php',
+                method: 'POST',
+                data: {
+                    asset_id: assetId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        refreshRepoContent();
+                        showPremiumAlert('Media asset removed');
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Error', response.message, 'error');
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    }
+                }
+            });
+        };
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Confirm Removal',
+                text: "This media asset will be removed from this slot.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Yes, remove it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    doDeleteMedia();
+                }
+            });
+        } else {
+            if (confirm('Are you sure you want to remove this media asset?')) {
+                doDeleteMedia();
+            }
+        }
+    };
+
+    window.handleDirectMediaUpload = function(inputEl, category, assetName, spec) {
+        if (!inputEl.files || inputEl.files.length === 0) return;
+
+        const files = inputEl.files;
+        const formData = new FormData();
+        formData.append('project_id', currentProjectIdRepo);
+        formData.append('category', category);
+        formData.append('asset_name', assetName);
+        formData.append('dimension_spec', spec);
+
+        for (let i = 0; i < files.length; i++) {
+            formData.append('media_files[]', files[i]);
+        }
+
+        $('#docs-list-container').prepend('<div id="media-uploading-bar" style="background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; padding:10px 16px; border-radius:10px; margin-bottom:15px; font-weight:700; font-size:13px; display:flex; align-items:center; gap:8px;"><i class="fa fa-spinner fa-spin"></i> Uploading ' + files.length + ' file(s)...</div>');
+
+        $.ajax({
+            url: '../admin_area/ajax/projects/ajax_add_project_media.php',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(res) {
+                $('#media-uploading-bar').remove();
+                if (res.success) {
+                    refreshRepoContent();
+                    showPremiumAlert(res.message || 'Files uploaded successfully');
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Upload Error', res.message || 'Could not upload file.', 'error');
+                    } else {
+                        alert('Error: ' + res.message);
+                    }
+                }
+            },
+            error: function(xhr) {
+                $('#media-uploading-bar').remove();
+                let errMsg = 'Upload failed. Please check file format and try again.';
+                if (xhr.responseText) {
+                    try {
+                        const parsed = JSON.parse(xhr.responseText);
+                        if (parsed.message) errMsg = parsed.message;
+                    } catch (e) {}
+                }
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Upload Error', errMsg, 'error');
+                } else {
+                    alert(errMsg);
+                }
+            }
+        });
+
+        inputEl.value = '';
+    };
+
+    window.promptDriveLinkForSlot = function(category, assetName, spec) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Add Drive / External Link',
+                text: 'Paste link for ' + assetName,
+                input: 'url',
+                inputPlaceholder: 'https://drive.google.com/...',
+                showCancelButton: true,
+                confirmButtonText: 'Save Link',
+                confirmButtonColor: '#dd2127',
+                cancelButtonColor: '#64748b'
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    const linkUrl = result.value.trim();
+                    $.ajax({
+                        url: '../admin_area/ajax/projects/ajax_add_project_media.php',
+                        method: 'POST',
+                        data: {
+                            project_id: currentProjectIdRepo,
+                            category: category,
+                            asset_name: assetName,
+                            dimension_spec: spec,
+                            link_url: linkUrl
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                refreshRepoContent();
+                                showPremiumAlert('Link attached successfully');
+                            } else {
+                                Swal.fire('Error', res.message, 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        } else {
+            const linkUrl = prompt('Enter Drive or external URL for ' + assetName + ':');
+            if (linkUrl) {
+                $.ajax({
+                    url: '../admin_area/ajax/projects/ajax_add_project_media.php',
+                    method: 'POST',
+                    data: {
+                        project_id: currentProjectIdRepo,
+                        category: category,
+                        asset_name: assetName,
+                        dimension_spec: spec,
+                        link_url: linkUrl
+                    },
+                    success: function(res) {
+                        if (res.success) {
+                            refreshRepoContent();
+                            showPremiumAlert('Link attached successfully');
+                        } else {
+                            alert(res.message);
+                        }
+                    }
+                });
+            }
+        }
+    };
+
+    function showPremiumAlert(message) {
+        let container = document.getElementById('toast-container-custom');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container-custom';
+            container.style.position = 'fixed';
+            container.style.bottom = '20px';
+            container.style.right = '20px';
+            container.style.zIndex = '999999';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '10px';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.style.background = '#1e293b';
+        toast.style.color = '#fff';
+        toast.style.padding = '16px 24px';
+        toast.style.borderRadius = '12px';
+        toast.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '12px';
+        toast.style.fontSize = '14px';
+        toast.style.fontWeight = '600';
+        toast.style.transform = 'translateY(100px) scale(0.9)';
+        toast.style.opacity = '0';
+        toast.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
+        toast.innerHTML = `
+            <div style="width: 24px; height: 24px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="fa fa-check" style="font-size: 12px;"></i>
+            </div>
+            ${message}
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateY(0) scale(1)';
+            toast.style.opacity = '1';
+        }, 50);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateY(50px) scale(0.9)';
+            toast.style.opacity = '0';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 400);
+        }, 3000);
+    }
 </script>
 
 <!-- View Documents Modal (Unified Repository) -->
 <div id="viewDocumentsModal" class="modal fade" role="dialog" style="z-index: 1055;">
-    <div class="modal-dialog modal-lg" style="margin-top: 80px; max-width: 700px;">
+    <div class="modal-dialog" style="margin: 40px auto; width: 92%; max-width: 960px;">
         <div class="modal-content premium-modal-content" style="border: none; border-radius: 28px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3); overflow: hidden;">
-            <div class="modal-header" style="background: #FFEAEB; color: #000; padding: 30px; border: none; position: relative;">
+            <div class="modal-header" style="background: #FFEAEB; color: #000; padding: 25px 30px; border: none; position: relative;">
                 <button type="button" class="btn-modal-close" data-dismiss="modal">
                     <i class="fa fa-times"></i>
                 </button>
@@ -963,22 +1389,34 @@ $emp_sop_total = $emp_sop_total_res ? (int)mysqli_fetch_assoc($emp_sop_total_res
                         <button type="button" id="btn-add-link" class="btn-premium-add-inline" onclick="toggleAddResourceForm('link')" style="background: #dd2127; color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-weight: 700; font-size: 13px; display: none; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 10px rgba(221, 33, 39, 0.2);">
                             <i class="fa fa-globe"></i> <span class="btn-text">Add Link</span>
                         </button>
+                        <button type="button" id="btn-add-project-image" class="btn-premium-add-inline" onclick="toggleAddResourceForm('project_images')" style="background: #dd2127; color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-weight: 700; font-size: 13px; display: none; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 10px rgba(221, 33, 39, 0.2);">
+                            <i class="fa fa-camera"></i> <span class="btn-text">Upload Image</span>
+                        </button>
+                        <button type="button" id="btn-add-social-post" class="btn-premium-add-inline" onclick="toggleAddResourceForm('social_media')" style="background: #dd2127; color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-weight: 700; font-size: 13px; display: none; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 10px rgba(221, 33, 39, 0.2);">
+                            <i class="fa fa-share-alt"></i> <span class="btn-text">Upload Post / Reel</span>
+                        </button>
                     </div>
                 </div>
             </div>
             <div class="modal-body" style="padding: 0; background: #fff;">
                 <!-- Tab Navigation -->
-                <div style="background: #f1f5f9; padding: 0 30px; display: flex; gap: 30px; border-bottom: 1px solid #e2e8f0;">
+                <div style="background: #f1f5f9; padding: 0 25px; display: flex; gap: 20px; border-bottom: 1px solid #e2e8f0; overflow-x: auto;">
                     <div class="repo-tab active" onclick="switchRepoTab('documents')" id="tab-documents">
                         <i class="fa fa-files-o"></i> Documents
                     </div>
                     <div class="repo-tab" onclick="switchRepoTab('links')" id="tab-links">
                         <i class="fa fa-link"></i> External Links
                     </div>
+                    <div class="repo-tab" onclick="switchRepoTab('project_images')" id="tab-project_images">
+                        <i class="fa fa-picture-o"></i> Project Images
+                    </div>
+                    <div class="repo-tab" onclick="switchRepoTab('social_media')" id="tab-social_media">
+                        <i class="fa fa-share-alt"></i> Social Media Posts
+                    </div>
                 </div>
 
                 <!-- Inline Resource Forms -->
-                <div id="resource-forms-container" style="display: none; background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 30px; animation: slideDown 0.3s ease-out;">
+                <div id="resource-forms-container" style="display: none; background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 25px 30px; animation: slideDown 0.3s ease-out;">
                     <!-- Document Form -->
                     <form id="add-document-form-unified" method="POST" enctype="multipart/form-data" class="resource-form">
                         <input type="hidden" name="project_id" id="doc_project_id_unified">
@@ -1002,7 +1440,7 @@ $emp_sop_total = $emp_sop_total_res ? (int)mysqli_fetch_assoc($emp_sop_total_res
                         </div>
                         <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
                             <button type="button" class="btn-premium-cancel" onclick="toggleAddResourceForm()">Discard</button>
-                            <button type="submit" class="btn-premium-add" style="background: #dd2127; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 700;">Add Document</button>
+                            <button type="submit" class="btn-premium-add">Add Document</button>
                         </div>
                     </form>
 
@@ -1025,12 +1463,49 @@ $emp_sop_total = $emp_sop_total_res ? (int)mysqli_fetch_assoc($emp_sop_total_res
                         </div>
                         <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
                             <button type="button" class="btn-premium-cancel" onclick="toggleAddResourceForm()">Discard</button>
-                            <button type="submit" class="btn-premium-add" style="background: #dd2127; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 700;">Add Link</button>
+                            <button type="submit" class="btn-premium-add">Add Link</button>
+                        </div>
+                    </form>
+
+                    <!-- Media / Post Upload Form -->
+                    <form id="add-media-form-unified" method="POST" enctype="multipart/form-data" class="resource-form" style="display: none;">
+                        <input type="hidden" name="project_id" id="media_project_id_unified">
+                        <input type="hidden" name="category" id="media_category_unified" value="project_images">
+                        <input type="hidden" name="dimension_spec" id="media_dimension_spec_unified" value="">
+
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="form-group" style="margin-bottom: 10px;">
+                                    <label style="font-weight: 700; color: #475569; margin-bottom: 6px; display: block; font-size: 11px; text-transform: uppercase;">Select Deliverable Option <span style="color: #ef4444;">*</span></label>
+                                    <select name="asset_name" id="media_asset_select" class="p-input-premium" required style="height: 45px; width: 100%; font-weight: 600;" onchange="syncMediaSpecFromOption(this)">
+                                        <!-- Populated dynamically via JS -->
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group" style="margin-bottom: 10px;">
+                                    <label style="font-weight: 700; color: #475569; margin-bottom: 6px; display: block; font-size: 11px; text-transform: uppercase;">Choose File(s)</label>
+                                    <div class="file-upload-wrapper-premium-mini" style="position: relative; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 10px; text-align: center; background: #fff; transition: 0.3s;">
+                                        <input type="file" name="media_files[]" id="media_file_input_unified" multiple style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer;" onchange="$('#media-file-name-label').text(this.files.length > 1 ? this.files.length + ' files selected' : (this.files[0] ? this.files[0].name : 'Choose file...'));">
+                                        <span id="media-file-name-label" style="color: #64748b; font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">Choose file...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group" style="margin-bottom: 10px;">
+                                    <label style="font-weight: 700; color: #475569; margin-bottom: 6px; display: block; font-size: 11px; text-transform: uppercase;">OR Drive / Cloud Link</label>
+                                    <input type="url" name="link_url" id="media_link_url_input" class="p-input-premium" placeholder="https://drive.google.com/..." style="height: 45px; font-size: 12px;">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="button" class="btn-premium-cancel" onclick="toggleAddResourceForm()">Discard</button>
+                            <button type="submit" class="btn-premium-add">Upload Asset</button>
                         </div>
                     </form>
                 </div>
 
-                <div id="docs-list-container" style="max-height: 550px; overflow-y: auto; padding: 30px;">
+                <div id="docs-list-container" style="max-height: 550px; overflow-y: auto; padding: 25px 30px;">
                     <!-- Documents will be loaded here -->
                     <div class="spinner-premium" style="margin: 50px auto;"></div>
                 </div>

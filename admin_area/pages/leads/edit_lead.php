@@ -449,11 +449,7 @@ if (isset($_POST['update_lead'])) {
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <?php
-                            $default_template = "1. Can we do it or not?\n2. Complexity of the project on the scale from 1 to 5 (1 is easy, 5 is complex)\n3. Time required for the project\n4. Reply mail to client about any additional information/suggestions that I can directly forwarded to him";
-                            $display_desc = !empty($c_desc) ? $c_desc : $default_template;
-                            ?>
-                            <textarea name="description" class="p-input-premium" style="height: 140px; padding: 12px; font-family: inherit;" placeholder="Detailed lead requirements..."><?php echo htmlspecialchars($display_desc); ?></textarea>
+                            <textarea name="description" class="p-input-premium" style="height: 140px; padding: 12px; font-family: inherit;" placeholder="Detailed lead requirements..."><?php echo htmlspecialchars($c_desc ?? ''); ?></textarea>
                         </div>
                     </div>
                     <div class="col-md-6">

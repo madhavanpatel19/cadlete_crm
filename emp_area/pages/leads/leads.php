@@ -511,18 +511,19 @@ elseif (isset($_GET['lead_id'])) $auto_open_id = (int)$_GET['lead_id'];
                     $('#lead-modal-title').text(lead.project_name || lead.client_name);
                     $('#lead-modal-due-date').text(lead.display_followup_date || '--');
 
-                    // Description
-                    const defaultDescTemplate = "1. Can we do it or not?\n2. Complexity of the project on the scale from 1 to 5 (1 is easy, 5 is complex)\n3. Time required for the project\n4. Reply mail to client about any additional information/suggestions that I can directly forwarded to him";
-                    let descVal = lead.description ? lead.description.trim() : '';
-
-                    if (!descVal || descVal === 'teste13' || !descVal.includes('1. Can we do it or not')) {
-                        if (descVal && descVal !== 'teste13') {
-                            descVal = defaultDescTemplate + "\n\nAdditional Notes:\n" + descVal;
-                        } else {
-                            descVal = defaultDescTemplate;
-                        }
+                    // Description (clean any legacy hardcoded 4 questions if description was only that)
+                    let rawDesc = lead.description ? lead.description.trim() : '';
+                    const legacyTemplate = "1. Can we do it or not?\n2. Complexity of the project on the scale from 1 to 5 (1 is easy, 5 is complex)\n3. Time required for the project\n4. Reply mail to client about any additional information/suggestions that I can directly forwarded to him";
+                    
+                    if (rawDesc.replace(/\r/g, '').trim() === legacyTemplate.replace(/\r/g, '').trim() || rawDesc.toLowerCase() === 'teste13') {
+                        rawDesc = '';
                     }
-                    $('#lead-modal-description').text(descVal);
+
+                    if (rawDesc) {
+                        $('#lead-modal-description').html(escapeHtml(rawDesc).replace(/\n/g, '<br>'));
+                    } else {
+                        $('#lead-modal-description').html('<span style="color: #94a3b8; font-style: italic; font-size: 13px;">No description provided.</span>');
+                    }
 
                     // Status Badge
                     let stLabel = lead.status.toUpperCase();
@@ -579,31 +580,55 @@ elseif (isset($_GET['lead_id'])) $auto_open_id = (int)$_GET['lead_id'];
     });
 
     function renderLeadComments(followups) {
-        if (!followups || followups.length === 0) {
-            $('#lead-activity-stream').html('<div style="display:flex; align-items:center; gap:8px; font-size:12px; color:#94a3b8; padding:12px 0;"><span style="width:22px; height:22px; border-radius:50%; background:#ffeaeb; color:#dd2127; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11px;">+</span><span>Task created just now</span></div>');
-            return;
-        }
-
-        let html = '';
-        followups.forEach(function(item) {
-            const authorName = item.author || 'Employee';
-            const initial = authorName.charAt(0).toUpperCase();
-            const timeAgo = item.time_ago || item.date;
-            const remarkText = item.clean_remark || item.remark;
-
-            html += `<div style="display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-start;">
-                <div style="width: 28px; height: 28px; border-radius: 50%; background: #dd2127; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; flex-shrink: 0; margin-top: 2px;">
-                    ${escapeHtml(initial)}
+        const defaultQuestionsCard = `
+            <div style="display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-start;">
+                <div style="width: 28px; height: 28px; border-radius: 50%; background: #ffeaeb; color: #dd2127; border: 1px solid #fecdd3; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; flex-shrink: 0; margin-top: 2px;">
+                    <i class="fa fa-list-ol"></i>
                 </div>
                 <div style="flex: 1;">
                     <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 5px;">
-                        <strong style="color: #1e293b; font-weight: 700;">${escapeHtml(authorName)}</strong>
-                        <small style="color: #94a3b8; font-size: 11.5px;">${escapeHtml(timeAgo)}</small>
+                        <strong style="color: #1e293b; font-weight: 700;">Default Task Questions</strong>
+                        <small style="background: #f1f5f9; color: #64748b; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 10px;">Checklist</small>
                     </div>
-                    <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #1e293b; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(remarkText)}</div>
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 3px solid #dd2127; border-radius: 10px; padding: 12px 14px; font-size: 12.5px; color: #334155; line-height: 1.6; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                        <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Required Follow-up Questions:</div>
+                        <div style="margin-bottom: 4px; display: flex; gap: 6px;"><span style="font-weight: 700; color: #dd2127;">1.</span> <span>Can we do it or not?</span></div>
+                        <div style="margin-bottom: 4px; display: flex; gap: 6px;"><span style="font-weight: 700; color: #dd2127;">2.</span> <span>Complexity of the project on the scale from 1 to 5 (1 is easy, 5 is complex)</span></div>
+                        <div style="margin-bottom: 4px; display: flex; gap: 6px;"><span style="font-weight: 700; color: #dd2127;">3.</span> <span>Time required for the project</span></div>
+                        <div style="display: flex; gap: 6px;"><span style="font-weight: 700; color: #dd2127;">4.</span> <span>Reply mail to client about any additional information/suggestions that I can directly forwarded to him</span></div>
+                    </div>
                 </div>
-            </div>`;
-        });
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; padding: 4px 0 12px 4px;">
+                <span style="width: 22px; height: 22px; border-radius: 50%; background: #ffeaeb; color: #dd2127; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px;">+</span>
+                <span>Task created</span>
+            </div>
+        `;
+
+        let html = '';
+        if (followups && followups.length > 0) {
+            followups.forEach(function(item) {
+                const authorName = item.author || 'Employee';
+                const initial = authorName.charAt(0).toUpperCase();
+                const timeAgo = item.time_ago || item.date;
+                const remarkText = item.clean_remark || item.remark;
+
+                html += `<div style="display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-start;">
+                    <div style="width: 28px; height: 28px; border-radius: 50%; background: #dd2127; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; flex-shrink: 0; margin-top: 2px;">
+                        ${escapeHtml(initial)}
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 5px;">
+                            <strong style="color: #1e293b; font-weight: 700;">${escapeHtml(authorName)}</strong>
+                            <small style="color: #94a3b8; font-size: 11.5px;">${escapeHtml(timeAgo)}</small>
+                        </div>
+                        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #1e293b; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(remarkText)}</div>
+                    </div>
+                </div>`;
+            });
+        }
+        
+        html += defaultQuestionsCard;
         $('#lead-activity-stream').html(html);
     }
 

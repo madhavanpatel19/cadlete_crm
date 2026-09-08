@@ -383,10 +383,7 @@ $run_admins = mysqli_query($con, $get_admins);
                         <div class="form-group">
                             <label class="col-md-4 control-label" style="text-align: left; color: #475569; font-weight: 600;">Description</label>
                             <div class="col-md-8">
-                                <textarea name="description" class="p-input-premium" style="height: 140px; padding: 12px; font-family: inherit;" placeholder="Detailed lead requirements...">1. Can we do it or not?
-2. Complexity of the project on the scale from 1 to 5 (1 is easy, 5 is complex)
-3. Time required for the project
-4. Reply mail to client about any additional information/suggestions that I can directly forwarded to him</textarea>
+                                <textarea name="description" class="p-input-premium" style="height: 140px; padding: 12px; font-family: inherit;" placeholder="Detailed lead requirements..."></textarea>
                             </div>
                         </div>
                     </div>
