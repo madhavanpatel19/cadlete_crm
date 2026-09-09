@@ -297,32 +297,50 @@ $run_leads = mysqli_query($con, $get_leads);
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN: Comments and activity -->
+            <!-- RIGHT COLUMN: Questions and Comments Tabs -->
             <div class="tdm-right">
-                <div class="tdm-section-title" style="font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa fa-comments-o" style="color: #dd2127;"></i> Comments and activity
+                <!-- Tabs Navigation -->
+                <div class="tdm-tab-nav">
+                    <button type="button" class="tdm-tab-btn active" id="tab-btn-comments" onclick="switchLeadTab('comments')">
+                        <i class="fa fa-comments-o"></i> Activity & Notes
+                        <span id="lead-c-count-badge" class="tdm-tab-badge">0</span>
+                    </button>
+                    <button type="button" class="tdm-tab-btn" id="tab-btn-questions" onclick="switchLeadTab('questions')">
+                        <i class="fa fa-list-ol"></i> Required Questions
+                        <span id="lead-q-count-badge" class="tdm-tab-badge">0/4</span>
+                    </button>
                 </div>
 
-                <!-- New Comment Box -->
-                <div class="tdm-comment-add" style="display: flex; gap: 10px; margin-bottom: 16px;">
-                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #dd2127; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px;">
-                        <i class="fa fa-user"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <textarea id="lead-comment-input" class="tdm-comment-textarea" rows="2" placeholder="Write a comment..." style="width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; font-size: 13px; outline: none; font-family: inherit; resize: vertical;" onfocus="document.getElementById('lead-comment-actions').style.display='flex';"></textarea>
+                <!-- TAB 1: Comments & Activity Stream (Default) -->
+                <div id="lead-tab-content-comments" class="tdm-tab-pane" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px;">
+                    <!-- New Comment Box -->
+                    <div class="tdm-comment-add" style="display: flex; gap: 10px; margin-bottom: 16px;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #dd2127; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px;">
+                            <i class="fa fa-user"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <textarea id="lead-comment-input" class="tdm-comment-textarea" rows="2" placeholder="Write a comment / update note..." style="width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; font-size: 13px; outline: none; font-family: inherit; resize: vertical;" onfocus="document.getElementById('lead-comment-actions').style.display='flex';"></textarea>
 
-                        <div id="lead-comment-actions" style="display: none; margin-top: 8px; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 11px; color: #94a3b8;">Click Save to log note</span>
-                            <button id="lead-comment-save-btn" onclick="submitLeadComment()" style="background: #dd2127; color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 12px; font-weight: 700; cursor: pointer;">
-                                Save
-                            </button>
+                            <div id="lead-comment-actions" style="display: none; margin-top: 8px; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 11px; color: #94a3b8;">Click Save to log note</span>
+                                <button id="lead-comment-save-btn" onclick="submitLeadComment()" style="background: #dd2127; color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                    Save
+                                </button>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Activity Stream -->
+                    <div id="lead-activity-stream" class="tdm-activity" style="flex: 1; overflow-y: auto; padding-right: 4px;">
+                        <!-- Dynamically populated -->
+                    </div>
                 </div>
 
-                <!-- Activity Stream -->
-                <div id="lead-activity-stream" class="tdm-activity" style="flex: 1; overflow-y: auto; padding-right: 4px;">
-                    <!-- Dynamically populated -->
+                <!-- TAB 2: 4 Individual Question Cards -->
+                <div id="lead-tab-content-questions" class="tdm-tab-pane" style="display: none; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px;">
+                    <div id="lead-questions-container" style="display: flex; flex-direction: column; gap: 14px;">
+                        <!-- Dynamically populated 4 individual question sets -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -346,12 +364,12 @@ $run_leads = mysqli_query($con, $get_leads);
     #leadDetailModal {
         background: #ffffff;
         border-radius: 16px;
-        max-width: 920px;
+        max-width: 980px;
         width: 100%;
-        height: 580px;
-        max-height: 88vh;
+        height: 640px;
+        max-height: 90vh;
         margin: 0 auto;
-        padding: 24px 28px 26px;
+        padding: 22px 26px;
         box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25);
         position: relative;
         display: flex;
@@ -440,17 +458,17 @@ $run_leads = mysqli_query($con, $get_leads);
 
     .tdm-body {
         display: flex;
-        gap: 24px;
+        gap: 22px;
         align-items: stretch;
         border-top: 1px solid #f1f5f9;
-        padding-top: 18px;
+        padding-top: 16px;
         flex: 1;
         min-height: 0;
         overflow: hidden;
     }
 
     .tdm-left {
-        flex: 1.1;
+        flex: 1;
         min-width: 0;
         display: flex;
         flex-direction: column;
@@ -458,16 +476,169 @@ $run_leads = mysqli_query($con, $get_leads);
     }
 
     .tdm-right {
-        flex: 0.9;
+        flex: 1.15;
         min-width: 0;
         background: #fafafa;
         border: 1px solid #f1f5f9;
         border-radius: 12px;
-        padding: 16px 14px;
+        padding: 14px;
         display: flex;
         flex-direction: column;
         overflow: hidden;
         box-sizing: border-box;
+    }
+
+    /* Tab Switcher Styling */
+    .tdm-tab-nav {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e2e8f0;
+        flex-shrink: 0;
+    }
+
+    .tdm-tab-btn {
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+    }
+
+    .tdm-tab-btn:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    .tdm-tab-btn.active {
+        background: #dd2127;
+        color: #ffffff;
+        border-color: #dd2127;
+        box-shadow: 0 2px 6px rgba(221, 33, 39, 0.25);
+    }
+
+    .tdm-tab-btn.active i {
+        color: #ffffff !important;
+    }
+
+    .tdm-tab-badge {
+        background: rgba(0, 0, 0, 0.08);
+        color: inherit;
+        font-size: 10.5px;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-weight: 800;
+    }
+
+    .tdm-tab-btn.active .tdm-tab-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: #fff;
+    }
+
+    /* Question Cards Styling */
+    .lead-q-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        transition: border-color 0.15s ease;
+    }
+
+    .lead-q-card:hover {
+        border-color: #cbd5e1;
+    }
+
+    .lead-q-badge {
+        background: #ffeaeb;
+        color: #dd2127;
+        border: 1px solid #fecdd3;
+        font-weight: 800;
+        font-size: 11px;
+        padding: 2px 7px;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+
+    .lead-chip-btn {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        user-select: none;
+    }
+
+    .lead-chip-btn:hover {
+        background: #fee2e2;
+        border-color: #fca5a5;
+        color: #b91c1c;
+    }
+
+    .lead-ans-bubble {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 8px 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+
+    /* Custom Scrollbars in Modal */
+    .lead-q-answers-list,
+    #lead-tab-content-questions,
+    #lead-tab-content-comments {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f8fafc;
+    }
+
+    .lead-q-answers-list::-webkit-scrollbar,
+    #lead-tab-content-questions::-webkit-scrollbar,
+    #lead-tab-content-comments::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .lead-q-answers-list::-webkit-scrollbar-track,
+    #lead-tab-content-questions::-webkit-scrollbar-track,
+    #lead-tab-content-comments::-webkit-scrollbar-track {
+        background: #f8fafc;
+        border-radius: 4px;
+    }
+
+    .lead-q-answers-list::-webkit-scrollbar-thumb,
+    #lead-tab-content-questions::-webkit-scrollbar-thumb,
+    #lead-tab-content-comments::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+
+    .lead-q-answers-list::-webkit-scrollbar-thumb:hover,
+    #lead-tab-content-questions::-webkit-scrollbar-thumb:hover,
+    #lead-tab-content-comments::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* Force SweetAlert confirmation popups above all modals */
+    .swal2-container {
+        z-index: 9999999 !important;
+    }
+
+    .swal2-container.swal2-backdrop-show {
+        background: rgba(15, 23, 42, 0.55) !important;
+        backdrop-filter: blur(4px) !important;
+        -webkit-backdrop-filter: blur(4px) !important;
     }
 </style>
 
@@ -480,7 +651,41 @@ elseif (isset($_GET['lead_id'])) $auto_open_id = (int)$_GET['lead_id'];
 
 <script>
     let currentActiveLeadId = 0;
+    let currentLeadData = null;
+    let currentLeadFollowups = [];
+    let currentLeadQuestionAnswers = {
+        1: [],
+        2: [],
+        3: [],
+        4: []
+    };
     const autoOpenLeadId = <?php echo $auto_open_id; ?>;
+
+    const leadDefaultQuestions = [{
+            num: 1,
+            title: "Can we do it or not?",
+            placeholder: "Write answer (e.g. Yes we can do it, scope details)...",
+            chips: ["Yes, we can do it", "No, out of scope", "Need more details from client"]
+        },
+        {
+            num: 2,
+            title: "Complexity of the project on the scale from 1 to 5 (1 is easy, 5 is complex)",
+            placeholder: "Rate complexity 1 to 5 with explanation...",
+            chips: ["1 - Very Easy", "2 - Easy", "3 - Moderate", "4 - Complex", "5 - Very Complex"]
+        },
+        {
+            num: 3,
+            title: "Time required for the project",
+            placeholder: "Estimated time required (e.g. 2-3 days, 1 week)...",
+            chips: ["1-2 Days", "3-5 Days", "1-2 Weeks", "3-4 Weeks", "1+ Month"]
+        },
+        {
+            num: 4,
+            title: "Reply mail to client about any additional information/suggestions that I can directly forwarded to him",
+            placeholder: "Write draft reply email or additional suggestions for the client...",
+            chips: ["All details clear, ready to proceed", "Need client confirmation on requirements", "Drafted email reply provided"]
+        }
+    ];
 
     $(document).ready(function() {
         if (autoOpenLeadId > 0) {
@@ -488,12 +693,29 @@ elseif (isset($_GET['lead_id'])) $auto_open_id = (int)$_GET['lead_id'];
         }
     });
 
+    function switchLeadTab(tabName) {
+        if (tabName === 'questions') {
+            $('#tab-btn-questions').addClass('active');
+            $('#tab-btn-comments').removeClass('active');
+            $('#lead-tab-content-questions').show();
+            $('#lead-tab-content-comments').hide();
+        } else {
+            $('#tab-btn-comments').addClass('active');
+            $('#tab-btn-questions').removeClass('active');
+            $('#lead-tab-content-comments').show();
+            $('#lead-tab-content-questions').hide();
+        }
+    }
+
     function openLeadModal(leadId) {
         currentActiveLeadId = leadId;
         $('#leadDetailOverlay').fadeIn(200);
         $('#lead-comment-input').val('');
         $('#lead-comment-actions').hide();
-        $('#lead-activity-stream').html('<div style="text-align:center; padding:20px; color:#94a3b8;"><i class="fa fa-spinner fa-spin"></i> Loading details...</div>');
+        switchLeadTab('comments');
+
+        $('#lead-questions-container').html('<div style="text-align:center; padding:30px; color:#94a3b8;"><i class="fa fa-spinner fa-spin"></i> Loading questions & answers...</div>');
+        $('#lead-activity-stream').html('<div style="text-align:center; padding:20px; color:#94a3b8;"><i class="fa fa-spinner fa-spin"></i> Loading notes...</div>');
 
         $.ajax({
             url: 'ajax/ajax_lead_details.php',
@@ -505,17 +727,24 @@ elseif (isset($_GET['lead_id'])) $auto_open_id = (int)$_GET['lead_id'];
             dataType: 'json',
             success: function(res) {
                 if (res.status === 'success') {
+                    currentLeadData = res.lead;
+                    currentLeadFollowups = res.followups || [];
+                    currentLeadQuestionAnswers = res.question_answers || {
+                        1: [],
+                        2: [],
+                        3: [],
+                        4: []
+                    };
+
                     const lead = res.lead;
                     $('#lead-modal-assigned-name').text(lead.assigned_name || 'Assigned Employee');
                     $('#lead-modal-source').text(lead.lead_source || 'General Task');
                     $('#lead-modal-title').text(lead.project_name || lead.client_name);
                     $('#lead-modal-due-date').text(lead.display_followup_date || '--');
 
-                    // Description (clean any legacy hardcoded 4 questions if description was only that)
+                    // Description (clean legacy hardcoded 4 questions text if description only had that)
                     let rawDesc = lead.description ? lead.description.trim() : '';
-                    const legacyTemplate = "1. Can we do it or not?\n2. Complexity of the project on the scale from 1 to 5 (1 is easy, 5 is complex)\n3. Time required for the project\n4. Reply mail to client about any additional information/suggestions that I can directly forwarded to him";
-                    
-                    if (rawDesc.replace(/\r/g, '').trim() === legacyTemplate.replace(/\r/g, '').trim() || rawDesc.toLowerCase() === 'teste13') {
+                    if ((rawDesc.indexOf('Can we do it or not') !== -1 && rawDesc.indexOf('Complexity of the project') !== -1) || rawDesc.toLowerCase() === 'teste13') {
                         rawDesc = '';
                     }
 
@@ -547,8 +776,9 @@ elseif (isset($_GET['lead_id'])) $auto_open_id = (int)$_GET['lead_id'];
                         'border': '1px solid ' + stBorder
                     }).text(stLabel);
 
-                    // Populate Comments Stream
-                    renderLeadComments(res.followups);
+                    // Render Questions and Comments
+                    renderLeadQuestions(currentLeadQuestionAnswers);
+                    renderLeadComments(currentLeadFollowups);
                 } else {
                     alert(res.message || 'Error loading lead details');
                     closeLeadModal();
@@ -579,57 +809,294 @@ elseif (isset($_GET['lead_id'])) $auto_open_id = (int)$_GET['lead_id'];
         }
     });
 
-    function renderLeadComments(followups) {
-        const defaultQuestionsCard = `
-            <div style="display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-start;">
-                <div style="width: 28px; height: 28px; border-radius: 50%; background: #ffeaeb; color: #dd2127; border: 1px solid #fecdd3; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; flex-shrink: 0; margin-top: 2px;">
-                    <i class="fa fa-list-ol"></i>
-                </div>
-                <div style="flex: 1;">
-                    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 5px;">
-                        <strong style="color: #1e293b; font-weight: 700;">Default Task Questions</strong>
-                        <small style="background: #f1f5f9; color: #64748b; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 10px;">Checklist</small>
+    function renderLeadQuestions(qaMap) {
+        let html = '';
+        let answeredCount = 0;
+
+        leadDefaultQuestions.forEach(function(q) {
+            const answers = (qaMap && qaMap[q.num]) ? qaMap[q.num] : [];
+            if (answers.length > 0) answeredCount++;
+
+            // Render answers
+            let answersHtml = '';
+            if (answers.length > 0) {
+                answersHtml += `<div id="lead-q-answers-list-${q.num}" class="lead-q-answers-list" style="max-height: 160px; overflow-y: auto; overflow-x: hidden; padding: 2px 0; margin: 8px 0 4px 0; border: none; background: transparent; display: flex; flex-direction: column; gap: 6px;">`;
+                answers.forEach(function(ans) {
+                    const authorName = ans.emp_name || 'Employee';
+                    const initial = authorName.charAt(0).toUpperCase();
+                    const timeAgo = ans.time_ago || 'just now';
+
+                    answersHtml += `
+                        <div class="lead-ans-bubble" id="lead-ans-card-${ans.id}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #dd2127; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 9.5px; flex-shrink: 0;">
+                                        ${escapeHtml(initial)}
+                                    </div>
+                                    <strong style="color: #1e293b; font-size: 12px;">${escapeHtml(authorName)}</strong>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="color: #94a3b8; font-size: 10.5px;">${escapeHtml(timeAgo)}</span>
+                                    ${ans.can_delete ? `<button type="button" onclick="deleteQuestionAnswer(${ans.id}, ${q.num})" title="Delete answer" style="background: #fee2e2; border: 1px solid #fca5a5; color: #dc2626; border-radius: 4px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; transition: all 0.15s ease;" onmouseover="this.style.background='#dc2626'; this.style.color='#fff';" onmouseout="this.style.background='#fee2e2'; this.style.color='#dc2626';"><i class="fa fa-trash-o"></i></button>` : ''}
+                                </div>
+                            </div>
+                            <div style="color: #334155; font-size: 12px; line-height: 1.4; white-space: pre-wrap; word-break: break-word; padding-left: 26px;">${escapeHtml(ans.answer)}</div>
+                        </div>
+                    `;
+                });
+                answersHtml += '</div>';
+            } else {
+                answersHtml = '';
+            }
+
+            html += `
+                <div class="lead-q-card" style="margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="lead-q-badge">Q${q.num}</span>
+                            <div style="font-weight: 700; color: #0f172a; font-size: 13px; line-height: 1.4;">${escapeHtml(q.title)}</div>
+                        </div>
+                        <span class="badge" style="background: #f1f5f9; color: #64748b; font-size: 10.5px; font-weight: 600; padding: 3px 6px; border-radius: 5px;">
+                            ${answers.length} ${answers.length === 1 ? 'answer' : 'answers'}
+                        </span>
                     </div>
-                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 3px solid #dd2127; border-radius: 10px; padding: 12px 14px; font-size: 12.5px; color: #334155; line-height: 1.6; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-                        <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Required Follow-up Questions:</div>
-                        <div style="margin-bottom: 4px; display: flex; gap: 6px;"><span style="font-weight: 700; color: #dd2127;">1.</span> <span>Can we do it or not?</span></div>
-                        <div style="margin-bottom: 4px; display: flex; gap: 6px;"><span style="font-weight: 700; color: #dd2127;">2.</span> <span>Complexity of the project on the scale from 1 to 5 (1 is easy, 5 is complex)</span></div>
-                        <div style="margin-bottom: 4px; display: flex; gap: 6px;"><span style="font-weight: 700; color: #dd2127;">3.</span> <span>Time required for the project</span></div>
-                        <div style="display: flex; gap: 6px;"><span style="font-weight: 700; color: #dd2127;">4.</span> <span>Reply mail to client about any additional information/suggestions that I can directly forwarded to him</span></div>
+
+                    ${answersHtml}
+
+                    <div style="display: flex; gap: 8px; align-items: flex-end; margin-top: 10px;">
+                        <textarea id="lead-q-input-${q.num}" placeholder="${escapeHtml(q.placeholder)}" rows="1" style="flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 10px; font-size: 12px; outline: none; resize: vertical; min-height: 34px; font-family: inherit; box-sizing: border-box; background: #fff; color: #1e293b; transition: border-color 0.15s ease;" onfocus="this.style.borderColor='#dd2127';" onblur="this.style.borderColor='#cbd5e1';"></textarea>
+                        <button type="button" id="lead-q-save-btn-${q.num}" onclick="submitQuestionAnswer(${q.num})" style="background: #dd2127; color: #fff; border: none; border-radius: 8px; padding: 0 14px; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; height: 34px; transition: background 0.15s ease;" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dd2127'">
+                            <i class="fa fa-paper-plane"></i> Save
+                        </button>
                     </div>
                 </div>
+            `;
+        });
+
+        $('#lead-questions-container').html(html);
+        $('#lead-q-count-badge').text(answeredCount + '/4');
+    }
+
+    function insertQChip(qNum, text) {
+        const inputEl = $('#lead-q-input-' + qNum);
+        const currentVal = inputEl.val().trim();
+        if (!currentVal) {
+            inputEl.val(text);
+        } else {
+            inputEl.val(currentVal + ' - ' + text);
+        }
+        inputEl.focus();
+    }
+
+    function submitQuestionAnswer(qNum) {
+        const inputEl = $('#lead-q-input-' + qNum);
+        const answerText = inputEl.val().trim();
+        const qObj = leadDefaultQuestions.find(q => q.num === qNum);
+        const qTitle = qObj ? qObj.title : ('Question ' + qNum);
+
+        if (!answerText) {
+            inputEl.focus();
+            return;
+        }
+
+        const saveBtn = $('#lead-q-save-btn-' + qNum);
+        saveBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+
+        $.ajax({
+            url: 'ajax/ajax_lead_details.php',
+            type: 'POST',
+            data: {
+                action: 'add_question_answer',
+                lead_id: currentActiveLeadId,
+                question_num: qNum,
+                question_text: qTitle,
+                answer: answerText
+            },
+            dataType: 'json',
+            success: function(res) {
+                saveBtn.prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Save');
+                if (res.status === 'success') {
+                    inputEl.val('');
+                    if (!currentLeadQuestionAnswers[qNum]) {
+                        currentLeadQuestionAnswers[qNum] = [];
+                    }
+                    currentLeadQuestionAnswers[qNum].push(res.answer);
+                    renderLeadQuestions(currentLeadQuestionAnswers);
+
+                    // Scroll answers box
+                    const container = $('#lead-q-answers-list-' + qNum);
+                    if (container.length) {
+                        container.scrollTop(container[0].scrollHeight);
+                    }
+
+                    // Add to followups history as well
+                    currentLeadFollowups.unshift({
+                        id: 0,
+                        date: 'Today',
+                        method: 'Q&A',
+                        type: 'Question Response',
+                        author: res.answer.emp_name,
+                        clean_remark: '[Q' + qNum + ': ' + qTitle + ']\n' + answerText,
+                        time_ago: 'just now'
+                    });
+                    renderLeadComments(currentLeadFollowups);
+                } else {
+                    alert(res.message || 'Error saving answer');
+                }
+            },
+            error: function() {
+                saveBtn.prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Save');
+                alert('Error connecting to server');
+            }
+        });
+    }
+
+    function deleteQuestionAnswer(ansId, qNum) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Delete Answer?',
+                text: 'Are you sure you want to remove this answer?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Delete',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    performDeleteAnswer(ansId, qNum);
+                }
+            });
+        } else {
+            if (confirm('Are you sure you want to remove this answer?')) {
+                performDeleteAnswer(ansId, qNum);
+            }
+        }
+    }
+
+    function performDeleteAnswer(ansId, qNum) {
+        $.ajax({
+            url: 'ajax/ajax_lead_details.php',
+            type: 'POST',
+            data: {
+                action: 'delete_question_answer',
+                answer_id: ansId,
+                lead_id: currentActiveLeadId
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.status === 'success') {
+                    if (currentLeadQuestionAnswers[qNum]) {
+                        currentLeadQuestionAnswers[qNum] = currentLeadQuestionAnswers[qNum].filter(a => a.id !== ansId);
+                        renderLeadQuestions(currentLeadQuestionAnswers);
+                    }
+                    showPremiumAlert('Answer removed');
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Error', res.message || 'Could not remove answer', 'error');
+                    } else {
+                        alert(res.message || 'Could not remove answer');
+                    }
+                }
+            },
+            error: function() {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Error connecting to server', 'error');
+                } else {
+                    alert('Error connecting to server');
+                }
+            }
+        });
+    }
+
+    function showPremiumAlert(message, type = 'success') {
+        let container = document.getElementById('toast-container-custom');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container-custom';
+            container.style.position = 'fixed';
+            container.style.bottom = '24px';
+            container.style.right = '24px';
+            container.style.zIndex = '999999';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '10px';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.style.background = '#1e293b';
+        toast.style.color = '#fff';
+        toast.style.padding = '14px 20px';
+        toast.style.borderRadius = '12px';
+        toast.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.25)';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '12px';
+        toast.style.fontSize = '13.5px';
+        toast.style.fontWeight = '600';
+        toast.style.transform = 'translateY(50px) scale(0.95)';
+        toast.style.opacity = '0';
+        toast.style.transition = 'all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        toast.style.border = '1px solid rgba(255,255,255,0.1)';
+
+        const iconBg = type === 'error' ? '#ef4444' : '#10b981';
+        const iconClass = type === 'error' ? 'fa-times' : 'fa-check';
+
+        toast.innerHTML = `
+            <div style="width: 26px; height: 26px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i class="fa ${iconClass}" style="font-size: 13px; color: #fff;"></i>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; padding: 4px 0 12px 4px;">
-                <span style="width: 22px; height: 22px; border-radius: 50%; background: #ffeaeb; color: #dd2127; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px;">+</span>
-                <span>Task created</span>
-            </div>
+            <div>${message}</div>
         `;
 
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateY(0) scale(1)';
+            toast.style.opacity = '1';
+        }, 10);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateY(20px) scale(0.95)';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 350);
+        }, 3000);
+    }
+
+    function renderLeadComments(followups) {
         let html = '';
+        let commentCount = 0;
+
         if (followups && followups.length > 0) {
             followups.forEach(function(item) {
+                commentCount++;
                 const authorName = item.author || 'Employee';
                 const initial = authorName.charAt(0).toUpperCase();
                 const timeAgo = item.time_ago || item.date;
                 const remarkText = item.clean_remark || item.remark;
 
-                html += `<div style="display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-start;">
+                html += `<div style="display: flex; gap: 10px; margin-bottom: 14px; align-items: flex-start;">
                     <div style="width: 28px; height: 28px; border-radius: 50%; background: #dd2127; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; flex-shrink: 0; margin-top: 2px;">
                         ${escapeHtml(initial)}
                     </div>
                     <div style="flex: 1;">
-                        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 5px;">
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 4px;">
                             <strong style="color: #1e293b; font-weight: 700;">${escapeHtml(authorName)}</strong>
                             <small style="color: #94a3b8; font-size: 11.5px;">${escapeHtml(timeAgo)}</small>
                         </div>
-                        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #1e293b; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(remarkText)}</div>
+                        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 12px; font-size: 12.5px; color: #1e293b; line-height: 1.5; white-space: pre-wrap; word-break: break-word;">${escapeHtml(remarkText)}</div>
                     </div>
                 </div>`;
             });
+        } else {
+            html = '<div style="text-align: center; color: #94a3b8; font-size: 12.5px; padding: 25px 0;">No general comments logged yet.</div>';
         }
-        
-        html += defaultQuestionsCard;
+
         $('#lead-activity-stream').html(html);
+        $('#lead-c-count-badge').text(commentCount);
     }
 
     function submitLeadComment() {
@@ -652,7 +1119,7 @@ elseif (isset($_GET['lead_id'])) $auto_open_id = (int)$_GET['lead_id'];
                 if (res.status === 'success') {
                     $('#lead-comment-input').val('');
                     $('#lead-comment-actions').hide();
-                    // Reload modal data
+                    // Reload lead modal
                     openLeadModal(currentActiveLeadId);
                 } else {
                     alert(res.message || 'Could not save comment');
@@ -668,5 +1135,10 @@ elseif (isset($_GET['lead_id'])) $auto_open_id = (int)$_GET['lead_id'];
     function escapeHtml(text) {
         if (!text) return '';
         return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function escapeJs(text) {
+        if (!text) return '';
+        return String(text).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
     }
 </script>

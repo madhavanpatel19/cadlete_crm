@@ -107,8 +107,41 @@ if ($action === 'get_lead') {
         }
     }
 
+    // Fetch Question Answers
+    $question_answers = [
+        1 => [],
+        2 => [],
+        3 => [],
+        4 => []
+    ];
+    $get_qa = "SELECT * FROM lead_question_answers WHERE lead_id = '$lead_id' ORDER BY id ASC";
+    $run_qa = mysqli_query($con, $get_qa);
+    if ($run_qa) {
+        while ($qa_row = mysqli_fetch_assoc($run_qa)) {
+            $qnum = (int)$qa_row['question_num'];
+            if (!isset($question_answers[$qnum])) {
+                $question_answers[$qnum] = [];
+            }
+            $question_answers[$qnum][] = [
+                'id' => (int)$qa_row['id'],
+                'emp_id' => (int)$qa_row['emp_id'],
+                'emp_name' => $qa_row['emp_name'] ?: 'Employee',
+                'question_num' => $qnum,
+                'question_text' => $qa_row['question_text'] ?? '',
+                'answer' => $qa_row['answer'] ?? '',
+                'created_at' => $qa_row['created_at'] ?? '',
+                'time_ago' => leadTimeAgo($qa_row['created_at'] ?? ''),
+                'can_delete' => ($emp_id === (int)$qa_row['emp_id'])
+            ];
+        }
+    }
+
     echo json_encode([
         'status' => 'success',
+        'current_user' => [
+            'emp_id' => $emp_id,
+            'emp_name' => $emp_name
+        ],
         'lead' => [
             'id' => (int)$row['id'],
             'project_name' => !empty($row['project_name']) ? $row['project_name'] : $row['client_name'],
@@ -126,7 +159,8 @@ if ($action === 'get_lead') {
             'remark' => $row['remark'] ?? '',
             'assigned_name' => implode(', ', $assigned_names)
         ],
-        'followups' => $followups
+        'followups' => $followups,
+        'question_answers' => $question_answers
     ]);
     exit;
 }
@@ -171,6 +205,77 @@ if ($action === 'add_comment') {
                 'time_ago' => date('h:i A, d M Y')
             ]
         ]);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Database error: ' . mysqli_error($con)]);
+    }
+    exit;
+}
+
+if ($action === 'add_question_answer') {
+    $lead_id = (int)($_POST['lead_id'] ?? 0);
+    $question_num = (int)($_POST['question_num'] ?? 0);
+    $question_text = trim($_POST['question_text'] ?? '');
+    $answer = trim($_POST['answer'] ?? '');
+
+    if ($lead_id <= 0 || $question_num <= 0 || empty($answer)) {
+        echo json_encode(['status' => 'error', 'message' => 'Please provide an answer']);
+        exit;
+    }
+
+    // Verify access
+    $check_access = mysqli_query($con, "SELECT id FROM leads WHERE id = '$lead_id' AND deleted_at IS NULL AND FIND_IN_SET('$emp_id', REPLACE(assigned_employees, ' ', '')) > 0");
+    if (!$check_access || mysqli_num_rows($check_access) === 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Access denied']);
+        exit;
+    }
+
+    $esc_qtext = mysqli_real_escape_string($con, $question_text);
+    $esc_ans = mysqli_real_escape_string($con, $answer);
+    $esc_emp_name = mysqli_real_escape_string($con, $emp_name);
+
+    $sql = "INSERT INTO lead_question_answers (lead_id, emp_id, emp_name, question_num, question_text, answer) 
+            VALUES ('$lead_id', '$emp_id', '$esc_emp_name', '$question_num', '$esc_qtext', '$esc_ans')";
+
+    if (mysqli_query($con, $sql)) {
+        $ans_id = mysqli_insert_id($con);
+        // Also log into lead_followups for activity stream visibility
+        $followup_remark = mysqli_real_escape_string($con, "[Q$question_num: $question_text]\n$answer (by $emp_name)");
+        $today = date('Y-m-d');
+        mysqli_query($con, "INSERT INTO lead_followups (lead_id, followup_date, followup_method, followup_type, remark) 
+                            VALUES ('$lead_id', '$today', 'Follow-up Q&A', 'Question Response', '$followup_remark')");
+
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Answer saved successfully',
+            'answer' => [
+                'id' => $ans_id,
+                'emp_id' => $emp_id,
+                'emp_name' => $emp_name,
+                'question_num' => $question_num,
+                'question_text' => $question_text,
+                'answer' => $answer,
+                'time_ago' => 'just now',
+                'can_delete' => true
+            ]
+        ]);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Database error: ' . mysqli_error($con)]);
+    }
+    exit;
+}
+
+if ($action === 'delete_question_answer') {
+    $answer_id = (int)($_POST['answer_id'] ?? 0);
+    $lead_id = (int)($_POST['lead_id'] ?? 0);
+
+    if ($answer_id <= 0 || $lead_id <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid answer ID']);
+        exit;
+    }
+
+    $del_sql = "DELETE FROM lead_question_answers WHERE id = '$answer_id' AND lead_id = '$lead_id' AND (emp_id = '$emp_id' OR '$emp_id' = 0)";
+    if (mysqli_query($con, $del_sql)) {
+        echo json_encode(['status' => 'success', 'message' => 'Answer removed']);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Database error: ' . mysqli_error($con)]);
     }

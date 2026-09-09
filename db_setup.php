@@ -333,7 +333,7 @@ $tables = array(
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `lead_id` int(11) NOT NULL,
   `followup_date` date NOT NULL,
-  `followup_method` enum(\'Phone\',\'Email\',\'WhatsApp\',\'Meeting\',\'Other\') DEFAULT \'Phone\',
+  `followup_method` enum(\'Phone\',\'Email\',\'WhatsApp\',\'Meeting\',\'Other\',\'Follow-up Q&A\',\'Q&A\',\'Note\') DEFAULT \'Phone\',
   `followup_type` varchar(100) DEFAULT NULL,
   `remark` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -341,6 +341,19 @@ $tables = array(
   PRIMARY KEY (`id`),
   KEY `lead_id` (`lead_id`),
   CONSTRAINT `lead_followups_ibfk_1` FOREIGN KEY (`lead_id`) REFERENCES `leads` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci',
+  'lead_question_answers' => 'CREATE TABLE IF NOT EXISTS `lead_question_answers` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `lead_id` int(11) NOT NULL,
+  `emp_id` int(11) NOT NULL DEFAULT 0,
+  `emp_name` varchar(255) NOT NULL,
+  `question_num` int(11) NOT NULL,
+  `question_text` text NOT NULL,
+  `answer` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_lead_id` (`lead_id`),
+  KEY `idx_q_num` (`question_num`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci',
   'lead_sources' => 'CREATE TABLE IF NOT EXISTS `lead_sources` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
