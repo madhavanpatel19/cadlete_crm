@@ -607,8 +607,8 @@ if (!isset($_SESSION['admin_email'])) {
              *  • Sends last known notification ID so the server can skip the
              *    full list query when nothing has changed
              * ─────────────────────────────────────────────────────────────── */
-            const NOTIF_POLL_INTERVAL_MS = 10000; // 10 seconds — uses setInterval so background tabs keep polling
-            let _lastUnreadCount = 0;
+            const NOTIF_POLL_INTERVAL_MS = 120000; // 2 minutes — uses setInterval so background tabs keep polling
+            let _lastUnreadCount = 0;       
             let _lastSeenNotifId = 0;
             let _notifPollTimer = null;
             let _notifPolling = false;

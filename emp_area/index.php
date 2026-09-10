@@ -221,7 +221,7 @@ if (!isset($_SESSION['emp_id'])) {
              *  • Pauses automatically when the tab is hidden
              *  • Resumes + polls immediately when tab becomes visible again
              * ─────────────────────────────────────────────────────────────── */
-            const EMP_NOTIF_POLL_MS = 10000; // 10 seconds — uses setInterval so background tabs keep polling
+            const EMP_NOTIF_POLL_MS = 120000; // 2 minutes — uses setInterval so background tabs keep polling
             let _lastEmpUnreadCount = 0;
             let _lastEmpSeenNotifId = 0;
             let _empNotifPollTimer = null;

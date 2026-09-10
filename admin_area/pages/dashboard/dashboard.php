@@ -740,7 +740,7 @@ if ($res && mysqli_num_rows($res) > 0) {
         }
 
         // Update duration every second
-        setInterval(updateLiveTimers, 1000);
+        setInterval(updateLiveTimers, 120000);
 
         // Sync status from server every 3 seconds for instant real-time updates
         // setInterval(syncLiveStatus, 3000);

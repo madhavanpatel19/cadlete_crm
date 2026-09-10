@@ -1230,7 +1230,7 @@ function getResourceTypePhp(string $url)
             }
         }
         if (!att.checkedOut) {
-            setInterval(tick, 1000);
+            setInterval(tick, 120000);
             tick();
         } else {
             $('#displayDuration,#displayDurationCard').text(fmtHMS(att.totalSecs));
