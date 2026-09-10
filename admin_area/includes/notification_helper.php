@@ -9,7 +9,7 @@ if (!isset($con)) {
  */
 function initNotificationTable(): void
 {
-    global $con;
+    global $con;        
     $sql = "CREATE TABLE IF NOT EXISTS system_notifications (
         id INT AUTO_INCREMENT PRIMARY KEY,
         recipient_type VARCHAR(20) NOT NULL,
@@ -19,7 +19,9 @@ function initNotificationTable(): void
         url VARCHAR(255) DEFAULT NULL,
         type VARCHAR(50) DEFAULT 'info',
         is_read TINYINT(1) DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_recipient (recipient_type, recipient_id, is_read),
+        INDEX idx_created (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     @mysqli_query($con, $sql);
 }
@@ -58,15 +60,18 @@ function addSystemNotification(string $recipient_type, int $recipient_id, string
  * @param string $message
  * @param string $url
  * @param string $type
- * @param int $exclude_emp_id
+ * @param int|array $exclude_emp_ids
  * @return void
  */
-function notifyProjectMembers(int $project_id, string $title, string $message, string $url = '', string $type = 'info', int $exclude_emp_id = 0): void
+function notifyProjectMembers(int $project_id, string $title, string $message, string $url = '', string $type = 'info', $exclude_emp_ids = 0): void
 {
     global $con;
     $project_id = intval($project_id);
-    $exclude_emp_id = intval($exclude_emp_id);
     if ($project_id <= 0) return;
+
+    $exclude_array = is_array($exclude_emp_ids) 
+        ? array_map('intval', $exclude_emp_ids) 
+        : [intval($exclude_emp_ids)];
 
     $res = mysqli_query($con, "SELECT assigned_employees FROM client_projects WHERE id = $project_id LIMIT 1");
     if ($res && $row = mysqli_fetch_assoc($res)) {
@@ -75,7 +80,7 @@ function notifyProjectMembers(int $project_id, string $title, string $message, s
         });
         foreach ($assigned as $emp_id) {
             $emp_id = intval($emp_id);
-            if ($emp_id > 0 && $emp_id !== $exclude_emp_id) {
+            if ($emp_id > 0 && !in_array($emp_id, $exclude_array, true)) {
                 addSystemNotification('employee', $emp_id, $title, $message, $url, $type);
             }
         }
@@ -89,15 +94,18 @@ function notifyProjectMembers(int $project_id, string $title, string $message, s
  * @param string $message
  * @param string $url
  * @param string $type
- * @param int $exclude_admin_id
+ * @param int|array $exclude_admin_ids
+ * @param int $task_emp_id
  * @return void
  */
-function notifyProjectAdmins(int $project_id, string $title, string $message, string $url = '', string $type = 'info', int $exclude_admin_id = 0, int $task_emp_id = 0): void
+function notifyProjectAdmins(int $project_id, string $title, string $message, string $url = '', string $type = 'info', $exclude_admin_ids = 0, int $task_emp_id = 0): void
 {
     global $con;
     initNotificationTable();
     $project_id = intval($project_id);
-    $exclude_admin_id = intval($exclude_admin_id);
+    $exclude_array = is_array($exclude_admin_ids) 
+        ? array_map('intval', $exclude_admin_ids) 
+        : [intval($exclude_admin_ids)];
     $task_emp_id = intval($task_emp_id);
 
     $target_admins = [];
@@ -164,18 +172,28 @@ function notifyProjectAdmins(int $project_id, string $title, string $message, st
         }
     }
 
-    // 4. Always include Super Admins
-    $s_res = mysqli_query($con, "SELECT admin_id FROM admins WHERE is_super_admin = 1 OR LOWER(TRIM(admin_job)) = 'super admin'");
+    // 4. Always include Super Admins, CEOs, and primary admins
+    $s_res = mysqli_query($con, "SELECT admin_id FROM admins WHERE is_super_admin = 1 OR LOWER(TRIM(admin_job)) IN ('super admin', 'ceo', 'admin', 'director')");
     if ($s_res) {
         while ($s_row = mysqli_fetch_assoc($s_res)) {
             $target_admins[] = intval($s_row['admin_id']);
         }
     }
 
+    // 5. Fallback: if no specific admins matched, notify all registered admins
+    if (empty($target_admins)) {
+        $all_adm = mysqli_query($con, "SELECT admin_id FROM admins");
+        if ($all_adm) {
+            while ($ar = mysqli_fetch_assoc($all_adm)) {
+                $target_admins[] = intval($ar['admin_id']);
+            }
+        }
+    }
+
     $unique_admins = array_unique($target_admins);
     foreach ($unique_admins as $aid) {
         $aid = intval($aid);
-        if ($aid > 0 && $aid !== $exclude_admin_id) {
+        if ($aid > 0 && !in_array($aid, $exclude_array, true)) {
             addSystemNotification('admin', $aid, $title, $message, $url, $type);
         }
     }
@@ -187,12 +205,12 @@ function notifyProjectAdmins(int $project_id, string $title, string $message, st
  * @param string $message
  * @param string $url
  * @param string $type
- * @param int $exclude_admin_id
+ * @param int|array $exclude_admin_ids
  * @return void
  */
-function notifyAllAdmins(string $title, string $message, string $url = '', string $type = 'info', int $exclude_admin_id = 0): void
+function notifyAllAdmins(string $title, string $message, string $url = '', string $type = 'info', $exclude_admin_ids = 0): void
 {
-    notifyProjectAdmins(0, $title, $message, $url, $type, $exclude_admin_id);
+    notifyProjectAdmins(0, $title, $message, $url, $type, $exclude_admin_ids);
 }
 
 /**
@@ -202,13 +220,13 @@ function notifyAllAdmins(string $title, string $message, string $url = '', strin
  * @param string $message
  * @param string $url
  * @param string $type
- * @param int $exclude_emp_id
- * @param int $exclude_admin_id
+ * @param int|array $exclude_emp_ids
+ * @param int|array $exclude_admin_ids
  * @param int $task_emp_id
  * @return void
  */
-function notifyProjectTeamAndAdmins(int $project_id, string $title, string $message, string $url = '', string $type = 'info', int $exclude_emp_id = 0, int $exclude_admin_id = 0, int $task_emp_id = 0): void
+function notifyProjectTeamAndAdmins(int $project_id, string $title, string $message, string $url = '', string $type = 'info', $exclude_emp_ids = 0, $exclude_admin_ids = 0, int $task_emp_id = 0): void
 {
-    notifyProjectMembers($project_id, $title, $message, $url, $type, $exclude_emp_id);
-    notifyProjectAdmins($project_id, $title, $message, $url, $type, $exclude_admin_id, $task_emp_id);
+    notifyProjectMembers($project_id, $title, $message, $url, $type, $exclude_emp_ids);
+    notifyProjectAdmins($project_id, $title, $message, $url, $type, $exclude_admin_ids, $task_emp_id);
 }

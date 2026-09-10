@@ -533,10 +533,16 @@ if (!isset($_SESSION['admin_email'])) {
                     });
                 }
 
-                /* check admin notifications every 1.5 seconds */
-                // setInterval(checkAdminNotifications, 1500);
-                // setInterval(fetchLiveNotifications, 1500);
-                // fetchLiveNotifications();
+                /* Smart notification polling — 30s interval, pauses when tab hidden */
+                startNotificationPolling();
+
+                /* Seed time-based events (birthdays, pending leaves) into DB once on page load.
+                   Fire-and-forget — the 30s poll above will pick up any new entries. */
+                fetch('ajax/notifications/check_admin_notifications.php', {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                }).catch(function() {}); // silent fail — non-critical
             });
 
             function showAnnouncementNotification(title, message) {
@@ -594,55 +600,241 @@ if (!isset($_SESSION['admin_email'])) {
                 }, 7000); // Remove after 7 seconds
             }
 
-            /* ajax check */
+            /* ── Notification smart-polling system ─────────────────────────────
+             *  • Polls every 30 s (was 1.5 s → 20× less server traffic)
+             *  • Pauses automatically when the tab is hidden
+             *  • Resumes + polls immediately when tab becomes visible again
+             *  • Sends last known notification ID so the server can skip the
+             *    full list query when nothing has changed
+             * ─────────────────────────────────────────────────────────────── */
+            const NOTIF_POLL_INTERVAL_MS = 10000; // 10 seconds — uses setInterval so background tabs keep polling
             let _lastUnreadCount = 0;
             let _lastSeenNotifId = 0;
+            let _notifPollTimer = null;
+            let _notifPolling = false;
+            let _alertedNotifIds = new Set();
+
+            try {
+                const _saved = sessionStorage.getItem('crm_admin_alerted_ids');
+                if (_saved) {
+                    JSON.parse(_saved).forEach(function(id) {
+                        _alertedNotifIds.add(parseInt(id));
+                    });
+                }
+            } catch (e) {}
+
+            function requestBrowserNotificationPermission() {
+                if ("Notification" in window && Notification.permission === "default") {
+                    Notification.requestPermission().catch(function() {});
+                }
+            }
+
+            function showBrowserDesktopNotification(title, message, targetUrl, notifId) {
+                if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+                let resolvedUrl = window.location.href;
+                if (targetUrl && targetUrl !== '#' && targetUrl !== 'javascript:void(0);') {
+                    try {
+                        if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+                            resolvedUrl = targetUrl;
+                        } else {
+                            var base = window.location.protocol + '//' + window.location.host + window.location.pathname;
+                            if (!base.endsWith('/') && !base.endsWith('.php')) {
+                                base += '/';
+                            }
+                            resolvedUrl = new URL(targetUrl, base).href;
+                        }
+                    } catch (err) {
+                        resolvedUrl = window.location.href;
+                    }
+                }
+
+                const options = {
+                    body: message || '',
+                    icon: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
+                    badge: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
+                    tag: 'crm-notif-' + (notifId || Date.now()),
+                    renotify: true,
+                    data: {
+                        url: resolvedUrl
+                    },
+                    requireInteraction: false
+                };
+
+                // Use Service Worker if available for Windows Action Center support
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(function(reg) {
+                        if (reg && reg.showNotification) {
+                            return reg.showNotification(title, options);
+                        } else {
+                            fallbackDesktopNotification(title, options, resolvedUrl);
+                        }
+                    }).catch(function() {
+                        fallbackDesktopNotification(title, options, resolvedUrl);
+                    });
+                } else {
+                    fallbackDesktopNotification(title, options, resolvedUrl);
+                }
+
+                function fallbackDesktopNotification(title, options, finalUrl) {
+                    try {
+                        const notif = new Notification(title, options);
+                        notif.onclick = function(event) {
+                            event.preventDefault();
+                            window.focus();
+                            if (finalUrl && finalUrl !== '#' && finalUrl !== 'javascript:void(0);') {
+                                window.location.href = finalUrl;
+                            }
+                            notif.close();
+                        };
+                    } catch (e) {
+                        console.warn("Desktop notification fallback error:", e);
+                    }
+                }
+            }
+
+            function testDesktopNotification(e) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                if (!("Notification" in window)) {
+                    Swal.fire("Not Supported", "Your browser does not support desktop notifications.", "warning");
+                    return;
+                }
+
+                if (Notification.permission === "granted") {
+                    showBrowserDesktopNotification("🔔 CRM Desktop Alert", "Your device is ready to receive instant task & project alerts!", "index.php", Date.now());
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Test alert sent to your PC!',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                } else if (Notification.permission === "denied") {
+                    Swal.fire({
+                        title: "Notifications Blocked",
+                        html: "Notifications are blocked in your browser.<br><br>Click the <b>lock icon / site settings</b> in your browser address bar and set Notifications to <b>Allow</b>.",
+                        icon: "error"
+                    });
+                } else {
+                    Notification.requestPermission().then(function(permission) {
+                        if (permission === "granted") {
+                            showBrowserDesktopNotification("✅ Desktop Alerts Active!", "You will now receive instant desktop notifications on your PC.", "index.php", Date.now());
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'Desktop alerts enabled!',
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        } else {
+                            Swal.fire("Permission Required", "Please allow notifications to receive desktop alerts.", "warning");
+                        }
+                    });
+                }
+            }
+
+            function startNotificationPolling() {
+                requestBrowserNotificationPermission();
+                document.addEventListener('click', function _reqPerm() {
+                    requestBrowserNotificationPermission();
+                }, { once: true });
+
+                fetchLiveNotifications(); // immediate first poll on page load
+
+                // setInterval keeps ticking even when tab is hidden/backgrounded
+                // (unlike recursive setTimeout which browsers throttle to ~1min for hidden tabs)
+                if (_notifPollTimer) clearInterval(_notifPollTimer);
+                _notifPollTimer = setInterval(fetchLiveNotifications, NOTIF_POLL_INTERVAL_MS);
+
+                // Also fire immediately when user switches back to this tab
+                document.addEventListener('visibilitychange', function() {
+                    if (document.visibilityState === 'visible') {
+                        fetchLiveNotifications();
+                    }
+                });
+            }
+
+            function scheduleNextNotifPoll() {
+                // Legacy — no longer used; kept for backward compatibility
+            }
 
             function fetchLiveNotifications() {
-                // Notification check disabled
-                return;
-                const isEmp = (window.location.pathname.indexOf('emp_area') !== -1);
-                const endpoint = isEmp ? '../admin_area/ajax/notifications/ajax_get_user_notifications.php?portal=employee' : 'ajax/notifications/ajax_get_user_notifications.php?portal=admin';
-                const markReadEndpoint = isEmp ? '../admin_area/ajax/notifications/ajax_mark_notification_read.php?portal=employee' : 'ajax/notifications/ajax_mark_notification_read.php?portal=admin';
+                if (_notifPolling) return; // skip if a request is still in-flight
+                _notifPolling = true;
+
+                const endpoint = 'ajax/notifications/ajax_get_user_notifications.php?portal=admin&last_id=' + _lastSeenNotifId;
+                const markReadEndpoint = 'ajax/notifications/ajax_mark_notification_read.php?portal=admin';
 
                 $.ajax({
                     url: endpoint,
                     method: 'GET',
                     dataType: 'json',
+                    timeout: 15000,
                     success: function(res) {
                         if (!res || !res.success) return;
 
+                        // Update unread badge
                         const unread = res.unread_count || 0;
-
                         if (unread > 0) {
-                            $('.sys-notif-badge, .emp-sys-notif-badge').text(unread).show();
+                            $('.sys-notif-badge').text(unread).show();
                         } else {
-                            $('.sys-notif-badge, .emp-sys-notif-badge').hide();
+                            $('.sys-notif-badge').hide();
                         }
 
+                        // Trigger chime and native Windows desktop notification for any unread notification not yet alerted
                         if (res.notifications && res.notifications.length > 0) {
-                            const latest = res.notifications[0];
-                            const latestId = parseInt(latest.id);
-                            if (_lastSeenNotifId !== 0 && latestId > _lastSeenNotifId && parseInt(latest.is_read) === 0) {
+                            let hasNewAlert = false;
+                            res.notifications.slice().reverse().forEach(function(n) {
+                                const notifId = parseInt(n.id);
+                                const isUnread = parseInt(n.is_read) === 0;
+                                if (isUnread && !_alertedNotifIds.has(notifId)) {
+                                    _alertedNotifIds.add(notifId);
+                                    hasNewAlert = true;
+                                    showBrowserDesktopNotification(n.title, n.message, n.url, n.id);
+                                }
+                            });
+
+                            if (hasNewAlert) {
                                 playNotificationChime();
-                                showFloatingToastNotification(latest.title, latest.message, latest.url, latest.id);
+                                try {
+                                    sessionStorage.setItem('crm_admin_alerted_ids', JSON.stringify(Array.from(_alertedNotifIds).slice(-100)));
+                                } catch (e) {}
                             }
-                            _lastSeenNotifId = latestId;
+                        }
+
+                        // Server says nothing changed — skip DOM update
+                        if (res.no_change) return;
+
+                        if (res.server_max_id) {
+                            _lastSeenNotifId = Math.max(_lastSeenNotifId, parseInt(res.server_max_id));
                         }
                         _lastUnreadCount = unread;
 
-                        const list = $('.sys-notif-list, .emp-sys-notif-list');
+                        // Re-render dropdown list
+                        const list = $('.sys-notif-list');
                         list.empty();
 
                         if (!res.notifications || res.notifications.length === 0) {
-                            list.append('<li style="padding:15px; text-align:center; color:#94a3b8; font-size:13px;">No new notifications</li>');
+                            list.append(`
+                                <li style="padding: 10px 15px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: #0f172a;">
+                                    <span>Notifications</span>
+                                </li>
+                                <li style="padding:20px; text-align:center; color:#94a3b8; font-size:13px;">No new notifications</li>
+                            `);
                             return;
                         }
 
                         list.append(`
                             <li style="padding: 10px 15px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: #0f172a;">
                                 <span>Notifications</span>
-                                <a href="#" onclick="markAllNotificationsRead(event, '${markReadEndpoint}')" style="color: #dd2127; text-decoration: none; font-size: 11px;">Mark all read</a>
+                                <div>
+                                    <a href="#" onclick="markAllNotificationsRead(event, '${markReadEndpoint}')" style="color: #dd2127; text-decoration: none; font-size: 11px;">Mark all read</a>
+                                </div>
                             </li>
                         `);
 
@@ -653,8 +845,12 @@ if (!isset($_SESSION['admin_email'])) {
 
                             let icon = 'fa-info-circle';
                             if (n.type === 'task_assigned') icon = 'fa-tasks';
+                            else if (n.type === 'task_completed') icon = 'fa-check-circle';
                             else if (n.type === 'comment_added') icon = 'fa-commenting';
                             else if (n.type === 'project_assigned') icon = 'fa-briefcase';
+                            else if (n.type === 'lead_assigned') icon = 'fa-user-plus';
+                            else if (n.type === 'birthday_today' || n.type === 'birthday_tomorrow') icon = 'fa-birthday-cake';
+                            else if (n.type === 'leave_request' || n.type === 'leave_approved' || n.type === 'leave_rejected') icon = 'fa-calendar-check-o';
 
                             list.append(`
                                 <li style="background:${bg}; border-bottom:1px solid #f1f5f9; transition:0.15s;">
@@ -671,6 +867,12 @@ if (!isset($_SESSION['admin_email'])) {
                                 </li>
                             `);
                         });
+                    },
+                    error: function() {
+                        // Silently fail — next poll will retry
+                    },
+                    complete: function() {
+                        _notifPolling = false;
                     }
                 });
             }
@@ -756,84 +958,14 @@ if (!isset($_SESSION['admin_email'])) {
                 } catch (e) {}
             }
 
-            function showFloatingToastNotification(title, message, url, notifId) {
-                const existing = document.getElementById('sys-floating-toast');
-                if (existing) existing.remove();
 
-                const toast = document.createElement('div');
-                toast.id = 'sys-floating-toast';
-                toast.style.cssText = `
-                    position: fixed;
-                    top: 24px;
-                    right: 24px;
-                    z-index: 999999;
-                    background: #ffffff;
-                    border-left: 4px solid #dd2127;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.18), 0 4px 12px rgba(221, 33, 39, 0.12);
-                    border-radius: 12px;
-                    padding: 14px 18px;
-                    width: 320px;
-                    max-width: calc(100vw - 32px);
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                    display: flex;
-                    gap: 12px;
-                    align-items: flex-start;
-                    cursor: pointer;
-                    transition: transform 0.25s ease, opacity 0.25s ease;
-                `;
-
-                toast.innerHTML = `
-                    <div style="width:34px; height:34px; border-radius:50%; background:#ffeaeb; color:#dd2127; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:15px; margin-top:2px;">
-                        <i class="fa fa-bell"></i>
-                    </div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight:700; color:#0f172a; font-size:13.5px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlNotif(title)}</div>
-                        <div style="font-size:12px; color:#475569; margin-top:3px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtmlNotif(message)}</div>
-                        <div style="font-size:11px; color:#dd2127; font-weight:700; margin-top:6px; display:inline-flex; align-items:center; gap:4px;">
-                            View Details <i class="fa fa-arrow-right" style="font-size:9px;"></i>
-                        </div>
-                    </div>
-                    <button type="button" onclick="event.stopPropagation(); document.getElementById('sys-floating-toast')?.remove();" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer; padding:0 2px; margin-left:4px; line-height:1;" title="Dismiss">&times;</button>
-                `;
-
-                toast.onclick = function(e) {
-                    toast.remove();
-                    const isEmp = (window.location.pathname.indexOf('emp_area') !== -1);
-                    const markEndpoint = isEmp ? '../admin_area/ajax/notifications/ajax_mark_notification_read.php?portal=employee' : 'ajax/notifications/ajax_mark_notification_read.php?portal=admin';
-                    handleNotifClick(e, notifId, url, markEndpoint);
-                };
-
-                document.body.appendChild(toast);
-
-                setTimeout(function() {
-                    if (toast && toast.parentNode) {
-                        toast.style.opacity = '0';
-                        toast.style.transform = 'translateY(-10px)';
-                        setTimeout(function() {
-                            if (toast && toast.parentNode) toast.remove();
-                        }, 300);
-                    }
-                }, 7000);
-            }
 
             function escapeHtmlNotif(str) {
                 if (!str) return '';
-                return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+                return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
             }
 
-            function checkAdminNotifications() {
-                // Notification check disabled
-                return;
-                fetch("ajax/notifications/check_admin_notifications.php")
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === "new") {
-                            showAnnouncementNotification(data.title, data.message);
-                        }
-                    })
-                    .catch(error => console.log('Error checking admin notifications:', error));
-                // fetchLiveNotifications();
-            }
+            /* checkAdminNotifications — replaced by smart fetchLiveNotifications polling above */
 
             // Automatically convert all input[type="date"] & input[type="datetime-local"] to display dd-mm-yyyy format
             function initGlobalFlatpickr() {

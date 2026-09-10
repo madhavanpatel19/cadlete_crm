@@ -1,4 +1,4 @@
-// Service Worker for CRM Web Notifications (Admin Area)
+// Service Worker for CRM Web Notifications (Employee Area)
 'use strict';
 
 self.addEventListener('install', function (event) {

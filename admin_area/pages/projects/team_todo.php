@@ -1244,7 +1244,6 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                 list.append(html);
             });
         } catch (e) {
-            console.error("renderTasks error:", e);
             $(`#task-list-${empId}`).html('<div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 15px 0;">No tasks yet</div>');
         }
     }
@@ -1253,9 +1252,7 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
         const name = $(`#task-input-${empId}`).val().trim();
         const date = $(`#task-date-${empId}`).val();
         const priority = $(`#task-priority-${empId}`).val();
-
         if (!name) return;
-
         $.ajax({
             url: _ajaxBaseUrl + 'ajax_add_team_todo.php',
             method: 'POST',
@@ -1264,15 +1261,13 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
                 emp_id: empId,
                 task_name: name,
                 due_date: date,
-                priority: priority
+                priority: priority,
+                portal: _isEmpPortal ? 'employee' : 'admin'
             },
             success: function(res) {
                 if (res && res.success) {
                     hideAddTask(empId);
                     loadTasks(empId);
-                    if (typeof fetchLiveNotifications === 'function') fetchLiveNotifications();
-                } else {
-                    Swal.fire("Error", res ? res.message : "Could not add task.", "error");
                 }
             }
         });
@@ -1284,7 +1279,8 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
             method: 'POST',
             data: {
                 task_id: taskId,
-                status: newStatus
+                status: newStatus,
+                portal: _isEmpPortal ? 'employee' : 'admin'
             },
             success: function(res) {
                 if (res && res.success) {
@@ -1300,30 +1296,22 @@ $assigned_employees = array_filter(explode(',', $project['assigned_employees']),
             text: "This cannot be undone.",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#dd2127',
-            confirmButtonText: 'Yes, delete it'
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
                     url: _ajaxBaseUrl + 'ajax_delete_team_todo.php',
                     method: 'POST',
-                    data: {
-                        task_id: taskId
-                    },
+                    data: { task_id: taskId },
                     success: function(res) {
-                        if (res && res.success) {
-                            loadTasks(empId);
-                        }
+                        if (res && res.success) loadTasks(empId);
                     }
                 });
             }
         });
     }
-
-    /* ===== TASK DETAIL MODAL FUNCTIONS ===== */
-    let _modalTaskId = null;
-    let _modalEmpId = null;
-    let _modalStatus = 0;
 
     function openTaskDetail(taskId, empId) {
         _modalTaskId = taskId;

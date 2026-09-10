@@ -7,7 +7,25 @@ if (!isset($con)) {
     include(__DIR__ . '/../../includes/db.php');
 }
 
-header('Content-Type: application/json');
+// ── Security headers ─────────────────────────────────────────────────────────
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, no-cache, must-revalidate, private');
+header('X-Content-Type-Options: nosniff');
+
+// Only allow AJAX requests
+$is_xhr = (
+    !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+) || (
+    !empty($_SERVER['HTTP_ACCEPT']) &&
+    strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false
+);
+if (!$is_xhr) {
+    if (ob_get_length()) ob_clean();
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Forbidden']);
+    exit();
+}
 
 $portal = isset($_GET['portal']) ? $_GET['portal'] : (isset($_POST['portal']) ? $_POST['portal'] : '');
 
@@ -45,13 +63,10 @@ if ($fetch_as_emp && $is_emp) {
         }
     }
 
-    if ($is_super) {
-        $where = "(recipient_type = 'all_admins' OR recipient_type = 'admin')";
-    } else {
-        $where = "(recipient_type = 'all_admins' OR (recipient_type = 'admin' AND (recipient_id = $admin_id OR recipient_id = 0)))";
-    }
+    $where = "(recipient_type = 'all_admins' OR (recipient_type = 'admin' AND (recipient_id = $admin_id OR recipient_id = 0)))";
 } else {
     if (ob_get_length()) ob_clean();
+    http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit();
 }

@@ -199,111 +199,232 @@ if (!isset($_SESSION['emp_id'])) {
         <script>
             /* Ask notification permission & register service worker */
             document.addEventListener("DOMContentLoaded", function() {
-                if ("Notification" in window) {
-                    if (Notification.permission !== "granted") {
-                        Notification.requestPermission();
-                    }
-                }
-
                 if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('../admin_area/sw.js').then(function(registration) {
+                    navigator.serviceWorker.register('sw.js').then(function(registration) {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     }).catch(function(err) {
                         console.log('ServiceWorker registration failed: ', err);
                     });
                 }
 
-                /* check announcement every 1.5 seconds */
-                // setInterval(checkAnnouncement, 1500);
-                // setInterval(fetchLiveNotifications, 1500);
-                // fetchLiveNotifications();
+                /* Smart notification polling — 30s interval, pauses when tab hidden */
+                startEmpNotificationPolling();
             });
 
             /* notification popup */
             function showNotification(title, message) {
-                var audio = new Audio('https://commondatastorage.googleapis.com/codeskulptor-assets/week7-bounce.m4a');
-                audio.play().catch(function(error) {
-                    console.log("Audio play failed:", error);
-                });
-
-                if (Notification.permission === "granted") {
-                    navigator.serviceWorker.ready.then(function(registration) {
-                        registration.showNotification(title, {
-                            body: message,
-                            icon: "https://cdn-icons-png.flaticon.com/512/1827/1827392.png",
-                            requireInteraction: true
-                        });
-                    }).catch(function() {
-                        var notification = new Notification(title, {
-                            body: message,
-                            icon: "https://cdn-icons-png.flaticon.com/512/1827/1827392.png",
-                            requireInteraction: true
-                        });
-                        notification.onclick = function() {
-                            window.focus();
-                            this.close();
-                        };
-                    });
-                }
-
-                var toast = document.createElement('div');
-                toast.style.position = 'fixed';
-                toast.style.top = '20px';
-                toast.style.right = '20px';
-                toast.style.backgroundColor = '#4caf50';
-                toast.style.color = '#fff';
-                toast.style.padding = '15px 20px';
-                toast.style.borderRadius = '5px';
-                toast.style.zIndex = '99999';
-                toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
-                toast.style.minWidth = '250px';
-                toast.style.fontFamily = 'Arial, sans-serif';
-
-                toast.innerHTML = '<strong style="font-size:16px;">🔔 ' + title + '</strong><br><span style="font-size:14px;">' + message + '</span>';
-
-                document.body.appendChild(toast);
-
-                setTimeout(function() {
-                    toast.style.opacity = '0';
-                    toast.style.transition = 'opacity 0.5s ease-in-out';
-                    setTimeout(function() {
-                        toast.remove();
-                    }, 500);
-                }, 7000);
+                showBrowserDesktopNotification(title, message, '', 0);
             }
 
+            /* ── Employee Notification smart-polling system ────────────────────────────
+             *  • Polls every 30 s (was 1.5 s → 20× less server traffic)
+             *  • Pauses automatically when the tab is hidden
+             *  • Resumes + polls immediately when tab becomes visible again
+             * ─────────────────────────────────────────────────────────────── */
+            const EMP_NOTIF_POLL_MS = 10000; // 10 seconds — uses setInterval so background tabs keep polling
             let _lastEmpUnreadCount = 0;
             let _lastEmpSeenNotifId = 0;
+            let _empNotifPollTimer = null;
+            let _empNotifPolling = false;
+            let _empAlertedNotifIds = new Set();
+
+            try {
+                const _savedEmp = sessionStorage.getItem('crm_emp_alerted_ids');
+                if (_savedEmp) {
+                    JSON.parse(_savedEmp).forEach(function(id) {
+                        _empAlertedNotifIds.add(parseInt(id));
+                    });
+                }
+            } catch (e) {}
+
+            function requestBrowserNotificationPermission() {
+                if ("Notification" in window && Notification.permission === "default") {
+                    Notification.requestPermission().catch(function() {});
+                }
+            }
+
+            function showBrowserDesktopNotification(title, message, targetUrl, notifId) {
+                if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+                let resolvedUrl = window.location.href;
+                if (targetUrl && targetUrl !== '#' && targetUrl !== 'javascript:void(0);') {
+                    try {
+                        if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+                            resolvedUrl = targetUrl;
+                        } else {
+                            var base = window.location.protocol + '//' + window.location.host + window.location.pathname;
+                            if (!base.endsWith('/') && !base.endsWith('.php')) {
+                                base += '/';
+                            }
+                            resolvedUrl = new URL(targetUrl, base).href;
+                        }
+                    } catch (err) {
+                        resolvedUrl = window.location.href;
+                    }
+                }
+
+                const options = {
+                    body: message || '',
+                    icon: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
+                    badge: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
+                    tag: 'crm-emp-notif-' + (notifId || Date.now()),
+                    renotify: true,
+                    data: {
+                        url: resolvedUrl
+                    },
+                    requireInteraction: false
+                };
+
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(function(reg) {
+                        if (reg && reg.showNotification) {
+                            return reg.showNotification(title, options);
+                        } else {
+                            fallbackDesktopNotification(title, options, resolvedUrl);
+                        }
+                    }).catch(function() {
+                        fallbackDesktopNotification(title, options, resolvedUrl);
+                    });
+                } else {
+                    fallbackDesktopNotification(title, options, resolvedUrl);
+                }
+
+                function fallbackDesktopNotification(title, options, finalUrl) {
+                    try {
+                        const notif = new Notification(title, options);
+                        notif.onclick = function(event) {
+                            event.preventDefault();
+                            window.focus();
+                            if (finalUrl && finalUrl !== '#' && finalUrl !== 'javascript:void(0);') {
+                                window.location.href = finalUrl;
+                            }
+                            notif.close();
+                        };
+                    } catch (e) {
+                        console.warn("Desktop notification fallback error:", e);
+                    }
+                }
+            }
+
+            function testDesktopNotification(e) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                if (!("Notification" in window)) {
+                    Swal.fire("Not Supported", "Your browser does not support desktop notifications.", "warning");
+                    return;
+                }
+
+                if (Notification.permission === "granted") {
+                    showBrowserDesktopNotification("🔔 CRM Desktop Alert", "Your device is ready to receive instant task & project alerts!", "index.php", Date.now());
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Test alert sent to your PC!',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                } else if (Notification.permission === "denied") {
+                    Swal.fire({
+                        title: "Notifications Blocked",
+                        html: "Notifications are blocked in your browser.<br><br>Click the <b>lock icon / site settings</b> in your browser address bar and set Notifications to <b>Allow</b>.",
+                        icon: "error"
+                    });
+                } else {
+                    Notification.requestPermission().then(function(permission) {
+                        if (permission === "granted") {
+                            showBrowserDesktopNotification("✅ Desktop Alerts Active!", "You will now receive instant desktop notifications on your PC.", "index.php", Date.now());
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'Desktop alerts enabled!',
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        } else {
+                            Swal.fire("Permission Required", "Please allow notifications to receive desktop alerts.", "warning");
+                        }
+                    });
+                }
+            }
+
+            function startEmpNotificationPolling() {
+                requestBrowserNotificationPermission();
+                document.addEventListener('click', function _reqPermEmp() {
+                    requestBrowserNotificationPermission();
+                }, {
+                    once: true
+                });
+
+                fetchLiveNotifications(); // immediate first poll
+
+                // setInterval keeps ticking even when tab is hidden/backgrounded
+                if (_empNotifPollTimer) clearInterval(_empNotifPollTimer);
+                _empNotifPollTimer = setInterval(fetchLiveNotifications, EMP_NOTIF_POLL_MS);
+
+                // Also fire immediately when user switches back to this tab
+                document.addEventListener('visibilitychange', function() {
+                    if (document.visibilityState === 'visible') {
+                        fetchLiveNotifications();
+                    }
+                });
+            }
+
+            function scheduleNextEmpNotifPoll() {
+                // Legacy — no longer used; kept for backward compatibility
+            }
 
             function fetchLiveNotifications() {
-                // Notification check disabled
-                return;
-                const endpoint = '../admin_area/ajax/notifications/ajax_get_user_notifications.php?portal=employee';
+                if (_empNotifPolling) return;
+                _empNotifPolling = true;
+
+                const endpoint = '../admin_area/ajax/notifications/ajax_get_user_notifications.php?portal=employee&last_id=' + _lastEmpSeenNotifId;
                 const markReadEndpoint = '../admin_area/ajax/notifications/ajax_mark_notification_read.php?portal=employee';
 
                 $.ajax({
                     url: endpoint,
                     method: 'GET',
                     dataType: 'json',
+                    timeout: 15000,
                     success: function(res) {
                         if (!res || !res.success) return;
 
                         const unread = res.unread_count || 0;
-
                         if (unread > 0) {
                             $('.emp-sys-notif-badge').text(unread).show();
                         } else {
                             $('.emp-sys-notif-badge').hide();
                         }
 
+                        // Trigger chime and native Windows desktop notification for any unread notification not yet alerted
                         if (res.notifications && res.notifications.length > 0) {
-                            const latest = res.notifications[0];
-                            const latestId = parseInt(latest.id);
-                            if (_lastEmpSeenNotifId !== 0 && latestId > _lastEmpSeenNotifId && parseInt(latest.is_read) === 0) {
+                            let hasNewAlert = false;
+                            res.notifications.slice().reverse().forEach(function(n) {
+                                const notifId = parseInt(n.id);
+                                const isUnread = parseInt(n.is_read) === 0;
+                                if (isUnread && !_empAlertedNotifIds.has(notifId)) {
+                                    _empAlertedNotifIds.add(notifId);
+                                    hasNewAlert = true;
+                                    showBrowserDesktopNotification(n.title, n.message, n.url, n.id);
+                                }
+                            });
+
+                            if (hasNewAlert) {
                                 playNotificationChime();
-                                showFloatingToastNotification(latest.title, latest.message, latest.url, latest.id);
+                                try {
+                                    sessionStorage.setItem('crm_emp_alerted_ids', JSON.stringify(Array.from(_empAlertedNotifIds).slice(-100)));
+                                } catch (e) {}
                             }
-                            _lastEmpSeenNotifId = latestId;
+                        }
+
+                        // Nothing new — skip DOM re-render
+                        if (res.no_change) return;
+
+                        if (res.server_max_id) {
+                            _lastEmpSeenNotifId = Math.max(_lastEmpSeenNotifId, parseInt(res.server_max_id));
                         }
                         _lastEmpUnreadCount = unread;
 
@@ -311,14 +432,21 @@ if (!isset($_SESSION['emp_id'])) {
                         list.empty();
 
                         if (!res.notifications || res.notifications.length === 0) {
-                            list.append('<li style="padding:15px; text-align:center; color:#94a3b8; font-size:13px;">No new notifications</li>');
+                            list.append(`
+                                <li style="padding: 10px 15px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: #0f172a;">
+                                    <span>Notifications</span>
+                                </li>
+                                <li style="padding:20px; text-align:center; color:#94a3b8; font-size:13px;">No new notifications</li>
+                            `);
                             return;
                         }
 
                         list.append(`
                             <li style="padding: 10px 15px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: #0f172a;">
                                 <span>Notifications</span>
-                                <a href="#" onclick="markAllNotificationsRead(event, '${markReadEndpoint}')" style="color: #dd2127; text-decoration: none; font-size: 11px;">Mark all read</a>
+                                <div>
+                                    <a href="#" onclick="markAllEmpNotificationsRead(event, '${markReadEndpoint}')" style="color: #dd2127; text-decoration: none; font-size: 11px;">Mark all read</a>
+                                </div>
                             </li>
                         `);
 
@@ -329,39 +457,47 @@ if (!isset($_SESSION['emp_id'])) {
 
                             let icon = 'fa-info-circle';
                             if (n.type === 'task_assigned') icon = 'fa-tasks';
+                            else if (n.type === 'task_completed') icon = 'fa-check-circle';
                             else if (n.type === 'comment_added') icon = 'fa-commenting';
                             else if (n.type === 'project_assigned') icon = 'fa-briefcase';
+                            else if (n.type === 'lead_assigned') icon = 'fa-user-plus';
+                            else if (n.type === 'birthday_today' || n.type === 'birthday_tomorrow') icon = 'fa-birthday-cake';
+                            else if (n.type === 'leave_request' || n.type === 'leave_approved' || n.type === 'leave_rejected') icon = 'fa-calendar-check-o';
 
                             list.append(`
                                 <li style="background:${bg}; border-bottom:1px solid #f1f5f9; transition:0.15s;">
-                                    <a href="${targetUrl}" onclick="handleNotifClick(event, ${n.id}, '${targetUrl}', '${markReadEndpoint}')" style="display:flex; gap:10px; padding:10px 14px; text-decoration:none; color:#334155; font-size:12.5px;">
+                                    <a href="${targetUrl}" onclick="handleEmpNotifClick(event, ${n.id}, '${targetUrl}', '${markReadEndpoint}')" style="display:flex; gap:10px; padding:10px 14px; text-decoration:none; color:#334155; font-size:12.5px;">
                                         <div style="width:28px; height:28px; border-radius:50%; background:#ffeaeb; color:#dd2127; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:12px;">
                                             <i class="fa ${icon}"></i>
                                         </div>
                                         <div style="flex:1; min-width:0;">
-                                            <div style="font-weight:700; color:#0f172a; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlNotif(n.title)}</div>
-                                            <div style="font-size:11.5px; color:#64748b; margin-top:2px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtmlNotif(n.message)}</div>
+                                            <div style="font-weight:700; color:#0f172a; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeEmpHtmlNotif(n.title)}</div>
+                                            <div style="font-size:11.5px; color:#64748b; margin-top:2px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${escapeEmpHtmlNotif(n.message)}</div>
                                             <small style="color:#94a3b8; font-size:10px; margin-top:4px; display:block;">${n.time_ago}</small>
                                         </div>
                                     </a>
                                 </li>
                             `);
                         });
+                    },
+                    error: function() {},
+                    complete: function() {
+                        _empNotifPolling = false;
                     }
                 });
             }
 
-            function handleNotifClick(e, id, url, markEndpoint) {
-                if (e) e.preventDefault();
 
-                const $badge = $('.sys-notif-badge, .emp-sys-notif-badge');
+            /* Employee-specific notification click handler */
+            function handleEmpNotifClick(e, id, url, markEndpoint) {
+                if (e) e.preventDefault();
+                const $badge = $('.emp-sys-notif-badge');
                 let count = parseInt($badge.text()) || 0;
                 if (count > 0) {
                     count--;
                     if (count > 0) $badge.text(count);
                     else $badge.hide().text('0');
                 }
-
                 $.ajax({
                     url: markEndpoint,
                     type: 'POST',
@@ -372,24 +508,14 @@ if (!isset($_SESSION['emp_id'])) {
                 }).always(function() {
                     fetchLiveNotifications();
                     if (url && url !== '#' && url !== 'javascript:void(0);') {
-                        var matchTask = url.match(/open_task_id=(\d+)/);
-                        var matchEmp = url.match(/emp_id=(\d+)/);
-
-                        var targetTaskId = matchTask ? parseInt(matchTask[1]) : 0;
-                        var targetEmpId = matchEmp ? parseInt(matchEmp[1]) : 0;
-
-                        if (targetTaskId > 0 && typeof openTaskDetail === 'function' && $('#taskDetailOverlay').length > 0) {
-                            openTaskDetail(targetTaskId, targetEmpId);
-                        } else {
-                            window.location.href = url;
-                        }
+                        window.location.href = url;
                     }
                 });
             }
 
-            function markAllNotificationsRead(e, markEndpoint) {
+            function markAllEmpNotificationsRead(e, markEndpoint) {
                 if (e) e.preventDefault();
-                $('.sys-notif-badge, .emp-sys-notif-badge').hide().text('0');
+                $('.emp-sys-notif-badge').hide().text('0');
                 $.ajax({
                     url: markEndpoint,
                     type: 'POST',
@@ -432,69 +558,15 @@ if (!isset($_SESSION['emp_id'])) {
                 } catch (e) {}
             }
 
-            function showFloatingToastNotification(title, message, url, notifId) {
-                const existing = document.getElementById('sys-floating-toast');
-                if (existing) existing.remove();
 
-                const toast = document.createElement('div');
-                toast.id = 'sys-floating-toast';
-                toast.style.cssText = `
-                    position: fixed;
-                    top: 24px;
-                    right: 24px;
-                    z-index: 999999;
-                    background: #ffffff;
-                    border-left: 4px solid #dd2127;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.18), 0 4px 12px rgba(221, 33, 39, 0.12);
-                    border-radius: 12px;
-                    padding: 14px 18px;
-                    width: 320px;
-                    max-width: calc(100vw - 32px);
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                    display: flex;
-                    gap: 12px;
-                    align-items: flex-start;
-                    cursor: pointer;
-                    transition: transform 0.25s ease, opacity 0.25s ease;
-                `;
 
-                toast.innerHTML = `
-                    <div style="width:34px; height:34px; border-radius:50%; background:#ffeaeb; color:#dd2127; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:15px; margin-top:2px;">
-                        <i class="fa fa-bell"></i>
-                    </div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight:700; color:#0f172a; font-size:13.5px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlNotif(title)}</div>
-                        <div style="font-size:12px; color:#475569; margin-top:3px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtmlNotif(message)}</div>
-                        <div style="font-size:11px; color:#dd2127; font-weight:700; margin-top:6px; display:inline-flex; align-items:center; gap:4px;">
-                            View Details <i class="fa fa-arrow-right" style="font-size:9px;"></i>
-                        </div>
-                    </div>
-                    <button type="button" onclick="event.stopPropagation(); document.getElementById('sys-floating-toast')?.remove();" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer; padding:0 2px; margin-left:4px; line-height:1;" title="Dismiss">&times;</button>
-                `;
-
-                toast.onclick = function(e) {
-                    toast.remove();
-                    const isEmp = (window.location.pathname.indexOf('emp_area') !== -1);
-                    const markEndpoint = isEmp ? '../admin_area/ajax/notifications/ajax_mark_notification_read.php?portal=employee' : 'ajax/notifications/ajax_mark_notification_read.php?portal=admin';
-                    handleNotifClick(e, notifId, url, markEndpoint);
-                };
-
-                document.body.appendChild(toast);
-
-                setTimeout(function() {
-                    if (toast && toast.parentNode) {
-                        toast.style.opacity = '0';
-                        toast.style.transform = 'translateY(-10px)';
-                        setTimeout(function() {
-                            if (toast && toast.parentNode) toast.remove();
-                        }, 300);
-                    }
-                }, 7000);
-            }
-
-            function escapeHtmlNotif(str) {
+            function escapeEmpHtmlNotif(str) {
                 if (!str) return '';
-                return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+                return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            }
+            /* alias used by toast */
+            function escapeHtmlNotif(str) {
+                return escapeEmpHtmlNotif(str);
             }
 
             /* ajax check announcements */

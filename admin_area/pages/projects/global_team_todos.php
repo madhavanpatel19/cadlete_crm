@@ -1368,6 +1368,7 @@ if ($run_projs) {
 
 <script>
     const ajaxBaseUrl = '<?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'emp_area') !== false || (isset($_SESSION['emp_id']) && !isset($_SESSION['admin_email']))) ? '../admin_area/ajax/projects/' : 'ajax/projects/'; ?>';
+    const isEmpPortal = <?php echo $is_employee_portal ? 'true' : 'false'; ?>;
     const canTodoDelete = <?php echo (!$is_employee_portal && (function_exists('canAdminAccess') && (canAdminAccess('todo_delete') || canAdminAccess('project_assign_task')))) ? 'true' : 'false'; ?>;
     const canTodoUpdate = <?php echo ($is_employee_portal || (function_exists('canAdminAccess') && (canAdminAccess('todo_update') || canAdminAccess('project_assign_task')))) ? 'true' : 'false'; ?>;
 </script>
@@ -1805,62 +1806,14 @@ if ($run_projs) {
         $('#task-search').trigger('keyup');
     }
 
-    function saveGlobalTask() {
-        const projId = $('#global-task-project').val();
-        const empId = $('#global-task-employee').val();
-        const name = $('#global-task-input').val().trim();
-        const date = $('#global-task-date').val();
-        const priority = $('#global-task-priority').val();
-
-        if (!projId) {
-            Swal.fire("Required", "Please select a project", "warning");
-            return;
-        }
-        if (!empId) {
-            Swal.fire("Required", "Please select an assigned employee", "warning");
-            return;
-        }
-        if (!name) {
-            Swal.fire("Required", "Please enter task name", "warning");
-            return;
-        }
-
-        $.ajax({
-            url: ajaxBaseUrl + 'ajax_add_team_todo.php',
-            method: 'POST',
-            data: {
-                project_id: projId,
-                emp_id: empId,
-                task_name: name,
-                due_date: date,
-                priority: priority
-            },
-            success: function(res) {
-                if (res.success) {
-                    $('#globalAddTaskModal').modal('hide');
-                    loadTasks(empId);
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'success',
-                        title: 'Task added successfully',
-                        showConfirmButton: false,
-                        timer: 3000
-                    });
-                } else {
-                    Swal.fire("Error", "Could not add task.", "error");
-                }
-            }
-        });
-    }
-
     function toggleTask(taskId, empId, newStatus, projId) {
         $.ajax({
             url: ajaxBaseUrl + 'ajax_toggle_team_todo.php',
             method: 'POST',
             data: {
                 task_id: taskId,
-                status: newStatus
+                status: newStatus,
+                portal: isEmpPortal ? 'employee' : 'admin'
             },
             success: function(res) {
                 if (res && res.success) {

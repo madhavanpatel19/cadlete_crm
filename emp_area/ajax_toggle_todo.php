@@ -3,6 +3,7 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/../admin_area/includes/notification_helper.php';
 
 header('Content-Type: application/json');
 
@@ -24,9 +25,19 @@ if ($task_id > 0) {
 
         $entry_text = !empty($proj_name) ? "Completed Task [$proj_name]: $task_name" : "Completed Task: $task_name";
 
-        // 2. Update status to 1 (Completed) and record completion timestamp
         $query = "UPDATE project_team_todos SET status = 1, completed_at = NOW() WHERE id = $task_id AND emp_id = '$emp_id'";
         if (mysqli_query($con, $query)) {
+            // Notify Project Admins and Super Admins about task completion
+            $e_id_int = intval($emp_id);
+            $emp_q = mysqli_fetch_assoc(mysqli_query($con, "SELECT name FROM emp_list WHERE id = $e_id_int LIMIT 1"));
+            $actor_name = $emp_q ? $emp_q['name'] : 'Employee';
+            $pid = intval($t_row['project_id'] ?? 0);
+            $t_name = $t_row['task_name'] ?? 'Task';
+            $p_name = !empty($t_row['project_name']) ? trim($t_row['project_name']) : 'Project';
+            $url = "index.php?team_todo&project_id=$pid&open_task_id=$task_id&emp_id=$e_id_int";
+
+            notifyProjectAdmins($pid, "Task Completed: $t_name", "$actor_name completed task '$t_name'" . ($pid > 0 ? " in $p_name." : "."), $url, 'task_completed', 0, $e_id_int);
+
             $today = date('Y-m-d');
 
             // 3. Check for today's attendance record

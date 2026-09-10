@@ -25,6 +25,18 @@ if (!$task_id || empty($comment)) {
     exit();
 }
 
+$portal = isset($_POST['portal']) ? $_POST['portal'] : '';
+$is_emp_action = false;
+if ($portal === 'employee') {
+    $is_emp_action = true;
+} elseif ($portal === 'admin') {
+    $is_emp_action = false;
+} elseif ($is_admin) {
+    $is_emp_action = false;
+} elseif ($is_emp) {
+    $is_emp_action = true;
+}
+
 $esc = mysqli_real_escape_string($con, $comment);
 $admin_id_val = "NULL";
 $emp_id_val = "NULL";
@@ -32,22 +44,20 @@ $author_name = "User";
 $author_emp_id = 0;
 $author_admin_id = 0;
 
-$posted_by = trim($_POST['posted_by'] ?? '');
-
-if ($is_emp && ($posted_by === 'employee' || !$is_admin)) {
-    $author_emp_id = intval($_SESSION['emp_id']);
-    $emp_id_val = $author_emp_id;
-    $emp = mysqli_fetch_assoc(mysqli_query($con, "SELECT name FROM emp_list WHERE id={$author_emp_id} LIMIT 1"));
-    if ($emp) {
-        $author_name = $emp['name'];
-    }
-} else if ($is_admin) {
+if (!$is_emp_action && $is_admin) {
     $ae = mysqli_real_escape_string($con, $_SESSION['admin_email']);
     $admin = mysqli_fetch_assoc(mysqli_query($con, "SELECT admin_id, admin_name FROM admins WHERE admin_email='$ae' LIMIT 1"));
     if ($admin) {
         $author_admin_id = intval($admin['admin_id']);
         $admin_id_val = $author_admin_id;
         $author_name = $admin['admin_name'];
+    }
+} elseif ($is_emp_action && isset($_SESSION['emp_id'])) {
+    $author_emp_id = intval($_SESSION['emp_id']);
+    $emp_id_val = $author_emp_id;
+    $emp = mysqli_fetch_assoc(mysqli_query($con, "SELECT name FROM emp_list WHERE id={$author_emp_id} LIMIT 1"));
+    if ($emp) {
+        $author_name = $emp['name'];
     }
 }
 
