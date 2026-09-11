@@ -34,7 +34,7 @@ if ($task_id > 0) {
             $pid = intval($t_row['project_id'] ?? 0);
             $t_name = $t_row['task_name'] ?? 'Task';
             $p_name = !empty($t_row['project_name']) ? trim($t_row['project_name']) : 'Project';
-            $url = "index.php?team_todo&project_id=$pid&open_task_id=$task_id&emp_id=$e_id_int";
+            $url = "index.php?global_team_todos&open_task_id=$task_id&emp_id=$e_id_int";
 
             notifyProjectAdmins($pid, "Task Completed: $t_name", "$actor_name completed task '$t_name'" . ($pid > 0 ? " in $p_name." : "."), $url, 'task_completed', 0, $e_id_int);
 

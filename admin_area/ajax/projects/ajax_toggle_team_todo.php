@@ -90,8 +90,8 @@ if (mysqli_query($con, $query)) {
                 }
             }
 
-            $url = "index.php?team_todo&project_id=$pid&open_task_id=$task_id&emp_id=$task_emp_id";
-            notifyProjectAdmins($pid, "Task Completed: $t_name", "$actor_name completed task '$t_name' in $p_name.", $url, 'task_completed', $exclude_admin_id, $task_emp_id);
+            $url = "index.php?global_team_todos&open_task_id=$task_id&emp_id=$task_emp_id";
+            notifyProjectAdmins($pid, "Task Completed: $t_name", "$actor_name completed task '$t_name'" . ($pid > 0 ? " in $p_name." : "."), $url, 'task_completed', $exclude_admin_id, $task_emp_id);
         }
     }
 

@@ -200,10 +200,19 @@ if (!isset($_SESSION['emp_id'])) {
             /* Ask notification permission & register service worker */
             document.addEventListener("DOMContentLoaded", function() {
                 if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('sw.js').then(function(registration) {
+                    navigator.serviceWorker.register('sw.js?v=4').then(function(registration) {
+                        try {
+                            registration.update();
+                        } catch (e) {}
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     }).catch(function(err) {
                         console.log('ServiceWorker registration failed: ', err);
+                    });
+
+                    navigator.serviceWorker.addEventListener('message', function(event) {
+                        if (event.data && event.data.action === 'crm_notification_navigate' && event.data.url) {
+                            window.location.href = event.data.url;
+                        }
                     });
                 }
 
@@ -216,26 +225,34 @@ if (!isset($_SESSION['emp_id'])) {
                 showBrowserDesktopNotification(title, message, '', 0);
             }
 
-            /* ── Employee Notification smart-polling system ────────────────────────────
-             *  • Polls every 30 s (was 1.5 s → 20× less server traffic)
-             *  • Pauses automatically when the tab is hidden
-             *  • Resumes + polls immediately when tab becomes visible again
+            /* ── Employee Notification system ──────────────────────────────────────────
+             *  • Background polling (45s) ensures Windows/OS desktop notifications
+             *    pop up even when user is working on other windows or apps.
+             *  • Throttled to prevent multiple rapid duplicate API calls.
+             *  • On click: updates DOM immediately without redundant fetch cascades.
              * ─────────────────────────────────────────────────────────────── */
-            const EMP_NOTIF_POLL_MS = 120000; // 2 minutes — uses setInterval so background tabs keep polling
+            const EMP_NOTIF_POLL_MS = 45000; // 45s interval for background desktop alerts
             let _lastEmpUnreadCount = 0;
             let _lastEmpSeenNotifId = 0;
-            let _empNotifPollTimer = null;
             let _empNotifPolling = false;
-            let _empAlertedNotifIds = new Set();
+            let _lastEmpFetchTime = 0;
+            let _empNotifPollTimer = null;
 
-            try {
-                const _savedEmp = sessionStorage.getItem('crm_emp_alerted_ids');
-                if (_savedEmp) {
-                    JSON.parse(_savedEmp).forEach(function(id) {
-                        _empAlertedNotifIds.add(parseInt(id));
-                    });
-                }
-            } catch (e) {}
+            // Persist alerted IDs in localStorage so page reloads don't re-trigger old notifications
+            function _loadEmpAlertedIds() {
+                try {
+                    var raw = localStorage.getItem('crm_emp_alerted_notif_ids');
+                    return raw ? new Set(JSON.parse(raw)) : new Set();
+                } catch(e) { return new Set(); }
+            }
+            function _saveEmpAlertedIds(s) {
+                try {
+                    var arr = Array.from(s);
+                    if (arr.length > 200) arr = arr.slice(arr.length - 200);
+                    localStorage.setItem('crm_emp_alerted_notif_ids', JSON.stringify(arr));
+                } catch(e) {}
+            }
+            let _empAlertedNotifIds = _loadEmpAlertedIds();
 
             function requestBrowserNotificationPermission() {
                 if ("Notification" in window && Notification.permission === "default") {
@@ -244,7 +261,7 @@ if (!isset($_SESSION['emp_id'])) {
             }
 
             function showBrowserDesktopNotification(title, message, targetUrl, notifId) {
-                if (!("Notification" in window) || Notification.permission !== "granted") return;
+                if (!("Notification" in window)) return;
 
                 let resolvedUrl = window.location.href;
                 if (targetUrl && targetUrl !== '#' && targetUrl !== 'javascript:void(0);') {
@@ -252,10 +269,9 @@ if (!isset($_SESSION['emp_id'])) {
                         if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
                             resolvedUrl = targetUrl;
                         } else {
-                            var base = window.location.protocol + '//' + window.location.host + window.location.pathname;
-                            if (!base.endsWith('/') && !base.endsWith('.php')) {
-                                base += '/';
-                            }
+                            var loc = window.location;
+                            var dir = loc.pathname.substring(0, loc.pathname.lastIndexOf('/') + 1);
+                            var base = loc.protocol + '//' + loc.host + dir;
                             resolvedUrl = new URL(targetUrl, base).href;
                         }
                     } catch (err) {
@@ -263,46 +279,39 @@ if (!isset($_SESSION['emp_id'])) {
                     }
                 }
 
-                const options = {
-                    body: message || '',
-                    icon: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
-                    badge: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
-                    tag: 'crm-emp-notif-' + (notifId || Date.now()),
-                    renotify: true,
-                    data: {
-                        url: resolvedUrl
-                    },
-                    requireInteraction: false
-                };
-
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.ready.then(function(reg) {
-                        if (reg && reg.showNotification) {
-                            return reg.showNotification(title, options);
-                        } else {
-                            fallbackDesktopNotification(title, options, resolvedUrl);
+                if (Notification.permission === "default") {
+                    Notification.requestPermission().then(function(perm) {
+                        if (perm === "granted") {
+                            triggerNativeNotification(title, message, resolvedUrl, notifId);
                         }
-                    }).catch(function() {
-                        fallbackDesktopNotification(title, options, resolvedUrl);
                     });
-                } else {
-                    fallbackDesktopNotification(title, options, resolvedUrl);
+                    return;
                 }
 
-                function fallbackDesktopNotification(title, options, finalUrl) {
-                    try {
-                        const notif = new Notification(title, options);
-                        notif.onclick = function(event) {
-                            event.preventDefault();
-                            window.focus();
-                            if (finalUrl && finalUrl !== '#' && finalUrl !== 'javascript:void(0);') {
-                                window.location.href = finalUrl;
-                            }
-                            notif.close();
-                        };
-                    } catch (e) {
-                        console.warn("Desktop notification fallback error:", e);
-                    }
+                if (Notification.permission === "granted") {
+                    triggerNativeNotification(title, message, resolvedUrl, notifId);
+                }
+            }
+
+            function triggerNativeNotification(title, message, resolvedUrl, notifId) {
+                // Use new Notification() directly — avoids SW double-fire
+                try {
+                    const notif = new Notification(title, {
+                        body: message || '',
+                        icon: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
+                        tag: 'crm-emp-notif-' + notifId,
+                        requireInteraction: false
+                    });
+                    notif.onclick = function(event) {
+                        event.preventDefault();
+                        window.focus();
+                        if (resolvedUrl && resolvedUrl !== '#' && resolvedUrl !== 'javascript:void(0);') {
+                            window.location.href = resolvedUrl;
+                        }
+                        notif.close();
+                    };
+                } catch (e) {
+                    console.warn('Notification failed:', e);
                 }
             }
 
@@ -359,27 +368,27 @@ if (!isset($_SESSION['emp_id'])) {
                     once: true
                 });
 
-                fetchLiveNotifications(); // immediate first poll
+                fetchLiveNotifications(true); // Initial fetch on page load
 
-                // setInterval keeps ticking even when tab is hidden/backgrounded
+                // Background polling so desktop notifications pop up on Windows/devices even on other windows
                 if (_empNotifPollTimer) clearInterval(_empNotifPollTimer);
-                _empNotifPollTimer = setInterval(fetchLiveNotifications, EMP_NOTIF_POLL_MS);
-
-                // Also fire immediately when user switches back to this tab
-                document.addEventListener('visibilitychange', function() {
-                    if (document.visibilityState === 'visible') {
-                        fetchLiveNotifications();
-                    }
-                });
+                _empNotifPollTimer = setInterval(function() {
+                    fetchLiveNotifications(false);
+                }, EMP_NOTIF_POLL_MS);
             }
 
             function scheduleNextEmpNotifPoll() {
                 // Legacy — no longer used; kept for backward compatibility
             }
 
-            function fetchLiveNotifications() {
+            function fetchLiveNotifications(force) {
+                const now = Date.now();
+                if (!force && (now - _lastEmpFetchTime < 3000)) {
+                    return; // Throttle multiple rapid clicks within 3s
+                }
                 if (_empNotifPolling) return;
                 _empNotifPolling = true;
+                _lastEmpFetchTime = now;
 
                 const endpoint = '../admin_area/ajax/notifications/ajax_get_user_notifications.php?portal=employee&last_id=' + _lastEmpSeenNotifId;
                 const markReadEndpoint = '../admin_area/ajax/notifications/ajax_mark_notification_read.php?portal=employee';
@@ -399,24 +408,27 @@ if (!isset($_SESSION['emp_id'])) {
                             $('.emp-sys-notif-badge').hide();
                         }
 
-                        // Trigger chime and native Windows desktop notification for any unread notification not yet alerted
+                        // Trigger chime and native Windows desktop notification (single popup per poll cycle)
                         if (res.notifications && res.notifications.length > 0) {
                             let hasNewAlert = false;
-                            res.notifications.slice().reverse().forEach(function(n) {
+                            let latestNewNotif = null;
+
+                            res.notifications.forEach(function(n) {
                                 const notifId = parseInt(n.id);
                                 const isUnread = parseInt(n.is_read) === 0;
                                 if (isUnread && !_empAlertedNotifIds.has(notifId)) {
                                     _empAlertedNotifIds.add(notifId);
                                     hasNewAlert = true;
-                                    showBrowserDesktopNotification(n.title, n.message, n.url, n.id);
+                                    if (!latestNewNotif) {
+                                        latestNewNotif = n;
+                                    }
                                 }
                             });
+                            _saveEmpAlertedIds(_empAlertedNotifIds);
 
-                            if (hasNewAlert) {
+                            if (hasNewAlert && latestNewNotif) {
+                                showBrowserDesktopNotification(latestNewNotif.title, latestNewNotif.message, latestNewNotif.url, latestNewNotif.id);
                                 playNotificationChime();
-                                try {
-                                    sessionStorage.setItem('crm_emp_alerted_ids', JSON.stringify(Array.from(_empAlertedNotifIds).slice(-100)));
-                                } catch (e) {}
                             }
                         }
 
@@ -498,6 +510,13 @@ if (!isset($_SESSION['emp_id'])) {
                     if (count > 0) $badge.text(count);
                     else $badge.hide().text('0');
                 }
+
+                // Mark clicked item visually as read in DOM immediately
+                if (e && e.currentTarget) {
+                    $(e.currentTarget).closest('li').css('background', '#ffffff');
+                }
+
+                // Asynchronously mark as read on server (no extra cascading fetch)
                 $.ajax({
                     url: markEndpoint,
                     type: 'POST',
@@ -505,17 +524,32 @@ if (!isset($_SESSION['emp_id'])) {
                         id: id
                     },
                     dataType: 'json'
-                }).always(function() {
-                    fetchLiveNotifications();
-                    if (url && url !== '#' && url !== 'javascript:void(0);') {
+                });
+
+                if (url && url !== '#' && url !== 'javascript:void(0);') {
+                    // Check if clicking a task notification and already on the Todo page with modal available
+                    var matchTask = url.match(/open_task_id=(\d+)/);
+                    var matchEmp = url.match(/emp_id=(\d+)/);
+                    var targetTaskId = matchTask ? parseInt(matchTask[1]) : 0;
+                    var targetEmpId = matchEmp ? parseInt(matchEmp[1]) : 0;
+
+                    if (targetTaskId > 0 && typeof openTaskDetail === 'function' && $('#taskDetailOverlay').length > 0) {
+                        openTaskDetail(targetTaskId, targetEmpId);
+                    } else {
+                        // Normalize URL to employee To-do page
+                        if (url.includes('team_todo') || url.includes('global_team_todos')) {
+                            url = url.replace('global_team_todos', 'todo').replace('team_todo', 'todo');
+                        }
                         window.location.href = url;
                     }
-                });
+                }
             }
 
             function markAllEmpNotificationsRead(e, markEndpoint) {
                 if (e) e.preventDefault();
                 $('.emp-sys-notif-badge').hide().text('0');
+                $('.emp-sys-notif-list li').css('background', '#ffffff');
+
                 $.ajax({
                     url: markEndpoint,
                     type: 'POST',
@@ -523,8 +557,6 @@ if (!isset($_SESSION['emp_id'])) {
                         mark_all: 'true'
                     },
                     dataType: 'json'
-                }).always(function() {
-                    fetchLiveNotifications();
                 });
             }
 

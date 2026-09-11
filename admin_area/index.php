@@ -526,23 +526,24 @@ if (!isset($_SESSION['admin_email'])) {
                 }
 
                 if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('sw.js').then(function(registration) {
+                    navigator.serviceWorker.register('sw.js?v=4').then(function(registration) {
+                        try {
+                            registration.update();
+                        } catch (e) {}
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     }).catch(function(err) {
                         console.log('ServiceWorker registration failed: ', err);
                     });
+
+                    navigator.serviceWorker.addEventListener('message', function(event) {
+                        if (event.data && event.data.action === 'crm_notification_navigate' && event.data.url) {
+                            window.location.href = event.data.url;
+                        }
+                    });
                 }
 
-                /* Smart notification polling — 30s interval, pauses when tab hidden */
+                /* Initialize notification system (badge on page load, on demand on bell click, on tab switch) */
                 startNotificationPolling();
-
-                /* Seed time-based events (birthdays, pending leaves) into DB once on page load.
-                   Fire-and-forget — the 30s poll above will pick up any new entries. */
-                fetch('ajax/notifications/check_admin_notifications.php', {
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                }).catch(function() {}); // silent fail — non-critical
             });
 
             function showAnnouncementNotification(title, message) {
@@ -552,52 +553,8 @@ if (!isset($_SESSION['admin_email'])) {
                     console.log("Audio play failed:", error);
                 });
 
-                // OS Desktop Notification
-                if (Notification.permission === "granted") {
-                    navigator.serviceWorker.ready.then(function(registration) {
-                        registration.showNotification(title, {
-                            body: message,
-                            icon: "img/notification.png",
-                            requireInteraction: true
-                        });
-                    }).catch(function() {
-                        var notification = new Notification(title, {
-                            body: message,
-                            icon: "img/notification.png",
-                            requireInteraction: true
-                        });
-                        notification.onclick = function() {
-                            window.focus();
-                            this.close();
-                        };
-                    });
-                }
-
-                // In-App Toast Notification (Guarantees visual display on PC)
-                var toast = document.createElement('div');
-                toast.style.position = 'fixed';
-                toast.style.top = '20px';
-                toast.style.right = '20px';
-                toast.style.backgroundColor = '#6dc16fff'; // Green success color
-                toast.style.color = '#fff';
-                toast.style.padding = '15px 20px';
-                toast.style.borderRadius = '5px';
-                toast.style.zIndex = '99999';
-                toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
-                toast.style.minWidth = '250px';
-                toast.style.fontFamily = 'Arial, sans-serif';
-
-                toast.innerHTML = '<strong style="font-size:16px;">🔔 ' + title + '</strong><br><span style="font-size:14px;">' + message + '</span>';
-
-                document.body.appendChild(toast);
-
-                setTimeout(function() {
-                    toast.style.opacity = '0';
-                    toast.style.transition = 'opacity 0.5s ease-in-out';
-                    setTimeout(function() {
-                        toast.remove();
-                    }, 500);
-                }, 7000); // Remove after 7 seconds
+                // OS Desktop Notification & Toast
+                showBrowserDesktopNotification(title, message, 'index.php?announcements', Date.now());
             }
 
             /* ── Notification smart-polling system ─────────────────────────────
@@ -607,21 +564,35 @@ if (!isset($_SESSION['admin_email'])) {
              *  • Sends last known notification ID so the server can skip the
              *    full list query when nothing has changed
              * ─────────────────────────────────────────────────────────────── */
-            const NOTIF_POLL_INTERVAL_MS = 120000; // 2 minutes — uses setInterval so background tabs keep polling
-            let _lastUnreadCount = 0;       
+            /* ── Notification system ──────────────────────────────────────────
+             *  • Background polling (45s) ensures Windows/OS desktop notifications
+             *    pop up even when user is working on other windows or apps.
+             *  • Throttled to prevent multiple rapid duplicate API calls.
+             *  • On click: updates DOM immediately without redundant fetch cascades.
+             * ─────────────────────────────────────────────────────────────── */
+            const NOTIF_POLL_INTERVAL_MS = 45000; // 45s interval for background desktop alerts
+            let _lastUnreadCount = 0;
             let _lastSeenNotifId = 0;
-            let _notifPollTimer = null;
             let _notifPolling = false;
-            let _alertedNotifIds = new Set();
+            let _lastFetchTime = 0;
+            let _notifPollTimer = null;
 
-            try {
-                const _saved = sessionStorage.getItem('crm_admin_alerted_ids');
-                if (_saved) {
-                    JSON.parse(_saved).forEach(function(id) {
-                        _alertedNotifIds.add(parseInt(id));
-                    });
-                }
-            } catch (e) {}
+            // Persist alerted IDs in localStorage so page reloads don't re-trigger old notifications
+            function _loadAlertedIds() {
+                try {
+                    var raw = localStorage.getItem('crm_admin_alerted_notif_ids');
+                    return raw ? new Set(JSON.parse(raw)) : new Set();
+                } catch(e) { return new Set(); }
+            }
+            function _saveAlertedIds(s) {
+                try {
+                    // Keep only last 200 IDs to prevent storage bloat
+                    var arr = Array.from(s);
+                    if (arr.length > 200) arr = arr.slice(arr.length - 200);
+                    localStorage.setItem('crm_admin_alerted_notif_ids', JSON.stringify(arr));
+                } catch(e) {}
+            }
+            let _alertedNotifIds = _loadAlertedIds();
 
             function requestBrowserNotificationPermission() {
                 if ("Notification" in window && Notification.permission === "default") {
@@ -630,7 +601,7 @@ if (!isset($_SESSION['admin_email'])) {
             }
 
             function showBrowserDesktopNotification(title, message, targetUrl, notifId) {
-                if (!("Notification" in window) || Notification.permission !== "granted") return;
+                if (!("Notification" in window)) return;
 
                 let resolvedUrl = window.location.href;
                 if (targetUrl && targetUrl !== '#' && targetUrl !== 'javascript:void(0);') {
@@ -638,10 +609,9 @@ if (!isset($_SESSION['admin_email'])) {
                         if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
                             resolvedUrl = targetUrl;
                         } else {
-                            var base = window.location.protocol + '//' + window.location.host + window.location.pathname;
-                            if (!base.endsWith('/') && !base.endsWith('.php')) {
-                                base += '/';
-                            }
+                            var loc = window.location;
+                            var dir = loc.pathname.substring(0, loc.pathname.lastIndexOf('/') + 1);
+                            var base = loc.protocol + '//' + loc.host + dir;
                             resolvedUrl = new URL(targetUrl, base).href;
                         }
                     } catch (err) {
@@ -649,47 +619,39 @@ if (!isset($_SESSION['admin_email'])) {
                     }
                 }
 
-                const options = {
-                    body: message || '',
-                    icon: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
-                    badge: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
-                    tag: 'crm-notif-' + (notifId || Date.now()),
-                    renotify: true,
-                    data: {
-                        url: resolvedUrl
-                    },
-                    requireInteraction: false
-                };
-
-                // Use Service Worker if available for Windows Action Center support
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.ready.then(function(reg) {
-                        if (reg && reg.showNotification) {
-                            return reg.showNotification(title, options);
-                        } else {
-                            fallbackDesktopNotification(title, options, resolvedUrl);
+                if (Notification.permission === "default") {
+                    Notification.requestPermission().then(function(perm) {
+                        if (perm === "granted") {
+                            triggerNativeNotification(title, message, resolvedUrl, notifId);
                         }
-                    }).catch(function() {
-                        fallbackDesktopNotification(title, options, resolvedUrl);
                     });
-                } else {
-                    fallbackDesktopNotification(title, options, resolvedUrl);
+                    return;
                 }
 
-                function fallbackDesktopNotification(title, options, finalUrl) {
-                    try {
-                        const notif = new Notification(title, options);
-                        notif.onclick = function(event) {
-                            event.preventDefault();
-                            window.focus();
-                            if (finalUrl && finalUrl !== '#' && finalUrl !== 'javascript:void(0);') {
-                                window.location.href = finalUrl;
-                            }
-                            notif.close();
-                        };
-                    } catch (e) {
-                        console.warn("Desktop notification fallback error:", e);
-                    }
+                if (Notification.permission === "granted") {
+                    triggerNativeNotification(title, message, resolvedUrl, notifId);
+                }
+            }
+
+            function triggerNativeNotification(title, message, resolvedUrl, notifId) {
+                // Use new Notification() directly — avoids SW double-fire
+                try {
+                    const notif = new Notification(title, {
+                        body: message || '',
+                        icon: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
+                        tag: 'crm-notif-' + notifId,
+                        requireInteraction: false
+                    });
+                    notif.onclick = function(event) {
+                        event.preventDefault();
+                        window.focus();
+                        if (resolvedUrl && resolvedUrl !== '#' && resolvedUrl !== 'javascript:void(0);') {
+                            window.location.href = resolvedUrl;
+                        }
+                        notif.close();
+                    };
+                } catch (e) {
+                    console.warn('Notification failed:', e);
                 }
             }
 
@@ -742,30 +704,31 @@ if (!isset($_SESSION['admin_email'])) {
                 requestBrowserNotificationPermission();
                 document.addEventListener('click', function _reqPerm() {
                     requestBrowserNotificationPermission();
-                }, { once: true });
-
-                fetchLiveNotifications(); // immediate first poll on page load
-
-                // setInterval keeps ticking even when tab is hidden/backgrounded
-                // (unlike recursive setTimeout which browsers throttle to ~1min for hidden tabs)
-                if (_notifPollTimer) clearInterval(_notifPollTimer);
-                _notifPollTimer = setInterval(fetchLiveNotifications, NOTIF_POLL_INTERVAL_MS);
-
-                // Also fire immediately when user switches back to this tab
-                document.addEventListener('visibilitychange', function() {
-                    if (document.visibilityState === 'visible') {
-                        fetchLiveNotifications();
-                    }
+                }, {
+                    once: true
                 });
+
+                fetchLiveNotifications(true); // Initial fetch on page load
+
+                // Background polling so desktop notifications trigger on Windows/devices even when on another window
+                if (_notifPollTimer) clearInterval(_notifPollTimer);
+                _notifPollTimer = setInterval(function() {
+                    fetchLiveNotifications(false);
+                }, NOTIF_POLL_INTERVAL_MS);
             }
 
             function scheduleNextNotifPoll() {
                 // Legacy — no longer used; kept for backward compatibility
             }
 
-            function fetchLiveNotifications() {
+            function fetchLiveNotifications(force) {
+                const now = Date.now();
+                if (!force && (now - _lastFetchTime < 3000)) {
+                    return; // Throttle multiple rapid clicks within 3s
+                }
                 if (_notifPolling) return; // skip if a request is still in-flight
                 _notifPolling = true;
+                _lastFetchTime = now;
 
                 const endpoint = 'ajax/notifications/ajax_get_user_notifications.php?portal=admin&last_id=' + _lastSeenNotifId;
                 const markReadEndpoint = 'ajax/notifications/ajax_mark_notification_read.php?portal=admin';
@@ -786,24 +749,27 @@ if (!isset($_SESSION['admin_email'])) {
                             $('.sys-notif-badge').hide();
                         }
 
-                        // Trigger chime and native Windows desktop notification for any unread notification not yet alerted
+                        // Trigger chime and native Windows desktop notification (single popup per poll cycle)
                         if (res.notifications && res.notifications.length > 0) {
                             let hasNewAlert = false;
-                            res.notifications.slice().reverse().forEach(function(n) {
+                            let latestNewNotif = null;
+
+                            res.notifications.forEach(function(n) {
                                 const notifId = parseInt(n.id);
                                 const isUnread = parseInt(n.is_read) === 0;
                                 if (isUnread && !_alertedNotifIds.has(notifId)) {
                                     _alertedNotifIds.add(notifId);
                                     hasNewAlert = true;
-                                    showBrowserDesktopNotification(n.title, n.message, n.url, n.id);
+                                    if (!latestNewNotif) {
+                                        latestNewNotif = n;
+                                    }
                                 }
                             });
+                            _saveAlertedIds(_alertedNotifIds);
 
-                            if (hasNewAlert) {
+                            if (hasNewAlert && latestNewNotif) {
+                                showBrowserDesktopNotification(latestNewNotif.title, latestNewNotif.message, latestNewNotif.url, latestNewNotif.id);
                                 playNotificationChime();
-                                try {
-                                    sessionStorage.setItem('crm_admin_alerted_ids', JSON.stringify(Array.from(_alertedNotifIds).slice(-100)));
-                                } catch (e) {}
                             }
                         }
 
@@ -888,6 +854,12 @@ if (!isset($_SESSION['admin_email'])) {
                     else $badge.hide().text('0');
                 }
 
+                // Mark current row read visually in DOM
+                if (e && e.currentTarget) {
+                    $(e.currentTarget).closest('li').css('background', '#ffffff');
+                }
+
+                // Asynchronously mark as read on server (no extra fetch cascade)
                 $.ajax({
                     url: markEndpoint,
                     type: 'POST',
@@ -895,27 +867,28 @@ if (!isset($_SESSION['admin_email'])) {
                         id: id
                     },
                     dataType: 'json'
-                }).always(function() {
-                    fetchLiveNotifications();
-                    if (url && url !== '#' && url !== 'javascript:void(0);') {
-                        var matchTask = url.match(/open_task_id=(\d+)/);
-                        var matchEmp = url.match(/emp_id=(\d+)/);
-
-                        var targetTaskId = matchTask ? parseInt(matchTask[1]) : 0;
-                        var targetEmpId = matchEmp ? parseInt(matchEmp[1]) : 0;
-
-                        if (targetTaskId > 0 && typeof openTaskDetail === 'function' && $('#taskDetailOverlay').length > 0) {
-                            openTaskDetail(targetTaskId, targetEmpId);
-                        } else {
-                            window.location.href = url;
-                        }
-                    }
                 });
+
+                if (url && url !== '#' && url !== 'javascript:void(0);') {
+                    var matchTask = url.match(/open_task_id=(\d+)/);
+                    var matchEmp = url.match(/emp_id=(\d+)/);
+
+                    var targetTaskId = matchTask ? parseInt(matchTask[1]) : 0;
+                    var targetEmpId = matchEmp ? parseInt(matchEmp[1]) : 0;
+
+                    if (targetTaskId > 0 && typeof openTaskDetail === 'function' && $('#taskDetailOverlay').length > 0) {
+                        openTaskDetail(targetTaskId, targetEmpId);
+                    } else {
+                        window.location.href = url;
+                    }
+                }
             }
 
             function markAllNotificationsRead(e, markEndpoint) {
                 if (e) e.preventDefault();
                 $('.sys-notif-badge, .emp-sys-notif-badge').hide().text('0');
+                $('.sys-notif-list li, .emp-sys-notif-list li').css('background', '#ffffff');
+
                 $.ajax({
                     url: markEndpoint,
                     type: 'POST',
@@ -923,8 +896,6 @@ if (!isset($_SESSION['admin_email'])) {
                         mark_all: 'true'
                     },
                     dataType: 'json'
-                }).always(function() {
-                    fetchLiveNotifications();
                 });
             }
 

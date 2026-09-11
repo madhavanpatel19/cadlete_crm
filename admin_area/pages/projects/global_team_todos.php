@@ -2327,6 +2327,22 @@ if ($run_projs) {
         return Math.floor(diff / 86400) + 'd ago';
     }
 
+    $(document).ready(function() {
+        <?php if (isset($_GET['open_task_id']) && intval($_GET['open_task_id']) > 0): ?>
+            const autoTaskId = <?php echo intval($_GET['open_task_id']); ?>;
+            const autoEmpId = <?php echo isset($_GET['emp_id']) ? intval($_GET['emp_id']) : 0; ?>;
+            setTimeout(function() {
+                if (typeof openTaskDetail === 'function') {
+                    openTaskDetail(autoTaskId, autoEmpId);
+                }
+                if (window.history && window.history.replaceState) {
+                    const cleanUrl = window.location.href.replace(/([&?])open_task_id=\d+(&|$)/, '$1').replace(/([&?])emp_id=\d+(&|$)/, '$1').replace(/[\?&]$/, '');
+                    window.history.replaceState(null, '', cleanUrl);
+                }
+            }, 400);
+        <?php endif; ?>
+    });
+
     $(document).on('keydown', function(e) {
         if (e.key === 'Escape') {
             if ($('#taskDetailOverlay').is(':visible')) closeTaskDetail();

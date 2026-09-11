@@ -82,7 +82,7 @@ if ($created_count > 0) {
     $p_res = mysqli_query($con, "SELECT project_name FROM client_projects WHERE id = $project_id LIMIT 1");
     $p_row = mysqli_fetch_assoc($p_res);
     $p_name = $p_row['project_name'] ?? 'Project';
-    $url = "index.php?team_todo&project_id=$project_id";
+    $url = "index.php?todo&open_task_id=" . ($task_id ?? 0);
 
     foreach ($emp_ids as $eid) {
         $eid = intval($eid);

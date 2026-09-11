@@ -79,19 +79,20 @@ if (mysqli_query($con, $query)) {
         }
     }
 
-    $url = "index.php?team_todo&project_id=$project_id&open_task_id=$new_task_id&emp_id=$emp_id";
+    $emp_url = "index.php?todo&open_task_id=$new_task_id&emp_id=$emp_id";
+    $admin_url = "index.php?global_team_todos&open_task_id=$new_task_id&emp_id=$emp_id";
 
     // 1. Notify assigned employee (if assigned by admin or another user)
     if ($emp_id !== $creator_emp_id) {
-        addSystemNotification('employee', $emp_id, "New Task Assigned: $task_name", "$creator_name assigned task '$task_name' in $p_name.", $url, 'task_assigned');
+        addSystemNotification('employee', $emp_id, "New Task Assigned: $task_name", "$creator_name assigned task '$task_name' in $p_name.", $emp_url, 'task_assigned');
     }
 
     // 2. Notify other assigned project members (excluding assigned employee & creator employee)
     $exclude_emp_list = array_filter([$emp_id, $creator_emp_id]);
-    notifyProjectMembers($project_id, "New Task in $p_name", "$creator_name added task '$task_name' in $p_name.", $url, 'task_assigned', $exclude_emp_list);
+    notifyProjectMembers($project_id, "New Task in $p_name", "$creator_name added task '$task_name' in $p_name.", $emp_url, 'task_assigned', $exclude_emp_list);
 
     // 3. Notify Admins (excluding creator admin if posted by admin)
-    notifyAllAdmins("New Task in $p_name", "$creator_name added task '$task_name' in $p_name.", $url, 'task_assigned', $creator_admin_id);
+    notifyAllAdmins("New Task in $p_name", "$creator_name added task '$task_name' in $p_name.", $admin_url, 'task_assigned', $creator_admin_id);
 
     echo json_encode(['success' => true, 'task_id' => $new_task_id]);
 } else {

@@ -73,6 +73,11 @@ if ($fetch_as_emp && $is_emp) {
     // 2. Direct notifications addressed to their admin_id ('admin' AND recipient_id = $admin_id)
     // 3. Fallback generic notifications ('admin' AND recipient_id = 0)
     $where = "(recipient_type = 'all_admins' OR (recipient_type = 'admin' AND (recipient_id = $admin_id OR recipient_id = 0)))";
+
+    // Auto-check time-based notifications (birthdays, leaves) server-side (throttled)
+    if (function_exists('checkTimeBasedSystemNotifications')) {
+        checkTimeBasedSystemNotifications($con);
+    }
 } else {
     // Not logged in
     if (ob_get_length()) ob_clean();
@@ -95,12 +100,15 @@ if ($max_res && $mx = mysqli_fetch_assoc($max_res)) {
     $server_max_id = intval($mx['max_id'] ?? 0);
 }
 
-// ── Early exit if nothing has changed since last poll ─────────────────────────
-if ($client_last_id > 0 && $client_last_id === $server_max_id && $unread_count === 0) {
+// ── Early exit if no new notifications since last poll ────────────────────────
+// Exit early if the client already knows about all current notifications
+// (server_max_id <= client_last_id). This prevents the JS from re-receiving
+// already-seen notification IDs on every poll cycle.
+if ($client_last_id > 0 && $server_max_id > 0 && $server_max_id <= $client_last_id) {
     if (ob_get_length()) ob_clean();
     echo json_encode([
         'success'      => true,
-        'unread_count' => 0,
+        'unread_count' => $unread_count,
         'no_change'    => true,
     ]);
     exit();
@@ -119,12 +127,41 @@ if ($list_res) {
         elseif ($diff < 86400) $time_ago = floor($diff / 3600) . 'h ago';
         else                   $time_ago = date('d M', $created);
 
+        $raw_url = $r['url'] ?? '';
+        if ($fetch_as_emp) {
+            // In employee portal, map task notifications to index.php?todo
+            if (in_array($r['type'], ['task_assigned', 'task_completed', 'comment_added']) || strpos($raw_url, 'open_task_id') !== false) {
+                $query_part = parse_url($raw_url, PHP_URL_QUERY);
+                if (!$query_part && strpos($raw_url, '?') !== false) {
+                    $query_part = substr($raw_url, strpos($raw_url, '?') + 1);
+                }
+                parse_str($query_part ?? '', $params);
+                unset($params['team_todo'], $params['global_team_todos'], $params['view_project'], $params['projects']);
+                $new_query = http_build_query(array_merge(['todo' => ''], $params));
+                $new_query = str_replace(['todo=', 'todo&'], ['todo', 'todo&'], $new_query);
+                $raw_url = 'index.php?' . ltrim($new_query, '&');
+            }
+        } else {
+            // In admin portal, map task notifications to index.php?global_team_todos
+            if (in_array($r['type'], ['task_assigned', 'task_completed', 'comment_added']) || strpos($raw_url, 'open_task_id') !== false) {
+                $query_part = parse_url($raw_url, PHP_URL_QUERY);
+                if (!$query_part && strpos($raw_url, '?') !== false) {
+                    $query_part = substr($raw_url, strpos($raw_url, '?') + 1);
+                }
+                parse_str($query_part ?? '', $params);
+                unset($params['team_todo'], $params['todo'], $params['view_project'], $params['projects']);
+                $new_query = http_build_query(array_merge(['global_team_todos' => ''], $params));
+                $new_query = str_replace(['global_team_todos=', 'global_team_todos&'], ['global_team_todos', 'global_team_todos&'], $new_query);
+                $raw_url = 'index.php?' . ltrim($new_query, '&');
+            }
+        }
+
         // Only include safe, display-only fields in the response
         $notifications[] = [
             'id'       => intval($r['id']),
             'title'    => $r['title'],
             'message'  => $r['message'],
-            'url'      => $r['url'] ?? '',
+            'url'      => $raw_url,
             'type'     => $r['type'],
             'is_read'  => intval($r['is_read']),
             'time_ago' => $time_ago,

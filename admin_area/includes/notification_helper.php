@@ -230,3 +230,130 @@ function notifyProjectTeamAndAdmins(int $project_id, string $title, string $mess
     notifyProjectMembers($project_id, $title, $message, $url, $type, $exclude_emp_ids);
     notifyProjectAdmins($project_id, $title, $message, $url, $type, $exclude_admin_ids, $task_emp_id);
 }
+
+/**
+ * Automatically check and seed time-based notifications (birthdays, upcoming birthdays, leave requests).
+ * Throttled to execute at most once every 30 minutes per session to prevent database overhead.
+ *
+ * @param mysqli $con
+ * @return int Number of new notifications inserted
+ */
+function checkTimeBasedSystemNotifications($con): int
+{
+    if (!$con) return 0;
+
+    $last_check = isset($_SESSION['last_time_based_notif_check']) ? intval($_SESSION['last_time_based_notif_check']) : 0;
+    if (time() - $last_check < 1800) {
+        return 0; // Throttled: checked recently in this session
+    }
+    $_SESSION['last_time_based_notif_check'] = time();
+
+    initNotificationTable();
+
+    $today_day_month    = date('m-d');
+    $tomorrow_day_month = date('m-d', strtotime('+1 day'));
+    $current_year       = intval(date('Y'));
+    $today_date         = date('Y-m-d');
+    $inserted           = 0;
+
+    // 1. Birthday Today — Notify all admins (once per employee per year)
+    $bday_q = mysqli_query($con,
+        "SELECT id, name FROM emp_list
+         WHERE DATE_FORMAT(dob, '%m-%d') = '$today_day_month'
+           AND (last_birthday_wish_year IS NULL OR last_birthday_wish_year != '$current_year')"
+    );
+    if ($bday_q) {
+        while ($emp = mysqli_fetch_assoc($bday_q)) {
+            $emp_id   = intval($emp['id']);
+            $emp_name = mysqli_real_escape_string($con, $emp['name']);
+
+            mysqli_query($con,
+                "UPDATE emp_list SET last_birthday_wish_year = '$current_year' WHERE id = $emp_id"
+            );
+
+            $already = mysqli_query($con,
+                "SELECT id FROM system_notifications
+                 WHERE type = 'birthday_today'
+                   AND recipient_type = 'all_admins'
+                   AND message LIKE '%#$emp_id%'
+                   AND DATE(created_at) = '$today_date'
+                 LIMIT 1"
+            );
+            if ($already && mysqli_num_rows($already) > 0) continue;
+
+            $title   = "🎂 Birthday Today!";
+            $message = "Today is {$emp['name']}'s birthday! Wish them well. #$emp_id";
+            $url     = "index.php?employees";
+            addSystemNotification('all_admins', 0, $title, $message, $url, 'birthday_today');
+            $inserted++;
+        }
+    }
+
+    // 2. Birthday Tomorrow — Remind all admins
+    $tmrw_q = mysqli_query($con,
+        "SELECT id, name FROM emp_list
+         WHERE DATE_FORMAT(dob, '%m-%d') = '$tomorrow_day_month'"
+    );
+    if ($tmrw_q) {
+        while ($emp = mysqli_fetch_assoc($tmrw_q)) {
+            $emp_id = intval($emp['id']);
+
+            $already = mysqli_query($con,
+                "SELECT id FROM system_notifications
+                 WHERE type = 'birthday_tomorrow'
+                   AND recipient_type = 'all_admins'
+                   AND message LIKE '%#$emp_id%'
+                   AND DATE(created_at) = '$today_date'
+                 LIMIT 1"
+            );
+            if ($already && mysqli_num_rows($already) > 0) continue;
+
+            $title   = "📅 Upcoming Birthday";
+            $message = "Tomorrow is {$emp['name']}'s birthday! Prepare the celebrations. #$emp_id";
+            $url     = "index.php?employees";
+            addSystemNotification('all_admins', 0, $title, $message, $url, 'birthday_tomorrow');
+            $inserted++;
+        }
+    }
+
+    // 3. New Leave Requests — Notify all admins for any pending unnotified leave
+    $leave_q = mysqli_query($con,
+        "SELECT l.id, l.reason, l.leave_from, l.leave_to, l.emp_id,
+                COALESCE(lt.leave_name, 'Leave') AS leave_type,
+                e.name AS emp_name
+         FROM leave_applications l
+         JOIN emp_list e ON l.emp_id = e.id
+         LEFT JOIN leave_types lt ON lt.id = l.leave_type_id
+         WHERE l.status = 'pending'
+         ORDER BY l.id DESC
+         LIMIT 20"
+    );
+    if ($leave_q) {
+        while ($row = mysqli_fetch_assoc($leave_q)) {
+            $leave_id   = intval($row['id']);
+            $emp_name   = $row['emp_name'];
+            $reason     = substr($row['reason'] ?? '', 0, 60);
+            $leave_type = $row['leave_type'];
+            $from_date  = !empty($row['leave_from']) ? date('d M', strtotime($row['leave_from'])) : '';
+            $to_date    = !empty($row['leave_to'])   ? date('d M', strtotime($row['leave_to']))   : '';
+
+            $already = mysqli_query($con,
+                "SELECT id FROM system_notifications
+                 WHERE type = 'leave_request'
+                   AND recipient_type = 'all_admins'
+                   AND url LIKE '%leave_id=$leave_id%'
+                 LIMIT 1"
+            );
+            if ($already && mysqli_num_rows($already) > 0) continue;
+
+            $title   = "📋 Leave Request: $emp_name";
+            $message = "$emp_name applied for $leave_type ($from_date – $to_date). Reason: $reason";
+            $url     = "index.php?view_leave_requests&leave_id=$leave_id";
+            addSystemNotification('all_admins', 0, $title, $message, $url, 'leave_request');
+            $inserted++;
+        }
+    }
+
+    return $inserted;
+}
+

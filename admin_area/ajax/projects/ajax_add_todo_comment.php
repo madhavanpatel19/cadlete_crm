@@ -92,7 +92,7 @@ if (mysqli_query($con, $insert_q)) {
         $p_name = $t_row['project_name'] ?? 'Project';
         $pid = intval($t_row['project_id']);
         $task_emp_id = intval($t_row['emp_id']);
-        $url = "index.php?team_todo&project_id=$pid&open_task_id=$task_id&emp_id=$task_emp_id";
+        $url = "index.php?todo&open_task_id=$task_id&emp_id=$task_emp_id";
         $comment_snippet = (strlen($comment) > 40) ? substr($comment, 0, 40) . '...' : $comment;
 
         notifyProjectTeamAndAdmins($pid, "New Comment: $task_name", "$author_name commented: \"$comment_snippet\" on '$task_name' in $p_name.", $url, 'comment_added', $author_emp_id, $author_admin_id);

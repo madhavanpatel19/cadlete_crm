@@ -1,12 +1,19 @@
 // Service Worker for CRM Web Notifications (Admin Area)
 'use strict';
 
+const SW_VERSION = 'crm-admin-sw-v4-2026-09-11';
+
 self.addEventListener('install', function (event) {
     self.skipWaiting();
 });
 
 self.addEventListener('activate', function (event) {
-    event.waitUntil(clients.claim());
+    event.waitUntil(
+        Promise.all([
+            clients.claim(),
+            self.registration.update().catch(function () {})
+        ])
+    );
 });
 
 self.addEventListener('push', function (event) {
@@ -19,7 +26,7 @@ self.addEventListener('push', function (event) {
         data = { title: 'CRM Notification', message: event.data.text() };
     }
 
-    var targetUrl = data.url || self.registration.scope;
+    var targetUrl = (data && data.url) ? data.url : self.registration.scope;
     try {
         targetUrl = new URL(targetUrl, self.registration.scope).href;
     } catch (e) {
@@ -47,29 +54,46 @@ self.addEventListener('push', function (event) {
 self.addEventListener('notificationclick', function (event) {
     event.notification.close();
 
-    var rawUrl = (event.notification.data && event.notification.data.url)
+    var rawUrl = (event.notification && event.notification.data && event.notification.data.url)
         ? event.notification.data.url
         : self.registration.scope;
 
-    var targetUrl = rawUrl;
+    var finalUrl = self.registration.scope;
     try {
-        targetUrl = new URL(rawUrl, self.location.origin).href;
+        if (rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://'))) {
+            finalUrl = rawUrl;
+        } else if (rawUrl && rawUrl !== '#' && rawUrl !== 'javascript:void(0);') {
+            finalUrl = new URL(rawUrl, self.registration.scope).href;
+        }
     } catch (e) {
-        targetUrl = self.registration.scope;
+        finalUrl = self.registration.scope;
     }
-
-    var finalUrl = targetUrl;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
-            // 1. Try to find an existing CRM tab on this origin, focus it, and navigate it
+            // Find existing CRM tab in current scope or origin
             for (var i = 0; i < clientList.length; i++) {
                 var client = clientList[i];
-                if (client.url && client.url.indexOf(self.location.origin) !== -1 && 'focus' in client) {
+                if (client.url && (client.url.indexOf(self.registration.scope) === 0 || client.url.indexOf(self.location.origin) === 0)) {
                     return client.focus().then(function (focusedClient) {
-                        var targetClient = focusedClient || client;
-                        if (targetClient && 'navigate' in targetClient && finalUrl && finalUrl !== '#' && !finalUrl.endsWith('#')) {
-                            return targetClient.navigate(finalUrl);
+                        var target = focusedClient || client;
+                        if (target) {
+                            // Notify the client page directly to navigate
+                            try {
+                                target.postMessage({
+                                    action: 'crm_notification_navigate',
+                                    url: finalUrl
+                                });
+                            } catch (err) {}
+
+                            // If supported and url is different, navigate client
+                            if ('navigate' in target && target.url !== finalUrl && finalUrl && finalUrl !== '#' && !finalUrl.endsWith('#')) {
+                                return target.navigate(finalUrl).catch(function () {
+                                    if (clients.openWindow) {
+                                        return clients.openWindow(finalUrl);
+                                    }
+                                });
+                            }
                         }
                     }).catch(function () {
                         if (clients.openWindow) {
@@ -78,7 +102,8 @@ self.addEventListener('notificationclick', function (event) {
                     });
                 }
             }
-            // 2. If no tab found, open a new window
+
+            // If no window is already open, open a fresh window
             if (clients.openWindow) {
                 return clients.openWindow(finalUrl);
             }

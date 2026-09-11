@@ -30,7 +30,7 @@ if (mysqli_query($con, $query)) {
     $new_task_id = mysqli_insert_id($con);
     $emp_q = mysqli_fetch_assoc(mysqli_query($con, "SELECT name FROM emp_list WHERE id = $emp_id LIMIT 1"));
     $actor_name = $emp_q ? $emp_q['name'] : 'Employee';
-    $url = "index.php?team_todo&project_id=0&open_task_id=$new_task_id&emp_id=$emp_id";
+    $url = "index.php?global_team_todos&open_task_id=$new_task_id&emp_id=$emp_id";
     notifyProjectAdmins(0, "New Task Created: $task_name", "$actor_name created task '$task_name'.", $url, 'task_assigned', 0, $emp_id);
     echo json_encode(['status' => 'success']);
 } else {
