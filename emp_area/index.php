@@ -106,7 +106,7 @@ if (!isset($_SESSION['emp_id'])) {
                     </div> -->
                     <div class="topbar-right">
                         <div class="notification-bell dropdown" id="emp-system-notif-dropdown">
-                            <div data-toggle="dropdown" style="cursor: pointer; position: relative;" onclick="fetchLiveNotifications()">
+                            <div data-toggle="dropdown" style="cursor: pointer; position: relative;" onclick="fetchLiveNotifications(true)">
                                 <i class="fa fa-bell-o"></i>
                                 <span class="notification-badge emp-sys-notif-badge" style="display: none;">0</span>
                             </div>
@@ -231,7 +231,7 @@ if (!isset($_SESSION['emp_id'])) {
              *  • Throttled to prevent multiple rapid duplicate API calls.
              *  • On click: updates DOM immediately without redundant fetch cascades.
              * ─────────────────────────────────────────────────────────────── */
-            const EMP_NOTIF_POLL_MS = 45000; // 45s interval for background desktop alerts
+            const EMP_NOTIF_POLL_MS = 30000; // 30s interval for background polling
             let _lastEmpUnreadCount = 0;
             let _lastEmpSeenNotifId = 0;
             let _empNotifPolling = false;
@@ -243,14 +243,17 @@ if (!isset($_SESSION['emp_id'])) {
                 try {
                     var raw = localStorage.getItem('crm_emp_alerted_notif_ids');
                     return raw ? new Set(JSON.parse(raw)) : new Set();
-                } catch(e) { return new Set(); }
+                } catch (e) {
+                    return new Set();
+                }
             }
+
             function _saveEmpAlertedIds(s) {
                 try {
                     var arr = Array.from(s);
                     if (arr.length > 200) arr = arr.slice(arr.length - 200);
                     localStorage.setItem('crm_emp_alerted_notif_ids', JSON.stringify(arr));
-                } catch(e) {}
+                } catch (e) {}
             }
             let _empAlertedNotifIds = _loadEmpAlertedIds();
 
@@ -370,11 +373,23 @@ if (!isset($_SESSION['emp_id'])) {
 
                 fetchLiveNotifications(true); // Initial fetch on page load
 
-                // Background polling so desktop notifications pop up on Windows/devices even on other windows
+                // Background polling every 30s
                 if (_empNotifPollTimer) clearInterval(_empNotifPollTimer);
                 _empNotifPollTimer = setInterval(function() {
                     fetchLiveNotifications(false);
                 }, EMP_NOTIF_POLL_MS);
+
+                // Also refresh when user returns to this tab (debounced)
+                var _lastEmpVisChange = 0;
+                document.addEventListener('visibilitychange', function() {
+                    if (document.visibilityState === 'visible') {
+                        var now = Date.now();
+                        if (now - _lastEmpVisChange > 10000) { // 10s debounce
+                            _lastEmpVisChange = now;
+                            fetchLiveNotifications(true);
+                        }
+                    }
+                });
             }
 
             function scheduleNextEmpNotifPoll() {
@@ -432,8 +447,10 @@ if (!isset($_SESSION['emp_id'])) {
                             }
                         }
 
-                        // Nothing new — skip DOM re-render
-                        if (res.no_change) return;
+                        // Nothing new — still update badge but skip DOM re-render
+                        if (res.no_change) {
+                            return;
+                        }
 
                         if (res.server_max_id) {
                             _lastEmpSeenNotifId = Math.max(_lastEmpSeenNotifId, parseInt(res.server_max_id));

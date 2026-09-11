@@ -1174,13 +1174,13 @@ function getResourceTypePhp(string $url)
         var att = {
             isWorking: <?php echo ($today_record && $today_record['is_working']) ? 'true' : 'false'; ?>,
             totalSecs: <?php echo ($today_record && $today_record['total_duration_secs']) ? (int)$today_record['total_duration_secs'] : 0; ?>,
-            lastResume: <?php echo ($today_record && $today_record['last_resume_time']) ? (strtotime($today_record['last_resume_time']) * 1000) : 'null'; ?>,
+            lastResume: <?php echo ($today_record && !empty($today_record['last_resume_time']) && $today_record['last_resume_time'] !== '0000-00-00 00:00:00') ? (strtotime($today_record['last_resume_time']) * 1000) : 'null'; ?>,
             checkedOut: <?php echo ($today_record && !empty($today_record['check_out_time'])) ? 'true' : 'false'; ?>,
             basePastMins: <?php echo (int)$base_past_mins; ?>,
             maxWeek: <?php echo $max_week > 0 ? $max_week : 1; ?>
         };
-        if (att.totalSecs === 0 && <?php echo ($today_record && $today_record['check_in_time']) ? 'true' : 'false'; ?>) {
-            att.lastResume = <?php echo ($today_record && $today_record['check_in_time']) ? (strtotime($today . ' ' . $today_record['check_in_time']) * 1000) : 'null'; ?>;
+        if (!att.lastResume && <?php echo ($today_record && !empty($today_record['check_in_time'])) ? 'true' : 'false'; ?>) {
+            att.lastResume = <?php echo ($today_record && !empty($today_record['check_in_time'])) ? (strtotime($today . ' ' . $today_record['check_in_time']) * 1000) : 'null'; ?>;
         }
 
         var serverTime = <?php echo time() * 1000; ?>;
@@ -1206,14 +1206,15 @@ function getResourceTypePhp(string $url)
             if (att.isWorking && att.lastResume) {
                 var adjustedNow = Date.now() + serverClientOffset;
                 activeSecs = Math.floor((adjustedNow - att.lastResume) / 1000);
+                if (activeSecs < 0) activeSecs = 0;
             }
             cur += activeSecs;
 
+            var tHMS = fmtHMS(cur);
+            $('#displayDuration,#displayDurationCard').text(tHMS);
+
             if (cur > 0) {
                 var t = fmtDur(cur);
-                var tHMS = fmtHMS(cur);
-                $('#displayDuration,#displayDurationCard').text(tHMS);
-
                 var todayEl = $('#todayBarVal');
                 if (todayEl.length) {
                     todayEl.text(t);
@@ -1229,8 +1230,10 @@ function getResourceTypePhp(string $url)
                 }
             }
         }
+
+        var timerInterval = null;
         if (!att.checkedOut) {
-            setInterval(tick, 120000);
+            timerInterval = setInterval(tick, 1000); // Live duration timer ticks every second
             tick();
         } else {
             $('#displayDuration,#displayDurationCard').text(fmtHMS(att.totalSecs));
@@ -1246,11 +1249,51 @@ function getResourceTypePhp(string $url)
                 },
                 dataType: 'json',
                 success: function(r) {
-                    if (r.status === 'success') location.reload();
-                    else {
+                    if (r.status === 'success') {
+                        if (action === 'check_in') {
+                            att.isWorking = true;
+                            att.totalSecs = 0;
+                            att.lastResume = r.last_resume_ts || (Date.now() + serverClientOffset);
+                            if (r.time) $('#displayCheckIn').text(r.time);
+                            $('.att-btns').html(
+                                '<button id="btnPause" class="att-btn ab-pause"><i class="fa fa-pause"></i> Pause</button>' +
+                                '<button id="btnCheckOut" class="att-btn ab-checkout"><i class="fa fa-stop"></i> Out</button>'
+                            );
+                            if (!timerInterval) timerInterval = setInterval(tick, 1000);
+                            tick();
+                        } else if (action === 'pause') {
+                            att.isWorking = false;
+                            if (typeof r.total_secs !== 'undefined') {
+                                att.totalSecs = r.total_secs;
+                            }
+                            tick();
+                            $('.att-btns').html(
+                                '<button id="btnResume" class="att-btn ab-checkin"><i class="fa fa-play"></i> Resume</button>' +
+                                '<button id="btnCheckOut" class="att-btn ab-checkout"><i class="fa fa-stop"></i> Out</button>'
+                            );
+                        } else if (action === 'resume') {
+                            att.isWorking = true;
+                            att.lastResume = r.last_resume_ts || (Date.now() + serverClientOffset);
+                            if (typeof r.total_secs !== 'undefined') {
+                                att.totalSecs = r.total_secs;
+                            }
+                            $('.att-btns').html(
+                                '<button id="btnPause" class="att-btn ab-pause"><i class="fa fa-pause"></i> Pause</button>' +
+                                '<button id="btnCheckOut" class="att-btn ab-checkout"><i class="fa fa-stop"></i> Out</button>'
+                            );
+                            if (!timerInterval) timerInterval = setInterval(tick, 1000);
+                            tick();
+                        } else {
+                            location.reload();
+                        }
+                    } else {
                         $btn.prop('disabled', false).html(resetHtml);
                         Swal.fire('Notification', r.message, 'info');
                     }
+                },
+                error: function() {
+                    $btn.prop('disabled', false).html(resetHtml);
+                    Swal.fire('Error', 'Connection failed. Please try again.', 'error');
                 }
             });
         }

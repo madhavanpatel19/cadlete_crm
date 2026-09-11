@@ -14,7 +14,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, private');
 header('Pragma: no-cache');
 header('X-Content-Type-Options: nosniff');
-
+    
 // Only allow AJAX requests (blocks direct URL tab access)
 $is_xhr = (
     !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
@@ -73,17 +73,17 @@ if ($fetch_as_emp && $is_emp) {
     // 2. Direct notifications addressed to their admin_id ('admin' AND recipient_id = $admin_id)
     // 3. Fallback generic notifications ('admin' AND recipient_id = 0)
     $where = "(recipient_type = 'all_admins' OR (recipient_type = 'admin' AND (recipient_id = $admin_id OR recipient_id = 0)))";
-
-    // Auto-check time-based notifications (birthdays, leaves) server-side (throttled)
-    if (function_exists('checkTimeBasedSystemNotifications')) {
-        checkTimeBasedSystemNotifications($con);
-    }
 } else {
     // Not logged in
     if (ob_get_length()) ob_clean();
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit();
+}
+
+// Auto-check time-based notifications (birthdays, leaves) server-side (throttled)
+if (function_exists('checkTimeBasedSystemNotifications')) {
+    checkTimeBasedSystemNotifications($con);
 }
 
 // ── Unread count ──────────────────────────────────────────────────────────────
@@ -129,8 +129,9 @@ if ($list_res) {
 
         $raw_url = $r['url'] ?? '';
         if ($fetch_as_emp) {
-            // In employee portal, map task notifications to index.php?todo
-            if (in_array($r['type'], ['task_assigned', 'task_completed', 'comment_added']) || strpos($raw_url, 'open_task_id') !== false) {
+            if ($r['type'] === 'birthday_today') {
+                $raw_url = 'index.php';
+            } elseif (in_array($r['type'], ['task_assigned', 'task_completed', 'comment_added']) || strpos($raw_url, 'open_task_id') !== false) {
                 $query_part = parse_url($raw_url, PHP_URL_QUERY);
                 if (!$query_part && strpos($raw_url, '?') !== false) {
                     $query_part = substr($raw_url, strpos($raw_url, '?') + 1);
@@ -140,10 +141,11 @@ if ($list_res) {
                 $new_query = http_build_query(array_merge(['todo' => ''], $params));
                 $new_query = str_replace(['todo=', 'todo&'], ['todo', 'todo&'], $new_query);
                 $raw_url = 'index.php?' . ltrim($new_query, '&');
-            }
+            }   
         } else {
-            // In admin portal, map task notifications to index.php?global_team_todos
-            if (in_array($r['type'], ['task_assigned', 'task_completed', 'comment_added']) || strpos($raw_url, 'open_task_id') !== false) {
+            if ($r['type'] === 'birthday_today') {
+                $raw_url = 'index.php?employees';
+            } elseif (in_array($r['type'], ['task_assigned', 'task_completed', 'comment_added']) || strpos($raw_url, 'open_task_id') !== false) {
                 $query_part = parse_url($raw_url, PHP_URL_QUERY);
                 if (!$query_part && strpos($raw_url, '?') !== false) {
                     $query_part = substr($raw_url, strpos($raw_url, '?') + 1);

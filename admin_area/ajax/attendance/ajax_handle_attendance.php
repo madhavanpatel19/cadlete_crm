@@ -136,7 +136,13 @@ if ($action == 'check_in') {
                      WHERE id = " . $row['id'];
         if (mysqli_query($con, $update_q)) {
             logAttendanceAction($con, $row['id'], $emp_id, 'check_in', $now_dt, $visitor_ip, $visitor_loc);
-            echo json_encode(['status' => 'success', 'message' => 'Checked in!', 'time' => $formatted_time]);
+            echo json_encode([
+                'status' => 'success', 
+                'message' => 'Checked in!', 
+                'time' => $formatted_time,
+                'last_resume_ts' => strtotime($now_dt) * 1000,
+                'total_secs' => 0
+            ]);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Error: ' . mysqli_error($con)]);
         }
@@ -146,7 +152,13 @@ if ($action == 'check_in') {
         if (mysqli_query($con, $insert_q)) {
             $att_id = mysqli_insert_id($con);
             logAttendanceAction($con, $att_id, $emp_id, 'check_in', $now_dt, $visitor_ip, $visitor_loc);
-            echo json_encode(['status' => 'success', 'message' => 'Checked in!', 'time' => $formatted_time]);
+            echo json_encode([
+                'status' => 'success', 
+                'message' => 'Checked in!', 
+                'time' => $formatted_time,
+                'last_resume_ts' => strtotime($now_dt) * 1000,
+                'total_secs' => 0
+            ]);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Error: ' . mysqli_error($con)]);
         }
@@ -161,8 +173,8 @@ if ($action == 'check_in') {
 
     if (mysqli_num_rows($check_res) > 0) {
         $row         = mysqli_fetch_assoc($check_res);
-        $last_resume = $row['last_resume_time'];
-        $diff        = strtotime($now_dt) - strtotime($last_resume);
+        $last_resume = !empty($row['last_resume_time']) ? $row['last_resume_time'] : ($today . ' ' . $row['check_in_time']);
+        $diff        = max(0, strtotime($now_dt) - strtotime($last_resume));
 
         $visitor_ip  = getVisitorIP();
         $visitor_loc = geolocateIP($visitor_ip);
@@ -173,7 +185,12 @@ if ($action == 'check_in') {
                      WHERE id = " . $row['id'];
         if (mysqli_query($con, $update_q)) {
             logAttendanceAction($con, $row['id'], $emp_id, 'pause', $now_dt, $visitor_ip, $visitor_loc);
-            echo json_encode(['status' => 'success', 'message' => 'Timer paused.']);
+            $new_total = (int)$row['total_duration_secs'] + $diff;
+            echo json_encode([
+                'status' => 'success', 
+                'message' => 'Timer paused.',
+                'total_secs' => $new_total
+            ]);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Error: ' . mysqli_error($con)]);
         }
@@ -199,7 +216,12 @@ if ($action == 'check_in') {
         $update_q = "UPDATE attendance SET last_resume_time = '$now_dt', is_working = 1 WHERE id = " . $row['id'];
         if (mysqli_query($con, $update_q)) {
             logAttendanceAction($con, $row['id'], $emp_id, 'resume', $now_dt, $visitor_ip, $visitor_loc);
-            echo json_encode(['status' => 'success', 'message' => 'Timer resumed.']);
+            echo json_encode([
+                'status' => 'success', 
+                'message' => 'Timer resumed.',
+                'last_resume_ts' => strtotime($now_dt) * 1000,
+                'total_secs' => (int)$row['total_duration_secs']
+            ]);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Error: ' . mysqli_error($con)]);
         }

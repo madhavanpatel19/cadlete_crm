@@ -366,7 +366,7 @@ if (!isset($_SESSION['admin_email'])) {
                         requireAdminPermission('employee_insert');
                         include("pages/employees/add_emp.php");
                     }
-                    if (isset($_GET['emp_directory'])) {
+                    if (isset($_GET['emp_directory']) || isset($_GET['employees'])) {
                         requireAdminPermission('employee_view');
                         include("pages/employees/emp_directory.php");
                     }
@@ -570,7 +570,7 @@ if (!isset($_SESSION['admin_email'])) {
              *  • Throttled to prevent multiple rapid duplicate API calls.
              *  • On click: updates DOM immediately without redundant fetch cascades.
              * ─────────────────────────────────────────────────────────────── */
-            const NOTIF_POLL_INTERVAL_MS = 45000; // 45s interval for background desktop alerts
+            const NOTIF_POLL_INTERVAL_MS = 30000; // 30s interval for background polling
             let _lastUnreadCount = 0;
             let _lastSeenNotifId = 0;
             let _notifPolling = false;
@@ -710,11 +710,23 @@ if (!isset($_SESSION['admin_email'])) {
 
                 fetchLiveNotifications(true); // Initial fetch on page load
 
-                // Background polling so desktop notifications trigger on Windows/devices even when on another window
+                // Background polling every 30s
                 if (_notifPollTimer) clearInterval(_notifPollTimer);
                 _notifPollTimer = setInterval(function() {
                     fetchLiveNotifications(false);
                 }, NOTIF_POLL_INTERVAL_MS);
+
+                // Also refresh when user returns to this tab (debounced)
+                var _lastVisChange = 0;
+                document.addEventListener('visibilitychange', function() {
+                    if (document.visibilityState === 'visible') {
+                        var now = Date.now();
+                        if (now - _lastVisChange > 10000) { // 10s debounce
+                            _lastVisChange = now;
+                            fetchLiveNotifications(true);
+                        }
+                    }
+                });
             }
 
             function scheduleNextNotifPoll() {
@@ -773,8 +785,10 @@ if (!isset($_SESSION['admin_email'])) {
                             }
                         }
 
-                        // Server says nothing changed — skip DOM update
-                        if (res.no_change) return;
+                        // Server says nothing changed — still update badge but skip DOM re-render
+                        if (res.no_change) {
+                            return;
+                        }
 
                         if (res.server_max_id) {
                             _lastSeenNotifId = Math.max(_lastSeenNotifId, parseInt(res.server_max_id));

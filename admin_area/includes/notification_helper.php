@@ -251,30 +251,29 @@ function checkTimeBasedSystemNotifications($con): int
     initNotificationTable();
 
     $today_day_month    = date('m-d');
-    $tomorrow_day_month = date('m-d', strtotime('+1 day'));
     $current_year       = intval(date('Y'));
     $today_date         = date('Y-m-d');
     $inserted           = 0;
 
-    // 1. Birthday Today — Notify all admins (once per employee per year)
+    // 0. Auto-cleanup: remove past birthday notifications from previous days
+    @mysqli_query($con, "DELETE FROM system_notifications WHERE type LIKE 'birthday%' AND DATE(created_at) < '$today_date'");
+
+    // 1. Birthday Today — Notify ALL employees and ALL admins (once per employee per day)
     $bday_q = mysqli_query($con,
         "SELECT id, name FROM emp_list
-         WHERE DATE_FORMAT(dob, '%m-%d') = '$today_day_month'
-           AND (last_birthday_wish_year IS NULL OR last_birthday_wish_year != '$current_year')"
+         WHERE dob IS NOT NULL 
+           AND dob != '0000-00-00' 
+           AND DATE_FORMAT(dob, '%m-%d') = '$today_day_month'"
     );
     if ($bday_q) {
         while ($emp = mysqli_fetch_assoc($bday_q)) {
             $emp_id   = intval($emp['id']);
             $emp_name = mysqli_real_escape_string($con, $emp['name']);
 
-            mysqli_query($con,
-                "UPDATE emp_list SET last_birthday_wish_year = '$current_year' WHERE id = $emp_id"
-            );
-
+            // Check if already notified today for this employee
             $already = mysqli_query($con,
                 "SELECT id FROM system_notifications
                  WHERE type = 'birthday_today'
-                   AND recipient_type = 'all_admins'
                    AND message LIKE '%#$emp_id%'
                    AND DATE(created_at) = '$today_date'
                  LIMIT 1"
@@ -282,37 +281,16 @@ function checkTimeBasedSystemNotifications($con): int
             if ($already && mysqli_num_rows($already) > 0) continue;
 
             $title   = "🎂 Birthday Today!";
-            $message = "Today is {$emp['name']}'s birthday! Wish them well. #$emp_id";
-            $url     = "index.php?employees";
-            addSystemNotification('all_admins', 0, $title, $message, $url, 'birthday_today');
-            $inserted++;
-        }
-    }
+            $message = "Today is {$emp_name}'s birthday! Wish them a very Happy Birthday! 🎉 #$emp_id";
 
-    // 2. Birthday Tomorrow — Remind all admins
-    $tmrw_q = mysqli_query($con,
-        "SELECT id, name FROM emp_list
-         WHERE DATE_FORMAT(dob, '%m-%d') = '$tomorrow_day_month'"
-    );
-    if ($tmrw_q) {
-        while ($emp = mysqli_fetch_assoc($tmrw_q)) {
-            $emp_id = intval($emp['id']);
+            // Send notification to all admins
+            addSystemNotification('all_admins', 0, $title, $message, 'index.php?employees', 'birthday_today');
 
-            $already = mysqli_query($con,
-                "SELECT id FROM system_notifications
-                 WHERE type = 'birthday_tomorrow'
-                   AND recipient_type = 'all_admins'
-                   AND message LIKE '%#$emp_id%'
-                   AND DATE(created_at) = '$today_date'
-                 LIMIT 1"
-            );
-            if ($already && mysqli_num_rows($already) > 0) continue;
+            // Send notification to all employees
+            addSystemNotification('all_employees', 0, $title, $message, 'index.php', 'birthday_today');
 
-            $title   = "📅 Upcoming Birthday";
-            $message = "Tomorrow is {$emp['name']}'s birthday! Prepare the celebrations. #$emp_id";
-            $url     = "index.php?employees";
-            addSystemNotification('all_admins', 0, $title, $message, $url, 'birthday_tomorrow');
-            $inserted++;
+            @mysqli_query($con, "UPDATE emp_list SET last_birthday_wish_year = '$current_year' WHERE id = $emp_id");
+            $inserted += 2;
         }
     }
 

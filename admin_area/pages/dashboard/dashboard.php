@@ -642,7 +642,7 @@ if ($res && mysqli_num_rows($res) > 0) {
                 var lastResumeStr = $cell.attr('data-last-resume');
                 var checkInStr = $cell.attr('data-check-in');
 
-                var startStr = (totalSecs > 0 && lastResumeStr) ? lastResumeStr : checkInStr;
+                var startStr = lastResumeStr ? lastResumeStr : checkInStr;
                 if (startStr) {
                     var startTime = new Date(startStr).getTime();
                     var adjustedNow = Date.now() + serverClientOffset;
@@ -740,7 +740,7 @@ if ($res && mysqli_num_rows($res) > 0) {
         }
 
         // Update duration every second
-        setInterval(updateLiveTimers, 120000);
+        setInterval(updateLiveTimers, 1000);
 
         // Sync status from server every 3 seconds for instant real-time updates
         // setInterval(syncLiveStatus, 3000);

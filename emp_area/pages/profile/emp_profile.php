@@ -36,14 +36,14 @@ if (!isset($_SESSION['emp_id'])) {
 ?>
 
     <div class="page-wrapper">
-        <div class="page-header-premium">
+        <!-- <div class="page-header-premium">
             <h1>My Profile</h1>
             <div class="header-actions">
                 <button class="btn-premium-add" onclick="window.location.reload();">
                     <i class="fa fa-refresh"></i> Refresh
                 </button>
             </div>
-        </div>
+        </div> -->
 
         <!-- Main Container -->
         <div class="row">
@@ -109,9 +109,9 @@ if (!isset($_SESSION['emp_id'])) {
                             <i class="fa fa-user" style="font-size: 18px;"></i>
                             <h3 style="margin: 0; font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #fff;">Employee Information</h3>
                         </div>
-                        <button class="btn-premium-add" data-toggle="modal" data-target="#editProfileModal">
+                        <!-- <button class="btn-premium-add" data-toggle="modal" data-target="#editProfileModal">
                             <i class="fa fa-pencil"></i> Edit Profile
-                        </button>
+                        </button> -->
                     </div>
 
                     <div style="padding: 30px;">

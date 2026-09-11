@@ -59,7 +59,7 @@ if (!isset($_SESSION['admin_email'])) {
         </div><!-- navbar-header Ends -->
         <ul class="nav navbar-right top-nav"><!-- nav navbar-right top-nav Starts -->
             <li class="dropdown" id="system-notif-dropdown"><!-- notification dropdown Starts -->
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="fetchLiveNotifications()">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="fetchLiveNotifications(true)">
                     <i class="fa fa-bell"></i>
                     <span class="label label-danger sys-notif-badge" style="position: absolute; top: 10px; right: 5px; border-radius: 50%; padding: 2px 5px; font-size: 10px; display: none;">0</span>
                 </a>
@@ -155,7 +155,7 @@ if (!isset($_SESSION['admin_email'])) {
             <h3 class="menu-heading">HR MANAGEMENT</h3>
             <ul>
                 <?php if (canAdminAccess('employee_view')): ?>
-                    <li class="<?php if (isset($_GET['emp_directory'])) {
+                    <li class="<?php if (isset($_GET['emp_directory']) || isset($_GET['employees'])) {
                                     echo "active";
                                 } ?>">
                         <a href="index.php?emp_directory"><i class="fa fa-users"></i> View Employees</a>
